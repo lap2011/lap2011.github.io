@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT" />
+  <meta name="keywords" content="Hadoop," />
 
 
 
@@ -79,15 +79,28 @@
 
 
 
-<meta name="description" content="aiping.liang s home">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Aiping.LAP">
-<meta property="og:url" content="http://yoursite.com/index.html">
+<meta name="description" content="这本来是想写一个小的系列，包括后续的压测，所以先从环境搭建开始.
+PS:看了很多的文章后，总结出来的结论：网络上搭建方式各种坑，实践才是检验真理的唯一方式
+基础环境hadoop版本1.0.4,Hbase0.94.3，系统环境：Centos5X, 64位
+搭建过程 一共需要准备4部分东西，这4个部分缺一不可。
+1、lzo的系统库文件不用相信网上的方法，亲测了，和很多库一样，这个不需要编译环境和运行环">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hadoop和HBase开启对LZO压缩的支持">
+<meta property="og:url" content="http://yoursite.com/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/index.html">
 <meta property="og:site_name" content="Aiping.LAP">
-<meta property="og:description" content="aiping.liang s home">
+<meta property="og:description" content="这本来是想写一个小的系列，包括后续的压测，所以先从环境搭建开始.
+PS:看了很多的文章后，总结出来的结论：网络上搭建方式各种坑，实践才是检验真理的唯一方式
+基础环境hadoop版本1.0.4,Hbase0.94.3，系统环境：Centos5X, 64位
+搭建过程 一共需要准备4部分东西，这4个部分缺一不可。
+1、lzo的系统库文件不用相信网上的方法，亲测了，和很多库一样，这个不需要编译环境和运行环">
+<meta property="og:updated_time" content="2017-12-21T07:53:30.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Aiping.LAP">
-<meta name="twitter:description" content="aiping.liang s home">
+<meta name="twitter:title" content="Hadoop和HBase开启对LZO压缩的支持">
+<meta name="twitter:description" content="这本来是想写一个小的系列，包括后续的压测，所以先从环境搭建开始.
+PS:看了很多的文章后，总结出来的结论：网络上搭建方式各种坑，实践才是检验真理的唯一方式
+基础环境hadoop版本1.0.4,Hbase0.94.3，系统环境：Centos5X, 64位
+搭建过程 一共需要准备4部分东西，这4个部分缺一不可。
+1、lzo的系统库文件不用相信网上的方法，亲测了，和很多库一样，这个不需要编译环境和运行环">
 
 
 
@@ -117,13 +130,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/"/>
+  <link rel="canonical" href="http://yoursite.com/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/"/>
 
 
 
 
 
-  <title>Aiping.LAP</title>
+  <title>Hadoop和HBase开启对LZO压缩的支持 | Aiping.LAP</title>
   
 
 
@@ -142,8 +155,7 @@
     
   
 
-  <div class="container sidebar-position-left 
-  page-home">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -216,255 +228,9 @@
         <div class="content-wrap">
           <div id="content" class="content">
             
-  <section id="posts" class="posts-expand">
+
+  <div id="posts" class="posts-expand">
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/22/Apache-Eagle-基本介绍/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/11/22/Apache-Eagle-基本介绍/" itemprop="url">Apache Eagle 基本介绍</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-21T14:23:35-08:00">
-                2017-11-21
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/10/27/HBase0-98以后的版本直接读取HFile文件/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2015/10/27/HBase0-98以后的版本直接读取HFile文件/" itemprop="url">HBase0.98以后的版本直接读取HFile文件</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-10-26T21:58:32-08:00">
-                2015-10-26
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>在一些特殊的场景下，我们可能需要直接去读取HBase的HFile文件来替代通过HBase Coonection的方式读取Hbase的表信息。</p>
-<h1 id="主要的好处是"><a href="#主要的好处是" class="headerlink" title="主要的好处是"></a>主要的好处是</h1><p>1、可以减少对Server的压力</p>
-<p>2、在一些特殊的场景下，如果服务出现问题，需要恢复数据的时候，只能通过这种方式</p>
-<p>3、对于一些离线的读操作(保证这个时间段没有大量的写操作,且能容忍 一定的错误比率)，完全可以通过直接读HFIle来替代原来的方式</p>
-<p>总的来说，这种方式比较适合在写入量极少(最好没有写入)的需求下，需要扫描全表，或者一定范围的需求</p>
-<h1 id="实现方式"><a href="#实现方式" class="headerlink" title="实现方式"></a>实现方式</h1><p>1、为了降低读取成本，一般来说，在读取之前可以先进行一个compact，或者进行一个major compact</p>
-<p>2、读取的代码如下</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//获取到HBase的根目录，这个不需要用户自己制定，只需要使用默认的配置生成即可</span></div><div class="line"></div><div class="line">Path rootDir = FSUtils.getRootDir(conf);</div><div class="line">LOG.info(<span class="string">"Get Root HBase dir "</span> + rootDir);</div><div class="line"></div><div class="line"><span class="comment">//制定要读取的表，然后获取表在hdfs上的绝对路径</span></div><div class="line">Path tablePath = FSUtils.getTableDir(rootDir, TableName.valueOf(tableName));</div><div class="line">LOG.info(<span class="string">"Get Table dir "</span> + tablePath);</div><div class="line">FileSystem fs = tablePath.getFileSystem(conf);</div><div class="line"></div><div class="line"><span class="comment">//获取当前表的所有region list，如果有特定的范围需求，可以通过一个filter，过滤需要的region</span></div><div class="line">List allRegionPath = FSUtils.getRegionDirs(fs, tablePath);</div><div class="line">List storeFilePaths = <span class="keyword">new</span> ArrayList();</div><div class="line"></div><div class="line"><span class="comment">//循环所有的region路径</span></div><div class="line"><span class="keyword">for</span> (Path regionPath: allRegionPath)&#123;</div><div class="line">	LOG.info(<span class="string">"Get region path "</span> + regionPath);</div><div class="line">	</div><div class="line">	<span class="comment">//指定过滤特殊的region过滤</span></div><div class="line">	PathFilter dirFilter = <span class="keyword">new</span> FSUtils.DirFilter(fs);</div><div class="line">    <span class="comment">//获取指定的region下所有的store file文件，如果进行major compact，这个文件个数为1  </span></div><div class="line">  	FileStatus[] familyStatus = fs.listStatus(regionPath,dirFilter);</div><div class="line">    <span class="comment">//循环所有的sotrefile</span></div><div class="line">	<span class="keyword">for</span> (FileStatus fileStatus: familyStatus)&#123;</div><div class="line">    	FileStatus[] storeFiles = fs.listStatus(fileStatus.getPath());</div><div class="line">        <span class="comment">//记录所有已经读取的rowkey</span></div><div class="line">        List rowKeyList = <span class="keyword">new</span> ArrayList(); </div><div class="line">        <span class="keyword">if</span> (HConstants.RECOVERED_EDITS_DIR.equals(fileStatus.getPath().getName()))&#123;</div><div class="line">             <span class="comment">// if it is wal edits file,skip!</span></div><div class="line">			<span class="keyword">continue</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">        <span class="comment">//遍历sotrefile</span></div><div class="line">		<span class="keyword">for</span> (FileStatus storeFile: storeFiles)&#123;</div><div class="line">             <span class="comment">//默认的情况，在storefile的同一层有一些元数据的文件，这些文件不包含有要读取的数据，所以直接跳过，这个方法比较暴力，但是目前没有看到HBase提供了判断一个路径是否是storefile的方法，只能这么干</span></div><div class="line">			<span class="keyword">if</span> (!storeFile.isDirectory())&#123;</div><div class="line">				LOG.info(<span class="string">"get store file path:"</span>+storeFile.getPath().getName());</div><div class="line">				storeFilePaths.add(storeFile.getPath());</div><div class="line">                 <span class="comment">//构造HFile.Reader对象，读取storefile路径下的所有文件</span></div><div class="line">				HFile.Reader hfileReader = HFile.createReader(fs, storeFile.getPath(), <span class="keyword">new</span> CacheConfig(conf), conf);</div><div class="line">				<span class="comment">// Map fileInfo = hfileReader.loadFileInfo();</span></div><div class="line">                 </div><div class="line">                  <span class="comment">//获取scanner对象，开始读取</span></div><div class="line">				 HFileScanner hFileScanner = hfileReader.getScanner(<span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">false</span>);</div><div class="line">                  hFileScanner.seekTo();</div><div class="line"></div><div class="line">				<span class="keyword">do</span>&#123;</div><div class="line">                      <span class="comment">//读取文件中的一行记录</span></div><div class="line">					Cell cell = hFileScanner.getKeyValue();</div><div class="line">						</div><div class="line">                      <span class="comment">//获取当前行的所有信息，打印</span></div><div class="line">					String rowKey = <span class="keyword">new</span> String(CellUtil.cloneRow(cell));</div><div class="line">					<span class="keyword">if</span> (rowKeyList.contains(rowKey))&#123;</div><div class="line">						<span class="keyword">continue</span>;</div><div class="line">					&#125;</div><div class="line">					rowKeyList.add(rowKey);</div><div class="line">					LOG.info(<span class="string">"count "</span> + rowKeyList.size() + <span class="string">"RowName:"</span> + rowKey+ <span class="string">" "</span>);</div><div class="line">					LOG.debug(<span class="string">"Timetamp:"</span> + cell.getTimestamp() + <span class="string">" "</span>);</div><div class="line">					LOG.debug(<span class="string">"column Family:"</span> + <span class="keyword">new</span> String(CellUtil.cloneFamily(cell)) + <span class="string">" "</span>);</div><div class="line">					LOG.debug(<span class="string">"row Name:"</span> + <span class="keyword">new</span> String(CellUtil.cloneQualifier(cell)) + <span class="string">" "</span>);</div><div class="line">					LOG.debug(<span class="string">"value:"</span> + <span class="keyword">new</span> String(CellUtil.cloneValue(cell)) + <span class="string">" "</span>);</div><div class="line">				&#125; <span class="keyword">while</span>(hFileScanner.next());</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		LOG.info(<span class="string">"Store File "</span>+fileStatus.getPath()+<span class="string">" containes row "</span>+rowKeyList.size()+<span class="string">" lines!"</span>);</div><div class="line">	&#125;</div><div class="line">  &#125;</div><div class="line">&#125; <span class="keyword">catch</span> (Exception e)&#123;</div><div class="line">	e.printStackTrace();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
 
   
 
@@ -494,9 +260,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/" itemprop="url">Hadoop和HBase开启对LZO压缩的支持</a></h1>
+          <h1 class="post-title" itemprop="name headline">Hadoop和HBase开启对LZO压缩的支持</h1>
         
 
         <div class="post-meta">
@@ -546,9 +310,7 @@
       
 
       
-        
-          
-            <p>这本来是想写一个小的系列，包括后续的压测，所以先从环境搭建开始.</p>
+        <p>这本来是想写一个小的系列，包括后续的压测，所以先从环境搭建开始.</p>
 <p>PS:看了很多的文章后，总结出来的结论：网络上搭建方式各种坑，实践才是检验真理的唯一方式</p>
 <h1 id="基础环境"><a href="#基础环境" class="headerlink" title="基础环境"></a>基础环境</h1><p>hadoop版本1.0.4,Hbase0.94.3，系统环境：Centos5X, 64位</p>
 <h1 id="搭建过程"><a href="#搭建过程" class="headerlink" title="搭建过程"></a>搭建过程</h1><p> 一共需要准备4部分东西，这4个部分缺一不可。</p>
@@ -606,8 +368,6 @@
 <p> 看到的是非乱码就证明lzo正确安装了。</p>
 <h1 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h1><p><a href="http://www.quora.com/How-do-I-install-LZO-compression-with-Hbase-and-Hadoop" target="_blank" rel="external">http://www.quora.com/How-do-I-install-LZO-compression-with-Hbase-and-Hadoop</a><br><a href="http://shitouer.cn/2013/01/hadoop-hbase-snappy-setup-final-tutorial/" target="_blank" rel="external">http://shitouer.cn/2013/01/hadoop-hbase-snappy-setup-final-tutorial/</a></p>
 
-          
-        
       
     </div>
     
@@ -622,14 +382,36 @@
 
     <footer class="post-footer">
       
-
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop/" rel="tag"># Hadoop</a>
+          
+        </div>
       
 
       
+      
+      
 
       
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/27/HBase0-98以后的版本直接读取HFile文件/" rel="prev" title="HBase0.98以后的版本直接读取HFile文件">
+                HBase0.98以后的版本直接读取HFile文件 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
       
-        <div class="post-eof"></div>
+
+      
       
     </footer>
   </div>
@@ -639,10 +421,11 @@
   </article>
 
 
-    
-  </section>
 
-  
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -650,6 +433,8 @@
 
 
           
+  
+
 
         </div>
         
@@ -670,8 +455,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -724,6 +518,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#基础环境"><span class="nav-number">1.</span> <span class="nav-text">基础环境</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#搭建过程"><span class="nav-number">2.</span> <span class="nav-text">搭建过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1、lzo的系统库文件"><span class="nav-number">2.1.</span> <span class="nav-text">1、lzo的系统库文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2、导入hadoop依赖lzo的jar包"><span class="nav-number">2.2.</span> <span class="nav-text">2、导入hadoop依赖lzo的jar包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3、hadoop调用系统库的jni库文件"><span class="nav-number">2.3.</span> <span class="nav-text">3、hadoop调用系统库的jni库文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4、需要配置中，引用相关的库文件"><span class="nav-number">2.4.</span> <span class="nav-text">4、需要配置中，引用相关的库文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#core-site-xml-中增加："><span class="nav-number">2.4.1.</span> <span class="nav-text">core-site.xml 中增加：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#mapred-site-xml-中增加："><span class="nav-number">2.4.2.</span> <span class="nav-text">mapred-site.xml 中增加：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hadoop-env-sh-中增加："><span class="nav-number">2.4.3.</span> <span class="nav-text">hadoop-env.sh 中增加：</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#结果测试"><span class="nav-number">3.</span> <span class="nav-text">结果测试</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#hadoop测试使用lzo的压缩："><span class="nav-number">3.1.</span> <span class="nav-text">hadoop测试使用lzo的压缩：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#hbase测试使用lzo压缩："><span class="nav-number">3.2.</span> <span class="nav-text">hbase测试使用lzo压缩：</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#补充"><span class="nav-number">4.</span> <span class="nav-text">补充</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考："><span class="nav-number">5.</span> <span class="nav-text">参考：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -850,6 +660,10 @@
 
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
 
   
 

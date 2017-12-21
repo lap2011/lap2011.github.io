@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="HBase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="在一些特殊的场景下，我们可能需要直接去读取HBase的HFile文件来替代通过HBase Coonection的方式读取Hbase的表信息。
+主要的好处是1、可以减少对Server的压力
+2、在一些特殊的场景下，如果服务出现问题，需要恢复数据的时候，只能通过这种方式
+3、对于一些离线的读操作(保证这个时间段没有大量的写操作,且能容忍 一定的错误比率)，完全可以通过直接读HFIle来替代原来的方式">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase0.98以后的版本直接读取HFile文件">
+<meta property="og:url" content="http://yoursite.com/2015/10/27/HBase0-98以后的版本直接读取HFile文件/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="在一些特殊的场景下，我们可能需要直接去读取HBase的HFile文件来替代通过HBase Coonection的方式读取Hbase的表信息。
+主要的好处是1、可以减少对Server的压力
+2、在一些特殊的场景下，如果服务出现问题，需要恢复数据的时候，只能通过这种方式
+3、对于一些离线的读操作(保证这个时间段没有大量的写操作,且能容忍 一定的错误比率)，完全可以通过直接读HFIle来替代原来的方式">
+<meta property="og:updated_time" content="2017-12-21T08:28:19.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HBase0.98以后的版本直接读取HFile文件">
+<meta name="twitter:description" content="在一些特殊的场景下，我们可能需要直接去读取HBase的HFile文件来替代通过HBase Coonection的方式读取Hbase的表信息。
+主要的好处是1、可以减少对Server的压力
+2、在一些特殊的场景下，如果服务出现问题，需要恢复数据的时候，只能通过这种方式
+3、对于一些离线的读操作(保证这个时间段没有大量的写操作,且能容忍 一定的错误比率)，完全可以通过直接读HFIle来替代原来的方式">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2015/10/27/HBase0-98以后的版本直接读取HFile文件/"/>
+
+
+
+
+
+  <title>HBase0.98以后的版本直接读取HFile文件 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/10/27/HBase0-98以后的版本直接读取HFile文件/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">HBase0.98以后的版本直接读取HFile文件</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-10-26T21:58:32-08:00">
+                2015-10-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在一些特殊的场景下，我们可能需要直接去读取HBase的HFile文件来替代通过HBase Coonection的方式读取Hbase的表信息。</p>
+<h1 id="主要的好处是"><a href="#主要的好处是" class="headerlink" title="主要的好处是"></a>主要的好处是</h1><p>1、可以减少对Server的压力</p>
+<p>2、在一些特殊的场景下，如果服务出现问题，需要恢复数据的时候，只能通过这种方式</p>
+<p>3、对于一些离线的读操作(保证这个时间段没有大量的写操作,且能容忍 一定的错误比率)，完全可以通过直接读HFIle来替代原来的方式</p>
+<p>总的来说，这种方式比较适合在写入量极少(最好没有写入)的需求下，需要扫描全表，或者一定范围的需求</p>
+<h1 id="实现方式"><a href="#实现方式" class="headerlink" title="实现方式"></a>实现方式</h1><p>1、为了降低读取成本，一般来说，在读取之前可以先进行一个compact，或者进行一个major compact</p>
+<p>2、读取的代码如下</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//获取到HBase的根目录，这个不需要用户自己制定，只需要使用默认的配置生成即可</span></div><div class="line"></div><div class="line">Path rootDir = FSUtils.getRootDir(conf);</div><div class="line">LOG.info(<span class="string">"Get Root HBase dir "</span> + rootDir);</div><div class="line"></div><div class="line"><span class="comment">//制定要读取的表，然后获取表在hdfs上的绝对路径</span></div><div class="line">Path tablePath = FSUtils.getTableDir(rootDir, TableName.valueOf(tableName));</div><div class="line">LOG.info(<span class="string">"Get Table dir "</span> + tablePath);</div><div class="line">FileSystem fs = tablePath.getFileSystem(conf);</div><div class="line"></div><div class="line"><span class="comment">//获取当前表的所有region list，如果有特定的范围需求，可以通过一个filter，过滤需要的region</span></div><div class="line">List allRegionPath = FSUtils.getRegionDirs(fs, tablePath);</div><div class="line">List storeFilePaths = <span class="keyword">new</span> ArrayList();</div><div class="line"></div><div class="line"><span class="comment">//循环所有的region路径</span></div><div class="line"><span class="keyword">for</span> (Path regionPath: allRegionPath)&#123;</div><div class="line">	LOG.info(<span class="string">"Get region path "</span> + regionPath);</div><div class="line">	</div><div class="line">	<span class="comment">//指定过滤特殊的region过滤</span></div><div class="line">	PathFilter dirFilter = <span class="keyword">new</span> FSUtils.DirFilter(fs);</div><div class="line">    <span class="comment">//获取指定的region下所有的store file文件，如果进行major compact，这个文件个数为1  </span></div><div class="line">  	FileStatus[] familyStatus = fs.listStatus(regionPath,dirFilter);</div><div class="line">    <span class="comment">//循环所有的sotrefile</span></div><div class="line">	<span class="keyword">for</span> (FileStatus fileStatus: familyStatus)&#123;</div><div class="line">    	FileStatus[] storeFiles = fs.listStatus(fileStatus.getPath());</div><div class="line">        <span class="comment">//记录所有已经读取的rowkey</span></div><div class="line">        List rowKeyList = <span class="keyword">new</span> ArrayList(); </div><div class="line">        <span class="keyword">if</span> (HConstants.RECOVERED_EDITS_DIR.equals(fileStatus.getPath().getName()))&#123;</div><div class="line">             <span class="comment">// if it is wal edits file,skip!</span></div><div class="line">			<span class="keyword">continue</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">        <span class="comment">//遍历sotrefile</span></div><div class="line">		<span class="keyword">for</span> (FileStatus storeFile: storeFiles)&#123;</div><div class="line">             <span class="comment">//默认的情况，在storefile的同一层有一些元数据的文件，这些文件不包含有要读取的数据，所以直接跳过，这个方法比较暴力，但是目前没有看到HBase提供了判断一个路径是否是storefile的方法，只能这么干</span></div><div class="line">			<span class="keyword">if</span> (!storeFile.isDirectory())&#123;</div><div class="line">				LOG.info(<span class="string">"get store file path:"</span>+storeFile.getPath().getName());</div><div class="line">				storeFilePaths.add(storeFile.getPath());</div><div class="line">                 <span class="comment">//构造HFile.Reader对象，读取storefile路径下的所有文件</span></div><div class="line">				HFile.Reader hfileReader = HFile.createReader(fs, storeFile.getPath(), <span class="keyword">new</span> CacheConfig(conf), conf);</div><div class="line">				<span class="comment">// Map fileInfo = hfileReader.loadFileInfo();</span></div><div class="line">                 </div><div class="line">                  <span class="comment">//获取scanner对象，开始读取</span></div><div class="line">				 HFileScanner hFileScanner = hfileReader.getScanner(<span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">false</span>);</div><div class="line">                  hFileScanner.seekTo();</div><div class="line"></div><div class="line">				<span class="keyword">do</span>&#123;</div><div class="line">                      <span class="comment">//读取文件中的一行记录</span></div><div class="line">					Cell cell = hFileScanner.getKeyValue();</div><div class="line">						</div><div class="line">                      <span class="comment">//获取当前行的所有信息，打印</span></div><div class="line">					String rowKey = <span class="keyword">new</span> String(CellUtil.cloneRow(cell));</div><div class="line">					<span class="keyword">if</span> (rowKeyList.contains(rowKey))&#123;</div><div class="line">						<span class="keyword">continue</span>;</div><div class="line">					&#125;</div><div class="line">					rowKeyList.add(rowKey);</div><div class="line">					LOG.info(<span class="string">"count "</span> + rowKeyList.size() + <span class="string">"RowName:"</span> + rowKey+ <span class="string">" "</span>);</div><div class="line">					LOG.debug(<span class="string">"Timetamp:"</span> + cell.getTimestamp() + <span class="string">" "</span>);</div><div class="line">					LOG.debug(<span class="string">"column Family:"</span> + <span class="keyword">new</span> String(CellUtil.cloneFamily(cell)) + <span class="string">" "</span>);</div><div class="line">					LOG.debug(<span class="string">"row Name:"</span> + <span class="keyword">new</span> String(CellUtil.cloneQualifier(cell)) + <span class="string">" "</span>);</div><div class="line">					LOG.debug(<span class="string">"value:"</span> + <span class="keyword">new</span> String(CellUtil.cloneValue(cell)) + <span class="string">" "</span>);</div><div class="line">				&#125; <span class="keyword">while</span>(hFileScanner.next());</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		LOG.info(<span class="string">"Store File "</span>+fileStatus.getPath()+<span class="string">" containes row "</span>+rowKeyList.size()+<span class="string">" lines!"</span>);</div><div class="line">	&#125;</div><div class="line">  &#125;</div><div class="line">&#125; <span class="keyword">catch</span> (Exception e)&#123;</div><div class="line">	e.printStackTrace();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/" rel="next" title="Hadoop和HBase开启对LZO压缩的支持">
+                <i class="fa fa-chevron-left"></i> Hadoop和HBase开启对LZO压缩的支持
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/11/22/Apache-Eagle-基本介绍/" rel="prev" title="Apache Eagle 基本介绍">
+                Apache Eagle 基本介绍 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#主要的好处是"><span class="nav-number">1.</span> <span class="nav-text">主要的好处是</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#实现方式"><span class="nav-number">2.</span> <span class="nav-text">实现方式</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
