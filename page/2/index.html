@@ -231,6 +231,694 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/10/21/在Django项目中REST接口/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/10/21/在Django项目中REST接口/" itemprop="url">在Django项目中REST接口</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-10-21T11:00:41+08:00">
+                2014-10-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="基本的环境搭建："><a href="#基本的环境搭建：" class="headerlink" title="基本的环境搭建："></a>基本的环境搭建：</h1><p>   经过调研，要使用<a href="http://www.django-rest-framework.org/#django-rest-framework" target="_blank" rel="external">http://www.django-rest-framework.org/#django-rest-framework</a></p>
+<h2 id="1、安装相关的软件："><a href="#1、安装相关的软件：" class="headerlink" title="1、安装相关的软件："></a>1、安装相关的软件：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">pip install djangorestframework</div><div class="line"></div><div class="line">pip install markdown</div><div class="line"></div><div class="line">pip install django-filter</div></pre></td></tr></table></figure>
+<h2 id="2、安装新的app："><a href="#2、安装新的app：" class="headerlink" title="2、安装新的app："></a>2、安装新的app：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">python manage.py startapp rest</div></pre></td></tr></table></figure>
+<h2 id="3、加入新的app："><a href="#3、加入新的app：" class="headerlink" title="3、加入新的app："></a>3、加入新的app：</h2><p>   编辑setting.py,在INSTALLED_APPS中加入以下两个app</p>
+<p>​    ‘rest’, //自定义的新增加的APP</p>
+<p>​    ‘rest_framework’, //为djangon引入的rest接口</p>
+<p>   同时增加：</p>
+<p>   REST_FRAMEWORK = { </p>
+<p>​    # Use Django’s standard <code>django.contrib.auth</code> permissions, </p>
+<p>​    # or allow read-only access for unauthenticated users. </p>
+<p>​    ‘DEFAULT_PERMISSION_CLASSES’: [ </p>
+<p>​        ‘rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly’ </p>
+<p>​     ] </p>
+<p>   } </p>
+<p>   编辑urls.py，为新模块增加定义：</p>
+<p>   url(r’^api-auth/‘, include(‘rest.urls’)),</p>
+<h2 id="4、为新的模块增加urls-py的定义，如下："><a href="#4、为新的模块增加urls-py的定义，如下：" class="headerlink" title="4、为新的模块增加urls.py的定义，如下："></a>4、为新的模块增加urls.py的定义，如下：</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">from</span> django.conf.urls <span class="keyword">import</span> url,include,patterns </div><div class="line"></div><div class="line"><span class="keyword">from</span> django.contrib.auth.models <span class="keyword">import</span> User </div><div class="line"></div><div class="line"><span class="keyword">from</span> rest_framework <span class="keyword">import</span> routers, serializers, viewsets </div><div class="line"></div><div class="line">\<span class="comment"># Serializers define the API representation. </span></div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">UserSerializer</span><span class="params">(serializers.HyperlinkedModelSerializer)</span>:</span> </div><div class="line"></div><div class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span> </div><div class="line"></div><div class="line">        model = User </div><div class="line"></div><div class="line">        fields = (<span class="string">'url'</span>, <span class="string">'username'</span>, http://<span class="number">192.168</span><span class="number">.24</span><span class="number">.131</span>:<span class="number">9000</span>/api-auth/test1/<span class="number">2</span>/<span class="string">'email'</span>, <span class="string">'is_staff'</span>) </div><div class="line"></div><div class="line">\<span class="comment"># ViewSets define the view behavior. </span></div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">UserViewSet</span><span class="params">(viewsets.ModelViewSet)</span>:</span> </div><div class="line"></div><div class="line">    queryset = User.objects.all() </div><div class="line"></div><div class="line">    serializer_class = UserSerializer </div><div class="line"></div><div class="line">\<span class="comment"># Routers provide an easy way of automatically determining the URL conf. </span></div><div class="line"></div><div class="line">router = routers.DefaultRouter() </div><div class="line"></div><div class="line">router.register(<span class="string">r'users'</span>, UserViewSet) </div><div class="line"></div><div class="line">\<span class="comment"># Wire up our API using automatic URL routing. </span></div><div class="line"></div><div class="line">\<span class="comment"># Additionally, we include login URLs for the browseable API. </span></div><div class="line"></div><div class="line">urlpatterns = patterns(<span class="string">'api.views'</span>, </div><div class="line"></div><div class="line">    url(<span class="string">r'^test1/'</span>, include(router.urls)), </div><div class="line"></div><div class="line">    url(<span class="string">r'^test2/'</span>, include(<span class="string">'rest_framework.urls'</span>, namespace=<span class="string">'rest_framework'</span>)), </div><div class="line"></div><div class="line">)</div></pre></td></tr></table></figure>
+<p>​    完成上面的步骤后，重启django的项目，访问django-address/auth-api/test1就可以看到新增加的REST接口的hello world，接下来进入开发。</p>
+<h1 id="开发一个简单的例子"><a href="#开发一个简单的例子" class="headerlink" title="开发一个简单的例子"></a>开发一个简单的例子</h1><p>​    1、允许我普及一下，如果对于一个非REST的Django项目来说，我们应该怎么开发。</p>
+<p>​    首先创建模板类，修改models.py如下： </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Snippet</span><span class="params">(models.Model)</span>:</span> </div><div class="line"></div><div class="line">    created = models.DateTimeField(auto_now_add=<span class="keyword">True</span>) </div><div class="line"></div><div class="line">    title = models.CharField(max_length=<span class="number">100</span>, blank=<span class="keyword">True</span>, default=<span class="string">''</span>) </div><div class="line"></div><div class="line">    code = models.TextField() </div><div class="line"></div><div class="line">    linenos = models.BooleanField(default=<span class="keyword">False</span>) </div><div class="line"></div><div class="line">    language = models.CharField(default=<span class="string">'python'</span>, </div><div class="line"></div><div class="line">                                max_length=<span class="number">100</span>) </div><div class="line"></div><div class="line">    style = models.CharField(default=<span class="string">'friendly'</span>, </div><div class="line"></div><div class="line">                             max_length=<span class="number">100</span>) </div><div class="line"></div><div class="line">    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span> </div><div class="line"></div><div class="line">        ordering = (<span class="string">'created'</span>,)</div></pre></td></tr></table></figure>
+<p>然后要记得执行python manage.py syncdb，这样才能让模型生效到数据库中。</p>
+<p>​    然后创建一个序列化的类serializers.py，这个类的主要作用是把从数据库中取出的字段序列化成一中好读的格式，比如json，当然也需要有反序列化的功能，定义如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">from</span> django.forms <span class="keyword">import</span> widgets </div><div class="line"></div><div class="line"><span class="keyword">from</span> rest_framework <span class="keyword">import</span> serializers </div><div class="line"></div><div class="line"><span class="keyword">from</span> rest.models <span class="keyword">import</span> Snippet </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">SnippetSerializer</span><span class="params">(serializers.Serializer)</span>:</span> </div><div class="line"></div><div class="line">   //这部分定义了序列化和反序列化过程中的一些基本字段</div><div class="line"></div><div class="line">    pk = serializers.Field()  <span class="comment"># Note: `Field` is an untyped read-only field. </span></div><div class="line"></div><div class="line">    title = serializers.CharField(required=<span class="keyword">False</span>, </div><div class="line"></div><div class="line">                                  max_length=<span class="number">100</span>) </div><div class="line"></div><div class="line">    code = serializers.CharField(widget=widgets.Textarea, </div><div class="line"></div><div class="line">                                 max_length=<span class="number">100000</span>) </div><div class="line"></div><div class="line">    linenos = serializers.BooleanField(required=<span class="keyword">False</span>) </div><div class="line"></div><div class="line">    language = serializers.ChoiceField(default=<span class="string">'python'</span>) </div><div class="line"></div><div class="line">    style = serializers.ChoiceField(default=<span class="string">'friendly'</span>) </div><div class="line"></div><div class="line">//这个方法定义了这些字段和models中的字段的对应关系</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">restore_object</span><span class="params">(self, attrs, instance=None)</span>:</span> </div><div class="line"></div><div class="line">        <span class="string">""" </span></div><div class="line"></div><div class="line">        Create or update a new snippet instance, given a dictionary </div><div class="line"></div><div class="line">        of deserialized field values. </div><div class="line"></div><div class="line">        Note that if we don't define this method, then deserializing </div><div class="line"></div><div class="line">        data will simply return a dictionary of items. </div><div class="line"></div><div class="line">        """ </div><div class="line"></div><div class="line">        <span class="keyword">if</span> instance: </div><div class="line"></div><div class="line">            <span class="comment"># Update existing instance </span></div><div class="line"></div><div class="line">            instance.title = attrs.get(<span class="string">'title'</span>, instance.title) </div><div class="line"></div><div class="line">            instance.code = attrs.get(<span class="string">'code'</span>, instance.code) </div><div class="line"></div><div class="line">            instance.linenos = attrs.get(<span class="string">'linenos'</span>, instance.linenos) </div><div class="line"></div><div class="line">            instance.language = attrs.get(<span class="string">'language'</span>, instance.language) </div><div class="line"></div><div class="line">            instance.style = attrs.get(<span class="string">'style'</span>, instance.style) </div><div class="line"></div><div class="line">            <span class="keyword">return</span> instance </div><div class="line"></div><div class="line">       <span class="comment"># Create new instance </span></div><div class="line"></div><div class="line">        <span class="keyword">return</span> Snippet(**attrs)</div></pre></td></tr></table></figure>
+<p>接下来我们用python manage.py shell来操作：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; <span class="keyword">from</span> rest.models <span class="keyword">import</span> Snippet </div><div class="line"></div><div class="line">\&gt;&gt;&gt; <span class="keyword">from</span> rest.serializers <span class="keyword">import</span> SnippetSerializer </div><div class="line"></div><div class="line">\&gt;&gt;&gt; <span class="keyword">from</span> rest_framework.renderers <span class="keyword">import</span> JSONRenderer </div><div class="line"></div><div class="line">\&gt;&gt;&gt; <span class="keyword">from</span> rest_framework.parsers <span class="keyword">import</span> JSONParser </div><div class="line"></div><div class="line">\&gt;&gt;&gt; snippet = Snippet(code=<span class="string">'foo = "bar"\n'</span>) </div><div class="line"></div><div class="line">\&gt;&gt;&gt; snippet.save() </div><div class="line"></div><div class="line">\&gt;&gt;&gt; snippet = Snippet(code=<span class="string">'print "hello, world"\n'</span>) </div><div class="line"></div><div class="line">\&gt;&gt;&gt; snippet.save() </div><div class="line"></div><div class="line">\&gt;&gt;&gt; serializer = SnippetSerializer(snippet) </div><div class="line"></div><div class="line">\&gt;&gt;&gt; serializer.data</div></pre></td></tr></table></figure>
+<p>{‘pk’: 2L, ‘title’: u’’, ‘code’: u’print “hello, world”\n’, ‘linenos’: False, ‘language’: u’python’, ‘style’: u’friendly’} </p>
+<p>//我们在数据库中插入了2条数据，然后通过序列化的类，显示成了json的格式</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; <span class="keyword">from</span> rest_framework.compat <span class="keyword">import</span> BytesIO </div><div class="line"></div><div class="line">\&gt;&gt;&gt; content = JSONRenderer().render(serializer.data) </div><div class="line"></div><div class="line">\&gt;&gt;&gt; content </div><div class="line"></div><div class="line"><span class="string">'&#123;"pk": 2, "title": "", "code": "print \\"hello, world\\"\\n", "linenos": false, "language": "python", "style": "friendly"&#125;'</span> </div><div class="line"></div><div class="line">\&gt;&gt;&gt; stream = BytesIO(content) </div><div class="line"></div><div class="line">\&gt;&gt;&gt; data = JSONParser().parse(stream) </div><div class="line"></div><div class="line">\&gt;&gt;&gt; data</div></pre></td></tr></table></figure>
+<p>{u’style’: u’friendly’, u’code’: u’print “hello, world”\n’, u’language’: u’python’, u’title’: u’’, u’linenos’: False, u’pk’: 2} </p>
+<p>//这里我们把models中的数据和json数据进行了序列化和反序列化展示</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; serializer = SnippetSerializer(data=data) </div><div class="line"></div><div class="line">\&gt;&gt;&gt; serializer.is_valid() </div><div class="line"></div><div class="line"><span class="keyword">False</span> </div><div class="line"></div><div class="line">\&gt;&gt;&gt; <span class="comment"># True </span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; serializer.object </div><div class="line"></div><div class="line">\&gt;&gt;&gt; serializer = SnippetSerializer(Snippet.objects.all(), many=<span class="keyword">True</span>) </div><div class="line"></div><div class="line">\&gt;&gt;&gt; serializer.data</div></pre></td></tr></table></figure>
+<p>[{‘pk’: 1L, ‘title’: u’’, ‘code’: u’foo = “bar”\n’, ‘linenos’: False, ‘language’: u’python’, ‘style’: u’friendly’}, {‘pk’: 2L, ‘title’: u’’, ‘code’: u’print “hello, world”\n’, ‘linenos’: False, ‘language’: u’python’, ‘style’: u’friendly’}] </p>
+<p>​     2、使用REST的类实现序列化和反序列化：</p>
+<p>​    重新定义serializers.py，如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">from</span> django.forms <span class="keyword">import</span> widgets </div><div class="line"></div><div class="line"><span class="keyword">from</span> rest_framework <span class="keyword">import</span> serializers </div><div class="line"></div><div class="line"><span class="keyword">from</span> rest.models <span class="keyword">import</span> Snippet </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">SnippetSerializer</span><span class="params">(serializers.ModelSerializer)</span>:</span> </div><div class="line"></div><div class="line">​    <span class="class"><span class="keyword">class</span> <span class="title">Meta</span>:</span> </div><div class="line"></div><div class="line">​        model = Snippet </div><div class="line"></div><div class="line">​        fields = (<span class="string">'id'</span>,<span class="string">'title'</span>, <span class="string">'code'</span>, <span class="string">'linenos'</span>, <span class="string">'language'</span>, <span class="string">'style'</span>) </div><div class="line"></div><div class="line">   REST framwork提供了 ModelSerializer的类方便的进行models和输出结果之间的转换。</div><div class="line"></div><div class="line">   最后一步是完成views.py，来处理前台的REST请求，内容如下：</div><div class="line"></div><div class="line"><span class="keyword">from</span> django.http <span class="keyword">import</span> HttpResponse </div><div class="line"></div><div class="line"><span class="keyword">from</span> django.views.decorators.csrf <span class="keyword">import</span> csrf_exempt </div><div class="line"></div><div class="line"><span class="keyword">from</span> rest_framework.renderers <span class="keyword">import</span> JSONRenderer </div><div class="line"></div><div class="line"><span class="keyword">from</span> rest_framework.parsers <span class="keyword">import</span> JSONParser </div><div class="line"></div><div class="line"><span class="keyword">from</span> rest.models <span class="keyword">import</span> Snippet </div><div class="line"></div><div class="line"><span class="keyword">from</span> rest.serializers <span class="keyword">import</span> SnippetSerializer </div><div class="line"></div><div class="line"><span class="keyword">import</span> logging </div><div class="line"></div><div class="line">logger = logging.getLogger(<span class="string">'ac_file'</span>) </div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">JSONResponse</span><span class="params">(HttpResponse)</span>:</span> </div><div class="line"></div><div class="line">    <span class="string">""" </span></div><div class="line"></div><div class="line">    An HttpResponse that renders its content into JSON. </div><div class="line"></div><div class="line">    """ </div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, data, **kwargs)</span>:</span> </div><div class="line"></div><div class="line">        content = JSONRenderer().render(data) </div><div class="line"></div><div class="line">        kwargs[<span class="string">'content_type'</span>] = <span class="string">'application/json'</span> </div><div class="line"></div><div class="line">        super(JSONResponse, self).__init__(content, **kwargs) </div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">snippet_list</span><span class="params">(request)</span>:</span> </div><div class="line"></div><div class="line">    logger.debug(request) </div><div class="line"></div><div class="line">    <span class="keyword">if</span> request.method == <span class="string">'GET'</span>: </div><div class="line"></div><div class="line">        snippets = Snippet.objects.all() </div><div class="line"></div><div class="line">        serializer = SnippetSerializer(snippets, many=<span class="keyword">True</span>) </div><div class="line"></div><div class="line">        <span class="keyword">return</span> JSONResponse(serializer.data) </div><div class="line"></div><div class="line">    <span class="keyword">elif</span> request.method == <span class="string">'POST'</span>: </div><div class="line"></div><div class="line">       data = JSONParser().parse(request) </div><div class="line"></div><div class="line">        serializer = SnippetSerializer(data=data) </div><div class="line"></div><div class="line">        <span class="keyword">if</span> serializer.is_valid(): </div><div class="line"></div><div class="line">            serializer.save() </div><div class="line"></div><div class="line">            <span class="keyword">return</span> JSONResponse(serializer.data, status=<span class="number">201</span>) </div><div class="line"></div><div class="line">        <span class="keyword">return</span> JSONResponse(serializer.errors, status=<span class="number">400</span>) </div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">snippet_detail</span><span class="params">(request, pk)</span>:</span> </div><div class="line"></div><div class="line">    <span class="keyword">try</span>: </div><div class="line"></div><div class="line">        snippet = Snippet.objects.get(pk=pk) </div><div class="line"></div><div class="line">    <span class="keyword">except</span> Snippet.DoesNotExist: </div><div class="line"></div><div class="line">        <span class="keyword">return</span> HttpResponse(status=<span class="number">404</span>) </div><div class="line"></div><div class="line">    <span class="keyword">if</span> request.method == <span class="string">'GET'</span>: </div><div class="line"></div><div class="line">        serializer = SnippetSerializer(snippet) </div><div class="line"></div><div class="line">        <span class="keyword">return</span> JSONResponse(serializer.data) </div><div class="line"></div><div class="line">    <span class="keyword">elif</span> request.method == <span class="string">'PUT'</span>: </div><div class="line"></div><div class="line">        data = JSONParser().parse(request) </div><div class="line"></div><div class="line">        serializer = SnippetSerializer(snippet, data=data) </div><div class="line"></div><div class="line">        <span class="keyword">if</span> serializer.is_valid(): </div><div class="line"></div><div class="line">            serializer.save() </div><div class="line"></div><div class="line">            <span class="keyword">return</span> JSONResponse(serializer.data) </div><div class="line"></div><div class="line">        <span class="keyword">return</span> JSONResponse(serializer.errors, status=<span class="number">400</span>) </div><div class="line"></div><div class="line">    <span class="keyword">elif</span> request.method == <span class="string">'DELETE'</span>: </div><div class="line"></div><div class="line">        snippet.delete() </div><div class="line"></div><div class="line">        <span class="keyword">return</span> HttpResponse(status=<span class="number">204</span>) </div><div class="line"></div><div class="line">    </div><div class="line"></div><div class="line">    <span class="comment">#然后对urls.py稍做修改：</span></div><div class="line"></div><div class="line">        urlpatterns = patterns(<span class="string">'rest.views'</span>, </div><div class="line"></div><div class="line">    url(<span class="string">r'^test1/$'</span>, <span class="string">'snippet_list'</span>), </div><div class="line"></div><div class="line">    url(<span class="string">r'^test1/(?P[0-9]+)/$'</span>, <span class="string">'snippet_detail'</span>), </div><div class="line"></div><div class="line">)</div></pre></td></tr></table></figure>
+<p>​    然后通过页面就可以访问序列化成json的数据了。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/10/21/Python的生成器/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/10/21/Python的生成器/" itemprop="url">Python生成器的基本理解</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-10-21T10:05:33+08:00">
+                2014-10-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>python的生成器：yield</p>
+<p>生成器和迭代器其实是一个相反的过程，可以简单的理解为，一个是创建，一个是消费。而生成器就是那个创建者：</p>
+<p>   废话不多，直接例子：</p>
+<p>​        </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; <span class="function"><span class="keyword">def</span> <span class="title">fu</span><span class="params">(nu)</span>:</span></div><div class="line"></div><div class="line"><span class="meta">... </span>    <span class="keyword">for</span> i <span class="keyword">in</span> range(nu):</div><div class="line"></div><div class="line"><span class="meta">... </span>            <span class="keyword">yield</span> i</div><div class="line"></div><div class="line">   在function fu中，轮寻了输入的数字，依次调用了生成器<span class="keyword">yield</span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; t=fu(<span class="number">3</span>)</div><div class="line"></div><div class="line">\&gt;&gt;&gt; t.next()</div><div class="line"></div><div class="line"><span class="number">0</span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; t.next()</div><div class="line"></div><div class="line"><span class="number">1</span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; t.next()</div><div class="line"></div><div class="line"><span class="number">2</span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; t.next()</div><div class="line"></div><div class="line">Traceback (most recent call last):</div><div class="line"></div><div class="line">  File <span class="string">""</span>, line <span class="number">1</span>, <span class="keyword">in</span></div><div class="line"></div><div class="line">StopIteration</div></pre></td></tr></table></figure>
+<p>  随后，在fu(3)的对象，可以调用next来轮寻的获取生成器中的结果，其实上面的例子类似于：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; <span class="keyword">for</span> p <span class="keyword">in</span> fu(<span class="number">3</span>):</div><div class="line"></div><div class="line"><span class="meta">... </span>    <span class="keyword">print</span> p</div><div class="line"></div><div class="line"><span class="meta">... </span></div><div class="line"></div><div class="line"><span class="number">0</span></div><div class="line"></div><div class="line"><span class="number">1</span></div><div class="line"></div><div class="line"><span class="number">2</span></div></pre></td></tr></table></figure>
+<p>从上面的过程，我们可以最简单的理解生成器其实相当与一个队列，然后函数执行的过程中，把我们需要的输出都扔到队列中，然后就可以通过迭代来查看结果。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; type(fu)</div><div class="line"></div><div class="line"> </div><div class="line"></div><div class="line">\&gt;&gt;&gt; type(fu(<span class="number">3</span>))</div></pre></td></tr></table></figure>
+<p>我们的猜测没错，fu函数已经不是一般的function了，它的对象不再是一个无类型的数据，而是一个迭代器了。对比如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; type(fu(<span class="number">3</span>))</div><div class="line"></div><div class="line"> </div><div class="line"></div><div class="line">\&gt;&gt;&gt; <span class="function"><span class="keyword">def</span> <span class="title">fu</span><span class="params">(nu)</span>:</span></div><div class="line"></div><div class="line"><span class="meta">... </span>    <span class="keyword">for</span> i <span class="keyword">in</span> range(nu):</div><div class="line"></div><div class="line"><span class="meta">... </span>            <span class="keyword">print</span> i</div><div class="line"></div><div class="line"><span class="meta">... </span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; type(fu(<span class="number">3</span>))</div><div class="line"></div><div class="line"><span class="number">0</span></div><div class="line"></div><div class="line"><span class="number">1</span></div><div class="line"></div><div class="line"><span class="number">2</span></div></pre></td></tr></table></figure>
+<p>从前面的例子中，可以看到，yield其实是对于逐渐生成结果的复杂递归算法的完美实现工具。这个特性在解决回溯的问题上有不错的表现。<br>  下面举一个实际中的例子，我们知道删除ZK节点的时候，API提供的delete只能删除不包含子目录的结点，这时候就需要递归删除，下面这个例子就是解决这个问题的</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> zookeeper</div><div class="line"></div><div class="line">handle = zookeeper.init(<span class="string">"localhost:2181"</span>,<span class="number">10.0</span>)</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">recursiveGet</span><span class="params">(path)</span>:</span></div><div class="line"></div><div class="line">    children = zookeeper.get_children(handle,path)</div><div class="line"></div><div class="line">    <span class="keyword">if</span> <span class="keyword">not</span> len(children) == <span class="number">0</span>:</div><div class="line"></div><div class="line">        <span class="keyword">for</span> childname <span class="keyword">in</span> children:</div><div class="line"></div><div class="line">            newPath = <span class="string">"%s%s%s"</span>%(path,<span class="string">"/"</span>,childname)</div><div class="line"></div><div class="line">            <span class="keyword">for</span> allPath <span class="keyword">in</span> recursiveGet(newPath):</div><div class="line"></div><div class="line">                <span class="keyword">yield</span> allPath</div><div class="line"></div><div class="line">            <span class="keyword">yield</span> newPath</div><div class="line"></div><div class="line">    <span class="keyword">yield</span> path</div><div class="line"></div><div class="line"><span class="keyword">for</span> path <span class="keyword">in</span> recursiveGet(<span class="string">"/root"</span>):</div><div class="line"></div><div class="line">    <span class="keyword">print</span> path</div></pre></td></tr></table></figure>
+<p>结果如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div></pre></td><td class="code"><pre><div class="line">/root/lap/abc</div><div class="line"></div><div class="line">/root/lap/abc</div><div class="line"></div><div class="line">/root/lap</div><div class="line"></div><div class="line">/root/lap</div><div class="line"></div><div class="line">/root/lap234/abcd</div><div class="line"></div><div class="line">/root/lap234/abcd</div><div class="line"></div><div class="line">/root/lap234</div><div class="line"></div><div class="line">/root/lap234</div><div class="line"></div><div class="line">/root/df/df2/abc/abc</div><div class="line"></div><div class="line">/root/df/df2/abc/abc</div><div class="line"></div><div class="line">/root/df/df2/abc</div><div class="line"></div><div class="line">/root/df/df2/abc</div><div class="line"></div><div class="line">/root/df/df2/abcd</div><div class="line"></div><div class="line">/root/df/df2/abcd</div><div class="line"></div><div class="line">/root/df/df2</div><div class="line"></div><div class="line">/root/df/df2</div><div class="line"></div><div class="line">/root/df</div><div class="line"></div><div class="line">/root/df</div><div class="line"></div><div class="line">/root/lap2/abc</div><div class="line"></div><div class="line">/root/lap2/abc</div><div class="line"></div><div class="line">/root/lap2</div><div class="line"></div><div class="line">/root/lap2</div><div class="line"></div><div class="line">/root/lap23</div><div class="line"></div><div class="line">/root/lap23</div><div class="line"></div><div class="line">/root</div></pre></td></tr></table></figure>
+<p>上面可以看到，yield是一个递归神器，值得入手啊！</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/21/HBase-Filter的介绍/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/09/21/HBase-Filter的介绍/" itemprop="url">HBase Filter的介绍</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-09-20T15:17:03-08:00">
+                2014-09-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h1><p>因为HBase的所有数据聚合是在客户端完成的，所以Filter是HBase提供一个很重要的查询过滤神器，所以能够熟练的使用filter会让性能有质的飞跃。接下来分析一下HBase的Filter。</p>
+<h1 id="几种常用的Filter"><a href="#几种常用的Filter" class="headerlink" title="几种常用的Filter"></a>几种常用的Filter</h1><h2 id="SingleColumnValueFilter和SingleColomnuValueExcludeFilter"><a href="#SingleColumnValueFilter和SingleColomnuValueExcludeFilter" class="headerlink" title="SingleColumnValueFilter和SingleColomnuValueExcludeFilter"></a>SingleColumnValueFilter和SingleColomnuValueExcludeFilter</h2><p>SingleColumnValueFilter 和 SingleColomnuValueExcludeFilter 这两个filter是比较简单的单个值的查询过滤器，构建了一个查询指定的行中指定的列值是否满足该条件的过滤器。这里可以进行的比较包括： LESS 、LESS_OR_EQUAL、EQUAL、NOT_EQUAL、GREATER_OR_EQUAL、GREATER、NO_OP 构建和使用的方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">SingleColumnValueFilter filter = <span class="keyword">new</span> SingleColumnValueFilter(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>), CompareOp.EQUAL, Bytes.toBytes(<span class="string">"checkValue"</span>));</div><div class="line"></div><div class="line">get.setFilter(filter);</div></pre></td></tr></table></figure>
+<p>上面的例子中构建了一个查询表中cf列中指定的qualifier中字段为checkValue的列。需要特别指出的是，过滤的条件，可以不是一个特定的值，也就是支持正则表达式，如下面的初始化filter：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">RegexStringComparator regexStringComparatorOrBuilder = <span class="keyword">new</span> RegexStringComparator(<span class="string">"abc."</span>);</div><div class="line"></div><div class="line">SingleColumnValueFilter filter = <span class="keyword">new</span> SingleColumnValueFilter(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>), CompareOp.EQUAL, regexStringComparatorOrBuilder);</div></pre></td></tr></table></figure>
+<p>不管是正则还是直接的值，这类型的过滤都是需要过滤在列簇里面具体的某一列的value。</p>
+<h2 id="PageFilter"><a href="#PageFilter" class="headerlink" title="PageFilter"></a>PageFilter</h2><p>这是一个特殊的过滤器，它是过滤结果，指定了页面的行数，也就是返回对应行数的结果集，但是这里要说明，这里并不能保证返回结果的总行数小于与面的行数，这个仅仅能保证单独的一个RS返回的结果小于等于该行数，也就是如果这个表要查询的key值范围(对于scan来说)的分布在两个不同的RS上，那么结果返回的Result对象个数会超过过滤器的值。这个过滤器的作用是，防止单台机器上有很多的要查询结果，而导致这台机器的负载太高。接下来展示PageFilter的使用：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">PageFilter pageFilter = <span class="keyword">new</span> PageFilter(<span class="number">10</span>);</div></pre></td></tr></table></figure>
+<h3 id="PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter"><a href="#PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter" class="headerlink" title="PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter"></a>PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter</h3><p>PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter 这三个过滤器都是在对全表查询，然后找到行或者列中，满足一个或者多个过滤条件的过滤器。其中 PrefixFilter是查找所有rowkey满足规则结果集。ColumnPrefixFilter和MultipleColumnPrefixFilter分别是查询列中满足一个或者多个条件的列。综上所述，可以看到这两个过滤器是在查找表中满足某个规则的行或者列的时候用，但是这是一个全表的过滤，是比较耗时的。使用如下： </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">PrefixFilter pFilter = <span class="keyword">new</span> PrefixFilter(Bytes.toBytes(<span class="string">"a"</span>));</div><div class="line"></div><div class="line">ColumnPrefixFilter columnPrefixFilter= <span class="keyword">new</span> ColumnPrefixFilter(Bytes.toBytes(<span class="string">"a"</span>));</div><div class="line"></div><div class="line">MultipleColumnPrefixFilter multipleColumnPrefixFilter= <span class="keyword">new</span> MultipleColumnPrefixFilter(<span class="keyword">new</span> <span class="keyword">byte</span>[][] &#123;Bytes.toBytes(<span class="string">"a"</span>),Bytes.toBytes(<span class="string">"b"</span>)&#125;);</div></pre></td></tr></table></figure>
+<h2 id="KeyOnlyFilter、FirstKeyOnlyFilter"><a href="#KeyOnlyFilter、FirstKeyOnlyFilter" class="headerlink" title="KeyOnlyFilter、FirstKeyOnlyFilter"></a>KeyOnlyFilter、FirstKeyOnlyFilter</h2><p>在查询的时候，可能会遇到只需要查询key的需求，这时候，可以使用KeyOnlyFilter。如果对于每个rowkey，只需要第一个符合条件的key，这时候就可以用FirstKeyOnlyFilter。申明方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">KeyOnlyFilter keyOnlyFilter = <span class="keyword">new</span> KeyOnlyFilter();</div><div class="line">FirstKeyOnlyFilter firstKeyOnlyFilter = <span class="keyword">new</span> FirstKeyOnlyFilter();</div></pre></td></tr></table></figure>
+<h2 id="TimestampsFilter"><a href="#TimestampsFilter" class="headerlink" title="TimestampsFilter"></a>TimestampsFilter</h2><p>如果在某次查询中，需要查询的为指定的某个或者某几个时间戳的数据，可以使用TimestampsFilter。如果是使用scan查询，则可以直接调用scan对象的setTimeRange方法来实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">ListTimestamp = <span class="keyword">new</span> ArrayList();</div><div class="line"></div><div class="line">Timestamp.add(newLong(<span class="number">1</span>));</div><div class="line"></div><div class="line">Timestamp.add(newLong(<span class="number">2</span>));</div><div class="line"></div><div class="line">TimestampsFilter timestampsFilter = <span class="keyword">new</span> TimestampsFilter(Timestamp);</div></pre></td></tr></table></figure>
+<h2 id="RandomRowFilter"><a href="#RandomRowFilter" class="headerlink" title="RandomRowFilter"></a>RandomRowFilter</h2><p>这是一个很特殊的行过滤器，初始化的时候只需要指定一个float的值。在随后的查询中，会随机查询该百分比的数据，如果小于0，则不会查询，如果大于1，就查询所有的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">RandomRowFilter randomRowFilter = <span class="keyword">new</span> RandomRowFilter(<span class="number">0.5f</span>);</div></pre></td></tr></table></figure>
+<p>//这样会从所有的数据中随机查询50%的数据，看是否有满足条件的查询</p>
+<h2 id="DependentColumnFilter"><a href="#DependentColumnFilter" class="headerlink" title="DependentColumnFilter"></a>DependentColumnFilter</h2><p>DependentColumnFilter过滤器稍微复杂一点。它可以说是timeStamp Filter和ValueFilter的结合。因为DependentColumnFilter需要指定一个参考列，然后获取跟改参考列有相同时间戳的所有列，再在此基础上获取满足ValueFilter的列值。构造函数如下：用户可以根据自己喜好省略valueFilter或者通过设置dropDependentColumn为true省略timestamp Filter。不过需要注意的是：此过滤器不能跟Scan中的Batch操作结合使用。</p>
+<h2 id="ValueFilter、QualifierFilter"><a href="#ValueFilter、QualifierFilter" class="headerlink" title="ValueFilter、QualifierFilter"></a>ValueFilter、QualifierFilter</h2><p>这两个都比较类似，分别是查询value和qualifilter是否等于，大于，小于某个值的过滤器：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">ValueFilter valueFilter = <span class="keyword">new</span> ValueFilter(CompareFilter.CompareOp.EQUAL,<span class="keyword">new</span> BinaryComparator(Bytes.toBytes(<span class="string">"value"</span>)));</div><div class="line"></div><div class="line">QualifierFilterqualifierFilter = <span class="keyword">new</span> QualifierFilter (CompareFilter.CompareOp.EQUAL,<span class="keyword">new</span> BinaryComparator(Bytes.toBytes(<span class="string">"qualifier"</span>)));</div></pre></td></tr></table></figure>
+<h2 id="特殊的过滤器组合对象，FilterList"><a href="#特殊的过滤器组合对象，FilterList" class="headerlink" title="特殊的过滤器组合对象，FilterList"></a>特殊的过滤器组合对象，FilterList</h2><p>FilterList是一个过滤器的列表，前面所有的过滤器类型都可以放到这个列表中，然后可以选择过滤方式为全部满足或者单个满足(或者其它的)，这样使得过滤更加的强大。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">FilterList filterList = newFilterList(FilterList.Operator.MUST_PASS_ALL);</div><div class="line">filterList.addFilter(timestampsFilter);</div><div class="line">...</div></pre></td></tr></table></figure>
+<p>这里所有的过滤器，可以降低查询结果的数量，降低网络的传输消耗，但是本身并没有减少RPC的次数。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/14/HBase-Thrift的部署/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/09/14/HBase-Thrift的部署/" itemprop="url">HBase Thrift的部署</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-09-13T19:57:53-08:00">
+                2014-09-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="下载最新的thrift客户端："><a href="#下载最新的thrift客户端：" class="headerlink" title="下载最新的thrift客户端："></a>下载最新的thrift客户端：</h1><p>​    <a href="https://dist.apache.org/repos/dist/release/thrift/" target="_blank" rel="external">https://dist.apache.org/repos/dist/release/thrift/</a></p>
+<h1 id="安装thift"><a href="#安装thift" class="headerlink" title="安装thift"></a>安装thift</h1><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">tar -zxvf thrift-XXX.tar.gz</div><div class="line">cd thrift-XXX</div><div class="line">./configure –prefix=/usr/local/thrift-XXX</div><div class="line">make </div><div class="line">make install</div></pre></td></tr></table></figure>
+<h1 id="生成Hbase相应的客户端文件："><a href="#生成Hbase相应的客户端文件：" class="headerlink" title="生成Hbase相应的客户端文件："></a>生成Hbase相应的客户端文件：</h1><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">thrift –gen py $HBASE_HOME/src/main/resources/org/apache/hadoop/hbase/thrift/Hbase.thrift</div></pre></td></tr></table></figure>
+<p> 会生成一个gen-py的文件夹，把该文件夹的内容拷贝到hbase的库目录下：</p>
+<p> 默认是在/usr/lib/pythonXX/site-packages/</p>
+<h2 id="测试thrift"><a href="#测试thrift" class="headerlink" title="测试thrift"></a>测试thrift</h2><p>写了一个简单的读表的python脚本</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#!/usr/bin/python</span></div><div class="line"><span class="keyword">import</span> sys</div><div class="line"><span class="keyword">from</span> thrift <span class="keyword">import</span> Thrift</div><div class="line"><span class="keyword">from</span> thrift.transport <span class="keyword">import</span> TSocket</div><div class="line"><span class="keyword">from</span> thrift.transport <span class="keyword">import</span> TTransport</div><div class="line"><span class="keyword">from</span> thrift.protocol <span class="keyword">import</span> TBinaryProtocol</div><div class="line"><span class="keyword">from</span> hbase <span class="keyword">import</span> Hbase</div><div class="line"><span class="keyword">from</span> hbase.ttypes <span class="keyword">import</span> *</div><div class="line"></div><div class="line">clientIp = <span class="string">'localhost'</span></div><div class="line">clientPort = <span class="string">'9090'</span></div><div class="line">returnRet = <span class="number">0</span></div><div class="line"></div><div class="line"><span class="keyword">if</span> len(sys.argv) &gt;= <span class="number">2</span>:</div><div class="line">    clientIp = sys.argv[<span class="number">1</span>]</div><div class="line"></div><div class="line"><span class="keyword">if</span> len(sys.argv) &gt;= <span class="number">3</span>:</div><div class="line">    clientPort = sys.argv[<span class="number">2</span>]</div><div class="line">\<span class="comment">#open connection </span></div><div class="line"><span class="keyword">try</span>:</div><div class="line">    transport = TSocket.TSocket(clientIp, clientPort)</div><div class="line">    transport = TTransport.TBufferedTransport(transport)</div><div class="line">    protocol = TBinaryProtocol.TBinaryProtocol(transport)</div><div class="line">    client = Hbase.Client(protocol)</div><div class="line">    transport.open()</div><div class="line">    <span class="keyword">print</span> <span class="string">"Open connection success!"</span></div><div class="line"><span class="keyword">except</span> Exception,e:</div><div class="line">    <span class="keyword">print</span> <span class="string">"Get exception: "</span>,e</div><div class="line">    sys.exit(<span class="number">2</span>)</div><div class="line">\<span class="comment"># create table</span></div><div class="line"><span class="keyword">try</span>:</div><div class="line">    tableName = <span class="string">"testThrfit"</span></div><div class="line">    colusername = ColumnDescriptor( name = <span class="string">'username:'</span>,maxVersions = <span class="number">1</span> )</div><div class="line">    colpass = ColumnDescriptor( name = <span class="string">'pass:'</span>,maxVersions = <span class="number">1</span> )</div><div class="line">    colage = ColumnDescriptor( name = <span class="string">'age:'</span>,maxVersions = <span class="number">1</span> )</div><div class="line">    colinfo = ColumnDescriptor( name = <span class="string">'info:'</span>,maxVersions = <span class="number">1</span> )</div><div class="line">    client.createTable(tableName, [colusername,colpass,colage,colinfo])</div><div class="line">    tables = client.getTableNames()</div><div class="line">    <span class="keyword">if</span> tableName <span class="keyword">in</span> tables:</div><div class="line">        <span class="keyword">print</span> <span class="string">"Create table Success!"</span></div><div class="line">    <span class="keyword">else</span>:</div><div class="line">        returnRet = <span class="number">1</span></div><div class="line"><span class="keyword">except</span> Exception,e:</div><div class="line">    <span class="keyword">print</span> <span class="string">"When create table, Get exception: "</span>,e</div><div class="line">    sys.exit(<span class="number">2</span>)</div><div class="line">\<span class="comment">#insert and get or scan number</span></div><div class="line"><span class="keyword">try</span>:</div><div class="line">    rowKey = <span class="string">'rowTest'</span></div><div class="line">    testKey = <span class="string">'info:testName'</span></div><div class="line">    testValue = <span class="string">'testValue'</span></div><div class="line">    mutations = [Mutation(column=testKey,value=testValue)]</div><div class="line">    client.mutateRow(tableName,rowKey,mutations,<span class="keyword">None</span>)</div><div class="line">    result = client.getRow(tableName,rowKey,<span class="keyword">None</span>)</div><div class="line">    <span class="keyword">if</span> result:</div><div class="line">        <span class="keyword">for</span> r <span class="keyword">in</span> result:</div><div class="line">            <span class="keyword">print</span> <span class="string">"get row:%s, and value is %s"</span>%(r.row,r.columns.get(testKey).value)</div><div class="line">    <span class="keyword">else</span>:</div><div class="line">        returnRet = <span class="number">1</span></div><div class="line">    <span class="keyword">print</span> <span class="string">"Get from table Success!"</span></div><div class="line">    scan = TScan()</div><div class="line">    id = client.scannerOpenWithScan(tableName,scan,<span class="keyword">None</span>)</div><div class="line">    result = client.scannerGet(id)</div><div class="line">    <span class="keyword">while</span> result:</div><div class="line">        <span class="keyword">print</span> result</div><div class="line">        result = client.scannerGet(id)</div><div class="line">    <span class="keyword">print</span> <span class="string">"Scan from table Success!"</span></div><div class="line"><span class="keyword">except</span> Exception,e:</div><div class="line">    <span class="keyword">print</span> <span class="string">"When insert,scan,get, Get exception: "</span>,e</div><div class="line">    sys.exit(<span class="number">2</span>)</div><div class="line">\<span class="comment">#delete table</span></div><div class="line"><span class="keyword">try</span>:</div><div class="line">    <span class="keyword">if</span> client.isTableEnabled(tableName):</div><div class="line">       client.disableTable(tableName)</div><div class="line">       client.deleteTable(tableName)</div><div class="line">       <span class="keyword">if</span> tableName <span class="keyword">not</span> <span class="keyword">in</span> client.getTableNames():</div><div class="line">            <span class="keyword">print</span> <span class="string">"Drop table Success!"</span></div><div class="line">       <span class="keyword">else</span>:</div><div class="line">            returnRet = <span class="number">1</span></div><div class="line"><span class="keyword">except</span> Exception,e:</div><div class="line">    <span class="keyword">print</span> <span class="string">"When delete, Get Excepiton: "</span>,e</div><div class="line">    sys.exit(<span class="number">2</span>)</div><div class="line">sys.exit(returnRet)</div></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/06/HBase基本操作/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/09/06/HBase基本操作/" itemprop="url">HBase基本操作</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-09-05T21:26:53-08:00">
+                2014-09-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>更新表 经常用的更新表的操作主要包括四类： put、get、scan、delete </p>
+<h1 id="put"><a href="#put" class="headerlink" title="put"></a>put</h1><p>put的操作主要是对表中单行的操作，这里要提示一句，HBase的表是按行加锁的，所以put的时候要避免同时操作同一行的行为发生。接下来用代码演示所有的put常用动作：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">putTable</span><span class="params">(String tableName)</span>  <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	<span class="comment">//对于put的操作，所有的行为都是发生在Htable上的，对应的物理存储就是HStore,也就是一个StoreFile,这里初始化一个HTable的对象</span></div><div class="line">	HTable hTable = <span class="keyword">new</span> HTable(conf, tableName);</div><div class="line">	<span class="comment">//创建一个Put的对象，定义所有的Put行为</span></div><div class="line">	Put put = <span class="keyword">new</span> Put(Bytes.toBytes(<span class="string">"rowName"</span>));</div><div class="line">	<span class="comment">//接下来讲put对象的add操作，add操作可以用来增加或者更新某一行，主要有4个构造方法，详细内容可以自己查看，这里演示一种</span></div><div class="line">	put.add(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key"</span>), Bytes.toBytes(<span class="string">"value"</span>));</div><div class="line">	put.add(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key1"</span>), Bytes.toBytes(<span class="string">"value1"</span>));</div><div class="line">	<span class="comment">//这条add，会给列簇是columnName，key为key1的列更新其值为value2，在实际的物理存储中，实际是增加了一行</span></div><div class="line">	put.add(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key1"</span>), Bytes.toBytes(<span class="string">"value2"</span>));</div><div class="line"></div><div class="line">	<span class="comment">//这里表示是否要写wal，对于要追求高效的插入数据又可以允许丢失少量数据，推介使用SKIP_WAL,如果对于严格要求不能丢失数据的用SYNC_WAL,</span></div><div class="line">	put.setDurability(Durability.FSYNC_WAL);</div><div class="line">	<span class="comment">//生效刚才put对象</span></div><div class="line">	hTable.put(put);</div><div class="line">	<span class="comment">//关闭对象</span></div><div class="line">	hTable.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="get"><a href="#get" class="headerlink" title="get"></a>get</h1><p>get主要的作用是获取指定rowkey的单行数据。对于一个get，获取到的对象均为一个Result的对象，一个Result的对象占用了一个RPC。一般来说，RPC的通信耗时，是系统主要的时间消耗，所以减少RPC的次数，将直接的提升性能。Get是一个获取单行结果的对象，与之对应的是Scan，是一个范围扫描的对象，所以要区分get和scan的不同功能。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">getTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf= HBaseConfiguration.create();</div><div class="line">	<span class="comment">//初始胡table</span></div><div class="line">	HTable table = <span class="keyword">new</span> HTable(conf,tableName);</div><div class="line">  </div><div class="line">	<span class="comment">//指定要获取的row</span></div><div class="line">	Get get = <span class="keyword">new</span> Get(Bytes.toBytes(<span class="string">"newRow"</span>));</div><div class="line">	<span class="comment">//通过列簇名称和key值李获取指定的value</span></div><div class="line">	get.addColumn(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key1"</span>));</div><div class="line">	<span class="comment">//过滤获取指定时间戳额值</span></div><div class="line">	get.setTimeStamp(<span class="number">1409886920751L</span>);</div><div class="line">	<span class="comment">//指定要获取的值的版本号，这里表示获取所有的版本号</span></div><div class="line">	get.setMaxVersions();</div><div class="line">	<span class="comment">//通过filter过滤减少返回结果，这里表示只返回一个结果，如果不过滤，对于有多个CF，或者有多个KV的，将会返回多个结果</span></div><div class="line">	get.setFilter(<span class="keyword">new</span> ColumnCountGetFilter(<span class="number">1</span>));</div><div class="line">	<span class="comment">//设置该值是否写到读缓存中，对于经常读的词，要设置为true，对于非热点，非经常读的，要设置为flase</span></div><div class="line">	get.setCacheBlocks(<span class="keyword">true</span>); </div><div class="line"></div><div class="line">	<span class="comment">//返回结果是一个result的对象，一个result的对象就表示一次的RPC，因此，如果想提升get的性能，降低RPC的次数是一个很沉重的话题</span></div><div class="line">	Result result = table.get(get);</div><div class="line"></div><div class="line">	<span class="comment">//解析一个Result的对象。要通过Cell对象来获取其具体的内容</span></div><div class="line">	<span class="keyword">for</span> (Cell cell: result.rawCells())&#123;</div><div class="line">		System.out.println(<span class="string">"Rowkey : "</span>+ Bytes.toString(result.getRow())+ <span class="string">" Familiy:Quilifier : "</span></div><div class="line">		<span class="comment">//通过cloneQualifier获取到列簇和key的值</span></div><div class="line">		\+ Bytes.toString(CellUtil.cloneQualifier(cell)) + <span class="string">" Value : "</span></div><div class="line">		<span class="comment">//通过cloneValue获取到结果中的value</span></div><div class="line">		\+ Bytes.toString(CellUtil.cloneValue(cell)));</div><div class="line">	&#125;</div><div class="line">	table.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h1><p> scan是一个可以返回特定的数据集合的方法。如Get中的描述，scan是获取多行数据的一个对象，通过scan可以批量查询，主要用在查询指定开始到结束行，或者指定时间范围，或者有某个filter特性的数据。具体的使用可以参考如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">scanTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	HTable table = <span class="keyword">new</span> HTable(conf, tableName);</div><div class="line">	<span class="comment">//创建一个scan对象的时候，不需要指定rowkey</span></div><div class="line">  	Scan scan = <span class="keyword">new</span> Scan();</div><div class="line">	<span class="comment">//设置查询的起始rowkey，在Hbase中，rowkey是按照字典排序的，所以这里指定的时候，是一个Byte的数据</span></div><div class="line">	scan.setStartRow(Bytes.toBytes(<span class="string">"key"</span>));</div><div class="line">	scan.setStopRow(Bytes.toBytes(<span class="string">"key"</span>));</div><div class="line"></div><div class="line">	<span class="comment">//这样可以获取到那些被打上了删除标签，但是没有被compaction删除的数据</span></div><div class="line">	scan.setRaw(<span class="keyword">true</span>);</div><div class="line">	<span class="comment">//获取的最大的结果条数，这个结果就死和一个result对象</span></div><div class="line">	scan.setMaxResultSize(<span class="number">1l</span>);</div><div class="line">	<span class="comment">//设置每个result中包含的行数</span></div><div class="line">	scan.setCaching(<span class="number">2</span>);</div><div class="line">	<span class="comment">//设置每个result中包含的列数</span></div><div class="line">	scan.setBatch(<span class="number">3</span>);</div><div class="line">	<span class="comment">//设置为逆序查找</span></div><div class="line">	scan.setReversed(<span class="keyword">true</span>);</div><div class="line">	<span class="comment">//设置一个过滤列表</span></div><div class="line">	FilterList filter = <span class="keyword">new</span> FilterList(FilterList.Operator.MUST_PASS_ALL);</div><div class="line">	<span class="comment">//设置一个filter的对象，过滤cf列簇中，qualifiter的等于0的所有的行</span></div><div class="line">	SingleColumnValueFilter filter1 = <span class="keyword">new</span> SingleColumnValueFilter(Bytes.toBytes(<span class="string">"cf"</span>), 		Bytes.toBytes(<span class="string">"qualifiter"</span>), CompareOp.EQUAL, Bytes.toBytes(<span class="string">"0"</span>));</div><div class="line"></div><div class="line">	<span class="comment">//为列表增加过滤</span></div><div class="line">	filter.addFilter(filter1);</div><div class="line">	<span class="comment">//为scan设置过滤器</span></div><div class="line">	scan.setFilter(filter);</div><div class="line">	ResultScanner rScanner = table.getScanner(scan);</div><div class="line">	<span class="comment">//这部分可以参考get部分的</span></div><div class="line">	<span class="keyword">for</span>(Result r : rScanner) &#123;</div><div class="line">		<span class="keyword">for</span>(Cell cell : r.rawCells()) &#123;</div><div class="line">			System.out.println(<span class="string">"Rowkey : "</span>+ Bytes.toString(r.getRow())+ <span class="string">" Familiy:Quilifier : "</span></div><div class="line">			\+ Bytes.toString(CellUtil.cloneQualifier(cell))+ <span class="string">" Value : "</span></div><div class="line">			\+ Bytes.toString(CellUtil.cloneValue(cell))</div><div class="line">			+ <span class="string">" Time : "</span>+ cell.getTimestamp());</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	table.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="delete"><a href="#delete" class="headerlink" title="delete"></a>delete</h1><p>delete delete可以删除整个表（前面已经进行了分析），删除列簇、行、版本，用代码演示如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">deleteTab</span> <span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	HTable table = <span class="keyword">new</span> HTable(conf, tableName);</div><div class="line">	<span class="comment">//创建一个删除整行的delete对象并删除</span></div><div class="line">	Delete delete = <span class="keyword">new</span> Delete(Bytes.toBytes(<span class="string">"rowkey"</span>));</div><div class="line">	<span class="comment">//删除一个指定的列簇下指定的qualifier</span></div><div class="line">	delete.deleteColumn(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>));</div><div class="line">  	<span class="comment">//和上面的类似，但是在这个删除中，会把所有的历史版本都删除</span></div><div class="line">	delete.deleteColumns(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>));</div><div class="line">	<span class="comment">//也可以删除一个指定时间戳的数据</span></div><div class="line">	delete.deleteFamilyVersion(Bytes.toBytes(<span class="string">"cf"</span>), <span class="number">1405390959464L</span>);</div><div class="line">	table.delete(delete);</div><div class="line">	table.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这里需要再强调一下，删除的时候，不会直接删除数据，而是先做一个删除的标记，在major compaction的时候，才会真正删除。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/04/HBase的一些元数据操作/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1032,778 +1720,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/07/22/HBase的日常维护/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/07/22/HBase的日常维护/" itemprop="url">HBase的日常维护</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-07-21T22:17:24-08:00">
-                2014-07-21
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="常用维护命令"><a href="#常用维护命令" class="headerlink" title="常用维护命令"></a>常用维护命令</h1><p>1、major_compact ‘testtable’，通常生产环境会关闭自动major_compact(配置文件中hbase.hregion.majorcompaction设 为0)，选择一个晚上用户少的时间窗口手工major_compact，如果hbase更新不是太频繁，可以一个星期对所有表做一次 major_compact，这个可以在做完一次major_compact后，观看所有的storefile数量，如果storefile数量增加到 major_compact后的storefile的近二倍时，可以对所有表做一次major_compact，时间比较长，操作尽量避免高锋期。</p>
-<p>2、flush ‘testtable’，将所有memstore刷新到hdfs，通常如果发现regionserver的内存使用过大，造成该机的regionserver很多线程block，可以执行一下flush操作，这个操作会造成hbase的storefile数量剧增，应尽量避免这个操 作，还有一种情况，在hbase进行迁移的时候，如果选择拷贝文件方式，可以先停写入，然后flush所有表，拷贝文件。</p>
-<p>3、balance_switch true或者balance_switch flase，配置master是否执行平衡各个regionserver的region数量，当我们需要维护或者重启一个regionserver时，会 关闭balancer，这样就使得region在regionserver上的分布不均，这个时候需要手工的开启balance。</p>
-<p>4、move一个region到另一个RS。</p>
-<p>Move 要移动的regiong的id 目的机器，端口，startkey</p>
-<h1 id="服务维护命令"><a href="#服务维护命令" class="headerlink" title="服务维护命令"></a>服务维护命令</h1><p>1、bin/graceful_stop.sh –restart –reload –debugnodename。这个操作是平滑的重启regionserver进程，对服务不会有影响，他会先将需要重启的regionserver上面的所有 region迁移到其它的服务器，然后重启，最后又会将之前的region迁移回来，但我们修改一个配置时，可以用这种方式重启每一台机子，这个命令会关 闭balancer，所以最后我们要在hbase shell里面执行一下balance_switch true，对于hbase regionserver重启，不要直接kill进程，这样会造成在zookeeper.session.timeout这个时间长的中断，也不要通过 bin/hbase-daemon.sh stop regionserver去重启，如果运气不太好，-ROOT-或者.META.表在上面的话，所有的请求会全部失败。</p>
-<p>2、关闭下线一台regionserver bin/graceful_stop.sh –stop<strong>nodename</strong> <strong>。</strong>和上面一样，系统会在关闭之前迁移所有region，然后stop进程，同样最后我们要手工balance_switch true，开启master的region均衡。</p>
-<p>3、检查region是否正常以及修复：bin/hbase hbck (检查) &amp;&amp; bin/hbase hbck -fix （修复）。执行修复的命令后会返回所有的region是否正常挂载，如没有正常挂载可以使用下一条命令修复，如果还是不能修复，那需要看日志为什么失败，手工处理，这个命令时间稍微有点时间长，慎用。</p>
-<p>4、有时候，用户有必要绕过HBase并直接访问一个HFile，例如，检查它的健康程度，或者转存它的内容。hbase org.apache.hadoop.hbase.io.hfile.HFile -f /hbase/t1/e634b203a20933f8e13ad83ecb1511dc/f1/4f24802e1e8a47ba82c30d9de35589cc -v -m -p</p>
-<p>5、检查复制的数据是否完整。hbase org.apache.hadoop.hbase.mapreduce.replication.VerifyReplication –starttime=1265875194289 –stoptime=1265878794289 1 TestTable</p>
-<p>6、更新所有meta的信息（慎用） hbase hbck -fixMeta -fixAssignments</p>
-<h1 id="HBase的迁移"><a href="#HBase的迁移" class="headerlink" title="HBase的迁移"></a>HBase的迁移</h1><p>1，copytable方式</p>
-<p>bin/hbase org.apache.hadoop.hbase.mapreduce.CopyTable –peer.adr=zookeeper1,zookeeper2,zookeeper3:/hbase ‘testtable’</p>
-<p>目前0.92之前的版本的不支持多版本的复制，0.94已经支持多个版本的复制。当然这个操作需要添加hbase目录里的conf/mapred-site.xml，可以复制hadoop的过来。</p>
-<p>2，Export/Import</p>
-<p>bin/hbase org.apache.hadoop.hbase.mapreduce.Exporttesttable /user/testtable [versions] [starttime] [stoptime]</p>
-<p>bin/hbase org.apache.hadoop.hbase.mapreduce.Importtesttable /user/testtable</p>
-<p>跨版本的迁移，我觉得是一个不错的选择，而且copytable不支持多版本，而export支持多版本，比copytable更实用一些。</p>
-<p>3，直接拷贝hdfs对应的文件</p>
-<p>首先拷贝hdfs文件，如bin/hadoop distcp hdfs://srcnamenode:9000/hbase/testtable/ hdfs://distnamenode:9000/hbase/testtable/</p>
-<p>然后在目的hbase上执行bin/hbase org.jruby.Main bin/add_table.rb /hbase/testtable</p>
-<p>生成meta信息后，重启hbase</p>
-<p>这个操作是简单的方式，操作之前可以关闭hbase的写入，执行flush所有表（上面有介绍）,再distcp拷贝，如果hadoop版本不一致，可以用hftp接口的方式，我推荐使用这种方式，成本低</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/" itemprop="url">Hadoop和HBase开启对LZO压缩的支持</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-07-15T21:19:12-08:00">
-                2014-07-15
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>这本来是想写一个小的系列，包括后续的压测，所以先从环境搭建开始.</p>
-<p>PS:看了很多的文章后，总结出来的结论：网络上搭建方式各种坑，实践才是检验真理的唯一方式</p>
-<h1 id="基础环境"><a href="#基础环境" class="headerlink" title="基础环境"></a>基础环境</h1><p>hadoop版本1.0.4,Hbase0.94.3，系统环境：Centos5X, 64位</p>
-<h1 id="搭建过程"><a href="#搭建过程" class="headerlink" title="搭建过程"></a>搭建过程</h1><p> 一共需要准备4部分东西，这4个部分缺一不可。</p>
-<h2 id="1、lzo的系统库文件"><a href="#1、lzo的系统库文件" class="headerlink" title="1、lzo的系统库文件"></a>1、lzo的系统库文件</h2><p>不用相信网上的方法，亲测了，和很多库一样，这个不需要编译环境和运行环境是同一套，不过最好本地和运行的基本库一样，否则会有一些系统库不是向下兼容的问题。</p>
-<p>下载lzo-2.06.tar.gz</p>
-<p>然后依次执行以下的命令编译系统库</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">tar -zxvf lzo-2.06.tar.gz</div><div class="line"></div><div class="line">./configure --enable-shared --prefix /usr/local/lzo-2.06</div><div class="line"></div><div class="line">make</div><div class="line"></div><div class="line">make install</div></pre></td></tr></table></figure>
-<p>生成的库文件如下所示：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">├── lib</div><div class="line">│   ├── liblzo2.a</div><div class="line">│   ├── liblzo2.la</div><div class="line">│   ├── liblzo2.so -&gt; liblzo2.so.2.0.0</div><div class="line">│   ├── liblzo2.so.2 -&gt; liblzo2.so.2.0.0</div><div class="line">│   └── liblzo2.so.2.0.0</div></pre></td></tr></table></figure>
-<p>由于这些都是最基本的lzo压缩库，所以需要放到集群上的公共库中(我的系统是64位的，放在了/usr/lib64下面)，要求每个节点都有该库，因为所有的Map和Reduce都只依赖节点本身的库。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">[hadoop@hadoop131 ~]$ ls /usr/lib64/liblzo2.*</div><div class="line"></div><div class="line">/usr/lib64/liblzo2.a   /usr/lib64/liblzo2.so    /usr/lib64/liblzo2.so.2.0.0</div><div class="line"></div><div class="line">/usr/lib64/liblzo2.la  /usr/lib64/liblzo2.so.2</div></pre></td></tr></table></figure>
-<h2 id="2、导入hadoop依赖lzo的jar包"><a href="#2、导入hadoop依赖lzo的jar包" class="headerlink" title="2、导入hadoop依赖lzo的jar包"></a>2、导入hadoop依赖lzo的jar包</h2><p>下载hadoop-gpl-packaging-0.6.1-1.x86_64.rpm</p>
-<p>在系统上安装:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">rpm -ivh hadoop-gpl-packaging-0.6.1-1.x86_64.rpm</div></pre></td></tr></table></figure>
-<p>将会在本地安装以下的目录文件：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line">├── lib</div><div class="line">│   ├── cdh4.0.1</div><div class="line">│   │   └── elephant-bird-gerritjvv</div><div class="line">│   │       └── elephant-bird-2.0.5.jar</div><div class="line">│   ├── guava-12.0.jar</div><div class="line">│   ├── hadoop-lzo-0.4.17.jar</div><div class="line">│   ├── hadoop-lzo.jar -&gt; /opt/hadoopgpl/lib/hadoop-lzo-0.4.17.jar</div><div class="line">│   ├── pig-0.10.0</div><div class="line">│   │   ├── elephant-bird-gerritjvv</div><div class="line">│   │   │   └── elephant-bird-2.0.5.jar</div><div class="line">│   │   ├── elephant-bird.jar -&gt; /opt/hadoopgpl/lib/pig-0.10.0/elephant-bird-gerritjvv/elephant-bird-2.0.5.jar</div><div class="line">│   │   ├── udfs-0.3.1.jar</div><div class="line">│   │   └── udfs.jar -&gt; /opt/hadoopgpl/lib/pig-0.10.0/udfs-0.3.1.jar</div><div class="line">│   ├── pig-0.6.0</div><div class="line">│   │   └── elephant-bird-1.0.jar</div><div class="line">│   ├── pig-0.7.0</div><div class="line">│   │   └── elephant-bird-1.0.jar</div><div class="line">│   ├── pig-0.8.0</div><div class="line">│   │   ├── elephant-bird-dvryaboy</div><div class="line">│   │   │   └── elephant-bird-2.0.jar</div><div class="line">│   │   └── elephant-bird-gerritjvv</div><div class="line">│   │       └── elephant-bird-2.0.jar</div><div class="line">│   ├── protobuf-java-2.4.1.jar</div><div class="line">│   ├── slf4j-api-1.5.8.jar</div><div class="line">│   ├── slf4j-log4j12-1.5.10.jar</div><div class="line">│   └── yamlbeans-0.9.3.jar</div><div class="line">└── native</div><div class="line">    └── Linux-amd64-64</div><div class="line">        ├── libgplcompression.a</div><div class="line">        ├── libgplcompression.la</div><div class="line">        ├── libgplcompression.so</div><div class="line">        ├── libgplcompression.so.0</div><div class="line">        ├── libgplcompression.so.0.0.0</div><div class="line">        ├── LzoCompressor.lo</div><div class="line">        ├── LzoCompressor.o</div><div class="line">        ├── LzoDecompressor.lo</div><div class="line">        └── LzoDecompressor.o</div></pre></td></tr></table></figure>
-<p>现在只需要 hadoop-lzo.jar，需要将这个jar包拷贝到$HADOOP_HOME/lib和$HBAS_HOME/lib下，需要集群中所有的节点都有这个包。</p>
-<h2 id="3、hadoop调用系统库的jni库文件"><a href="#3、hadoop调用系统库的jni库文件" class="headerlink" title="3、hadoop调用系统库的jni库文件"></a>3、hadoop调用系统库的jni库文件</h2><p>在上面的Linux-amd64-64目录下，存放了需要的所有的JNI库文件，需要把这些库放到          </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$HADOOP_HOME/lib/native/Linux-amd64-64</div></pre></td></tr></table></figure>
-<p>拷贝其中所有的libgplcompression.* 到</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$HBASE_HOME/lib/native/Linux-amd64-64</div></pre></td></tr></table></figure>
-<p>注意，一般Hbase中不存在该目录，直接创建就可以了。</p>
-<h2 id="4、需要配置中，引用相关的库文件"><a href="#4、需要配置中，引用相关的库文件" class="headerlink" title="4、需要配置中，引用相关的库文件"></a>4、需要配置中，引用相关的库文件</h2><p>需要修改3个hadoop的配置：</p>
-<h3 id="core-site-xml-中增加："><a href="#core-site-xml-中增加：" class="headerlink" title="core-site.xml 中增加："></a>core-site.xml 中增加：</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">name</span>&gt;</span>io.compression.codecs<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">value</span>&gt;</span>com.hadoop.compression.lzo.LzoCodec,com.hadoop.compression.lzo.LzopCodec<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">name</span>&gt;</span>io.compression.codec.lzo.class<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">value</span>&gt;</span>com.hadoop.compression.lzo.LzoCodec<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div></pre></td></tr></table></figure>
-<h3 id="mapred-site-xml-中增加："><a href="#mapred-site-xml-中增加：" class="headerlink" title="mapred-site.xml 中增加："></a>mapred-site.xml 中增加：</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.map.output.compress<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>mapred.child.java.opts<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>-Djava.library.path=$&#123;HADOOP_HOME&#125;/lib/native/Linux-amd64-64<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>mapred.map.output.compression.codec<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>com.hadoop.compression.lzo.LzoCodec<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div></pre></td></tr></table></figure>
-<h3 id="hadoop-env-sh-中增加："><a href="#hadoop-env-sh-中增加：" class="headerlink" title="hadoop-env.sh 中增加："></a>hadoop-env.sh 中增加：</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:$HADOOP_HOME/lib:$HBASE_HOME/lib:</div><div class="line"></div><div class="line">export JAVA_LIBRARY_PATH=$JAVA_LIBRARY_PATH:$HADOOP_HOME/lib/native/Linux-amd64-64:$HADOOP_HOME/lib/native:$HADOOP_HOME/lib</div></pre></td></tr></table></figure>
-<h1 id="结果测试"><a href="#结果测试" class="headerlink" title="结果测试"></a>结果测试</h1><p>完成上述的4步配置后，需要重启集群。使用下面的方式对结果进行测试</p>
-<h2 id="hadoop测试使用lzo的压缩："><a href="#hadoop测试使用lzo的压缩：" class="headerlink" title="hadoop测试使用lzo的压缩："></a>hadoop测试使用lzo的压缩：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hadoop jar $&#123;HADOOP_HOME&#125;/contrib/streaming/hadoop-streaming-1.0.4.jar -input /in/part-00009 -output /testalzo -mapper cat -reducer cat -jobconf mapred.output.compress=true -jobconf mapred.output.compression.codec=org.apache.hadoop.io.compress.LzoCodec</div></pre></td></tr></table></figure>
-<p>测试成功的话会生成/in/part-00009的压缩文件/testalzo/part-00000.lzo_deflate</p>
-<h2 id="hbase测试使用lzo压缩："><a href="#hbase测试使用lzo压缩：" class="headerlink" title="hbase测试使用lzo压缩："></a>hbase测试使用lzo压缩：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase org.apache.hadoop.hbase.util.CompressionTest hdfs://hadoop131/terasort/output/part-00005 lzo</div></pre></td></tr></table></figure>
-<p>测试成功的话会输出SUCCESS   </p>
-<p>修改表压缩方式为lzo，接下来以usertable为例子进行</p>
-<p>1、describe ‘usertable’ 查看原来的压缩方式，默认情况下的压缩方式 COMPRESSION =&gt; ‘NONE’</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">hbase(main):003:0&gt; describe &apos;usertable&apos; </div><div class="line">DESCRIPTION                                                       ENABLED                           </div><div class="line">&#123;NAME =&gt; &apos;usertable&apos;, FAMILIES =&gt; [&#123;NAME =&gt; &apos;cf&apos;, DATA_BLOCK_ENC true                              </div><div class="line">ODING =&gt; &apos;NONE&apos;, BLOOMFILTER =&gt; &apos;NONE&apos;, REPLICATION_SCOPE =&gt; &apos;0&apos;                                   </div><div class="line">, VERSIONS =&gt; &apos;3&apos;, COMPRESSION =&gt; &apos;NONE&apos;, MIN_VERSIONS =&gt; &apos;0&apos;, T                                   </div><div class="line">TL =&gt; &apos;2147483647&apos;, KEEP_DELETED_CELLS =&gt; &apos;false&apos;, BLOCKSIZE =&gt;                                    </div><div class="line">&apos;65536&apos;, IN_MEMORY =&gt; &apos;false&apos;, ENCODE_ON_DISK =&gt; &apos;true&apos;, BLOCKCA                                   </div><div class="line">CHE =&gt; &apos;true&apos;&#125;]&#125;  </div><div class="line">&gt;disable &apos;usertable&apos;</div><div class="line">&gt;alter &apos;usertable&apos;,&#123;NAME=&gt;&apos;info&apos;,COMPRESSION=&gt;&apos;LZO&apos;&#125;</div><div class="line">&gt;enable &apos;TestTable&apos;</div><div class="line">&gt;compact &apos;TestTable&apos;</div></pre></td></tr></table></figure>
-<p>测试结果：</p>
-<p>先用自带的工具生成1G的测试数据：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase org.apache.hadoop.hbase.PerformanceEvaluation  sequentialWrite 1</div></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">1059592589  hdfs://hadoop131/hbase/TestTable</div><div class="line">409232235   hdfs://hadoop131/hbase/TestTable</div></pre></td></tr></table></figure>
-<p>原来1G的数据被压缩到了400M，这个压缩效果和数据有关系，但是从网上的经验看，至少20%的压缩比还是能达到的。</p>
-<h1 id="补充"><a href="#补充" class="headerlink" title="补充"></a>补充</h1><p>2014-10-24日增加:</p>
-<p>升级为hadoop2.4.1版本，为新版本增加LZO的压缩：</p>
-<p>1、编译本地的LZO库同上</p>
-<p>2、编译Hadoop-LZO依赖：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">git init </div><div class="line"></div><div class="line">git clone https://github.com/twitter/hadoop-lzo</div><div class="line"></div><div class="line">export C_INCLUDE_PATH=/usr/local/lzo/include</div><div class="line"></div><div class="line">export LIBRARY_PATH=/usr/local/lzo/lib</div><div class="line"></div><div class="line">mvn clean package -Dmaven.test.skip=true</div></pre></td></tr></table></figure>
-<p>3、拷贝相应的库和包到集群上：</p>
-<p>需要拷贝的包括(如果需要HBase支持ZLO，需要把所有的包拷贝到hbase下的lib下，没有的话创建</p>
-<p>所有的lzo依赖库，把所有/usr/local/lzo/lib下的库文件拷贝到集群上，且通过ldd的工具设置为系统库。</p>
-<p>拷贝maven编译完成后的target/hadoop-lzo-0.4.20-SNAPSHOT.jar拷贝到hadoop的share/hadoop/common下</p>
-<p>拷贝target/native/Linux-amd64-64/lib下的所有库文件到hadoop的lib/native/下</p>
-<p>4、配置集群文件同上<br>5、重启集群<br>6、测试压缩是否可以用<br>在本地安装lzop的工具，然后随便找一个文件，执行<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">lzop -U -9 testFile</div></pre></td></tr></table></figure></p>
-<p> 然后上传到HDFS上，如果直接用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hadoop fs -cat</div></pre></td></tr></table></figure>
-<p> 可以看到文件是乱码，但是用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hdfs dfs -text</div></pre></td></tr></table></figure>
-<p> 看到的是非乱码就证明lzo正确安装了。</p>
-<h1 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h1><p><a href="http://www.quora.com/How-do-I-install-LZO-compression-with-Hbase-and-Hadoop" target="_blank" rel="external">http://www.quora.com/How-do-I-install-LZO-compression-with-Hbase-and-Hadoop</a><br><a href="http://shitouer.cn/2013/01/hadoop-hbase-snappy-setup-final-tutorial/" target="_blank" rel="external">http://shitouer.cn/2013/01/hadoop-hbase-snappy-setup-final-tutorial/</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/06/20/java多线程-Executor/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/06/20/java多线程-Executor/" itemprop="url">java多线程(Executor)</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-06-19T19:42:58-08:00">
-                2014-06-19
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>Executor框架是指java 5中引入的一系列并发库中与executor相关的一些功能类，其中包括线程池，Executor，Executors，ExecutorService，CompletionService，Future，Callable等。</p>
-<p>下面这个例子是为了证明一个问题：当一个ExecutorService在执行了shutdown后，并不会影响当前线程的执行，当前的线程会继续执行，只不过该对象不能再增加新的线程。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> java.sql.DatabaseMetaData;</div><div class="line"><span class="keyword">import</span> java.util.List;</div><div class="line"><span class="keyword">import</span> java.util.ArrayList;</div><div class="line"><span class="keyword">import</span> java.util.Date;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Callable;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.ExecutionException;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.ExecutorService;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executors;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Future;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyCallable</span> <span class="keyword">implements</span> <span class="title">Callable</span> </span>&#123;    </div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> myNum = <span class="number">0</span>;</div><div class="line">    </div><div class="line">    MyCallable(<span class="keyword">int</span> threadNum)&#123;</div><div class="line">        <span class="keyword">this</span>.myNum = threadNum;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">call</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        System.out.println(<span class="string">"&gt;&gt;&gt;"</span>+myNum+<span class="string">" thread start"</span>);</div><div class="line">        Date dateTmp1 = <span class="keyword">new</span> Date();</div><div class="line">        Thread.sleep(<span class="number">1000</span>);</div><div class="line">        Date dataTmp2 = <span class="keyword">new</span> Date();</div><div class="line">        <span class="keyword">long</span> time = dataTmp2.getTime()-dateTmp1.getTime();</div><div class="line">        System.out.println(<span class="string">"&gt;&gt;&gt;"</span>+myNum+<span class="string">" thread start, it has run time for "</span>+time);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ThreadTest</span> </span>&#123;</div><div class="line">    </div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String []args)</span> <span class="keyword">throws</span> ExecutionException,InterruptedException</span>&#123;</div><div class="line">        System.out.println(<span class="string">"----Thread test stat-----"</span>);</div><div class="line">        Date dateNow = <span class="keyword">new</span> Date();</div><div class="line">        <span class="keyword">int</span> taskSize = <span class="number">5</span>;</div><div class="line">        </div><div class="line">       ExecutorService threadPool = Executors.newFixedThreadPool(taskSize);</div><div class="line">        List list = <span class="keyword">new</span> ArrayList();</div><div class="line">        <span class="keyword">for</span> ( <span class="keyword">int</span> i=<span class="number">0</span>;i</div><div class="line">            Callable callable = <span class="keyword">new</span> MyCallable(i);</div><div class="line">            Future future = threadPool.submit(callable);</div><div class="line">            list.add(future);</div><div class="line">        &#125;</div><div class="line">        threadPool.shutdown();</div><div class="line">        </div><div class="line">        <span class="keyword">for</span> (Future future : list)&#123;</div><div class="line">            <span class="keyword">if</span> (future.get() != <span class="keyword">null</span>)&#123;</div><div class="line">                System.out.println(<span class="string">"&gt;&gt;&gt;"</span> + future.get().toString());</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        </div><div class="line">        Date dataEnd = <span class="keyword">new</span> Date();</div><div class="line">        <span class="keyword">long</span> timeEnd = dateNow.getTime()-dataEnd.getTime();</div><div class="line">        System.out.println(<span class="string">"----Thread test "</span>+timeEnd+<span class="string">" end-----"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>在上面的例子中，用的是<strong>newFixedThreadPool</strong>来创建指定数量的线程。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ExecutorService <span class="title">newFixedThreadPool</span><span class="params">(<span class="keyword">int</span> nThreads)</span></span></div></pre></td></tr></table></figure>
-<p>创建固定数目线程的线程池。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ExecutorService <span class="title">newCachedThreadPool</span><span class="params">()</span></span></div></pre></td></tr></table></figure>
-<p>一个可缓存的线程池，调用<code>execute</code> 将重用以前构造的线程（如果线程可用）。如果现有线程没有可用的，则创建一个新线程并添加到池中。终止并从缓存中移除那些已有 60 秒钟未被使用的线程。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ExecutorService <span class="title">newSingleThreadExecutor</span><span class="params">()</span></span></div></pre></td></tr></table></figure>
-<p>一个单线程化的Executor。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ScheduledExecutorService <span class="title">newScheduledThreadPool</span><span class="params">(<span class="keyword">int</span> corePoolSize)</span></span></div></pre></td></tr></table></figure>
-<p>一个支持定时及周期性的任务执行的线程池，多数情况下可用来替代Timer类。<br>上面的几个方法中，应该优先使用<strong>newCachedThreadPool</strong>，因为它创建与需求数量一致的线程数，只有当这个方法出问题的时候再考虑用<strong>newFixedThreadPool</strong>newSingleThreadExecutor对于希望在程序中连续运行的任何事物都是有用的。<br>在上面的例子中，使用的是callable，也可以使用runnable，这两个的区别就是如果想让线程执行有返回值，应该用callable。调用callable不是使用run，而是call，而且在executorserver中添加的时候，不是使用execute，而是使用submit，这个调用会返回一个futurer的对象，然后该对象可以调用get来获取结果<br>线程的yield方法是建议让具有相同优先级的其它线程可以运行了。</p>
-<p>ExecutorService扩展了Executor并添加了一些生命周期管理的方法。一个Executor的生命周期有三种状态，<strong>运行</strong>，<strong>关闭</strong>，<strong>终止</strong>。Executor创建时处于运行状态。当调用ExecutorService.shutdown()后，处于关闭状态，isShutdown()方法返 回true。这时，不应该再想Executor中添加任务，所有已添加的任务执行完毕后，Executor处于终止状态，isTerminated()返 回true。</p>
-<p>如果Executor处于关闭状态，往Executor提交任务会抛出unchecked exception RejectedExecutionException<br>线程的后台执行: 设置thread的对象setDaemon为true就可以设置为后台进程<br>使用join方法可以有一个特效，使得某个线程A在另一个线程B上调用A.join，则当前的B将会挂起，直到A执行完成后，B才会继续执行，也可以加一个超时时间，当然也可以中断挂起，用B的interrupt的方法.<br>join的例子：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> java.util.concurrent.Callable;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.ExecutorService;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executors;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Sleeper</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> duriation;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Sleeper</span><span class="params">(String name, <span class="keyword">int</span> sleepTime)</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">super</span>(name);</div><div class="line"></div><div class="line">        duriation = sleepTime;</div><div class="line"></div><div class="line">        start();</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line"></div><div class="line">            sleep(duriation);</div><div class="line"></div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line"></div><div class="line">            <span class="comment">// <span class="doctag">TODO:</span> handle exception</span></div><div class="line"></div><div class="line">            System.out.println(getName()+<span class="string">"  was interrupted. "</span>+<span class="string">" is interrupete "</span>+isInterrupted());</div><div class="line"></div><div class="line">            <span class="keyword">return</span>;</div><div class="line"></div><div class="line">        &#125;</div><div class="line"></div><div class="line">        System.out.println(getName()+<span class="string">" has awakened"</span>);</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Joiner</span> <span class="keyword">extends</span> <span class="title">Thread</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> Sleeper sleeper;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Joiner</span><span class="params">(String name, Sleeper sleeper)</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">super</span>(name);</div><div class="line"></div><div class="line">        <span class="keyword">this</span>.sleeper = sleeper;</div><div class="line"></div><div class="line">        start();</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line"></div><div class="line">            sleeper.join();</div><div class="line"></div><div class="line">            <span class="comment">//            sleep(1);</span></div><div class="line"></div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line"></div><div class="line">            <span class="comment">// <span class="doctag">TODO:</span> handle exception</span></div><div class="line"></div><div class="line">            e.printStackTrace();</div><div class="line"></div><div class="line">        &#125;</div><div class="line"></div><div class="line">        System.out.println(getName() + <span class="string">" join completed"</span>);</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">threadTest</span></span>&#123;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line"></div><div class="line">        <span class="comment">// TODO Auto-generated method stub</span></div><div class="line"></div><div class="line">        Sleeper sleeper = <span class="keyword">new</span> Sleeper(<span class="string">"a"</span>, <span class="number">15000</span>);</div><div class="line"></div><div class="line">        <span class="comment">//        Sleeper another = new Sleeper("b", 15000);</span></div><div class="line"></div><div class="line">        Joiner doc = <span class="keyword">new</span> Joiner(<span class="string">"doc"</span>, sleeper);</div><div class="line"></div><div class="line">        <span class="comment">//        sleeper.interrupt();</span></div><div class="line"></div><div class="line">        <span class="comment">//        another.interrupt();</span></div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>对于Executor管理的线程，如果发生了异常，需要捕获，尝试通过try catch的方法是无法正确捕获的，这时候可以通过Thread.UncaugthExceptionHandler.uncaughtException()来捕获临近死亡时候的状态。<br>为什么使用executor<br>构造器中启动线程是很危险的，因为另一个任务可能会在构造器结束之前开始执行，这意味着该任务能够访问处于不稳定状态的对象。<br>可以替代线程组更好的管理线程</p>
-<p>参考博客：</p>
-<p><a href="http://www.iteye.com/topic/366591" target="_blank" rel="external">http://www.iteye.com/topic/366591</a></p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/06/18/Map到Reduce的主流程/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/06/18/Map到Reduce的主流程/" itemprop="url">Map到Reduce的主流程</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-06-17T15:09:40-08:00">
-                2014-06-17
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="一、Map"><a href="#一、Map" class="headerlink" title="﻿﻿一、Map"></a>﻿﻿一、Map</h1><p>1、spilit 和map是多对一或者一对一，split主要就是通过inutFormat程序对数据切片后的分块。<br>2、spill  这个过程就是在map过程中，把map的循环队列中的数据从内存写道硬盘的过程，写的时候会排序<br>3、merge Map端的Merge主要是，在完成了所有的map计算后，把所有的spill的块和当前内存中的块合并，然后作为reduce的输入，注意，如果设置了combined的函数，在这个阶段也会进行combine<br>4、combine  也叫pre-reduce，就是把所有的spill和内存中的map进行排序。</p>
-<h1 id="二、Map结果怎么传送给Reduce"><a href="#二、Map结果怎么传送给Reduce" class="headerlink" title="二、Map结果怎么传送给Reduce"></a>二、Map结果怎么传送给Reduce</h1><p>1、shuffle整个从map端传送数据到reduce端的过程<br>2、partitioner 通过map输出的key/value个数和reduce的数量来决定哪个数据由哪个reduce来处理</p>
-<h1 id="三、reduce"><a href="#三、reduce" class="headerlink" title="三、reduce"></a>三、reduce</h1><p>1、mergeReduce阶段的Merge就是通过shuffle从不同的map端下载的数据进行合并，注意，这部分数据不会直接写入磁盘，而是先在内存中，到一定数量再写入。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/06/14/通过MR读取Kafka的数据/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/06/14/通过MR读取Kafka的数据/" itemprop="url">通过MR读取Kafka的数据</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-06-13T15:13:27-08:00">
-                2014-06-13
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="为什么要用MR读取Kafka"><a href="#为什么要用MR读取Kafka" class="headerlink" title="为什么要用MR读取Kafka"></a>为什么要用MR读取Kafka</h1><p>通过Mapreduce读取Kafka，有几个原因：</p>
-<p>1、防止数据量大的读取，导致单台机器承载能力不够</p>
-<p>2、利用MR的优势，更方便的处理数据</p>
-<p>3、可以根据数据的类型，把数据直接存储到HDFS的不同路径上</p>
-<h1 id="实现思路"><a href="#实现思路" class="headerlink" title="实现思路"></a>实现思路</h1><p>1、数据来源是kafka的consumer，所以不能用类似于TextInputFormat等自带的传统的数据切分的方法。<br>2、数据的Map过程需要对数据进行处理，为了减少对数据处理的次数，在Map的时候就需要把后面拼接路径的有效信息提取到<br>3、不需要有Reduce，只需要有直接的OutputStream就可以直接把不同路径的数据分发到不同的HDFS上<br>4、需要基本的ZK管理类，来直接读写偏移的信息</p>
-<h1 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h1><h2 id="提交任务主类"><a href="#提交任务主类" class="headerlink" title="提交任务主类"></a>提交任务主类</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div></pre></td><td class="code"><pre><div class="line">writeNewOffsetFromConfig(conf,TOPIC,GROUP_ID,OFFSETSTART,<span class="keyword">true</span>);</div><div class="line">Job job = <span class="keyword">new</span> Job(conf, <span class="string">"Kafka.Consumer"</span>);</div><div class="line">job.setJarByClass(getClass());</div><div class="line">job.setMapperClass(KafkaMapper.class);</div><div class="line"></div><div class="line"><span class="comment">// input</span></div><div class="line">job.setInputFormatClass(KafkaInputFormat.class);</div><div class="line"></div><div class="line"><span class="comment">// output</span></div><div class="line">job.setOutputKeyClass(Text.class);</div><div class="line">job.setOutputValueClass(Text.class);</div><div class="line">job.setOutputFormatClass(KafkaOutputFormat.class);</div><div class="line">job.setNumReduceTasks(<span class="number">0</span>);</div><div class="line"></div><div class="line">KafkaOutputFormat.setOutputPath(job, <span class="keyword">new</span> Path(HDFS_PATH + <span class="string">"/"</span> + TOPIC));</div><div class="line"><span class="comment">//上面这部分的代码，展示了整个的流程：writeNewOffsetFromConfig是实现了一个从配置读取偏移，不使用上次默认偏移的方法。</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">writeNewOffsetFromConfig</span><span class="params">(Configuration conf,String topic,String groupId,String offsetStr,<span class="keyword">boolean</span> needBackUp)</span> <span class="keyword">throws</span> IOException </span>&#123;</div><div class="line">    ZkUtils zk = <span class="keyword">new</span> ZkUtils(conf);</div><div class="line">    String errorStr = <span class="string">""</span>;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (needBackUp)&#123;</div><div class="line">        backupLastOffset(zk, conf, topic, groupId); <span class="comment">//这个是备份之前的配置，主要通过topic来读取相应的brocker、partiotion、lastOffset的信息，然后存储到ZK。</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">if</span> (offsetStr == <span class="keyword">null</span> || offsetStr == <span class="string">""</span>)&#123; <span class="comment">//如果配置中未指定默认的起始地址，则接着上次的偏移开始读</span></div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        String [] splitStrs = offsetStr.split(<span class="string">","</span>);</div><div class="line">        logger.info(<span class="string">"Get Start message:"</span> + offsetStr);</div><div class="line">        <span class="keyword">if</span> (splitStrs.length &lt; <span class="number">1</span>)&#123;</div><div class="line">            logger.info(<span class="string">"INFO, when start message get splitStr: "</span>+offsetStr+<span class="string">" length :"</span> + splitStrs.length);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="keyword">for</span> ( String splitStr : splitStrs)&#123;</div><div class="line">            String [] offsetDetailInfos = splitStr.split(<span class="string">":"</span>);</div><div class="line">            <span class="keyword">if</span> (ffsetDetailInfos.length != <span class="number">2</span>)&#123;</div><div class="line">                errorStr = <span class="string">"Error: when change offset from config, get error system config (OFFSETSTART):"</span> + offsetStr;</div><div class="line">                logger.error(errorStr);</div><div class="line">            &#125;  <span class="keyword">else</span> &#123;</div><div class="line">                <span class="keyword">try</span> &#123;</div><div class="line">                    String partition = offsetDetailInfos[<span class="number">0</span>];</div><div class="line">                    <span class="keyword">long</span> offset = Long.valueOf(offsetDetailInfos[<span class="number">1</span>]);</div><div class="line">                    logger.info(<span class="string">"Info: update group:"</span> + groupId + <span class="string">" topic:"</span></div><div class="line">                        + topic + <span class="string">" parti:"</span> + partition + <span class="string">" offset:"</span>+ offset);</div><div class="line">                    zk.setLastCommit(groupId, topic, partition, offset,<span class="keyword">false</span>); <span class="comment">//把当前的偏移设置为从配置中读取到的默认偏移</span></div><div class="line">                &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">                    errorStr = <span class="string">"When set offset which is read from config OFFSETSTART:"</span> + offsetStr + <span class="string">". Get Error:"</span> + e.toString();</div><div class="line">                    logger.error(errorStr);</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">catch</span> (Exception e)&#123;</div><div class="line">        String lastOffset = zk.getLastOffset(groupId, topic);</div><div class="line">        <span class="keyword">if</span> (lastOffset != <span class="keyword">null</span>)&#123;</div><div class="line">            writeNewOffsetFromConfig(conf, topic, groupId, lastOffset,<span class="keyword">false</span>);</div><div class="line">        &#125;</div><div class="line">        errorStr = <span class="string">"Error: when change offset from config, get exception:"</span> + e.toString();</div><div class="line">        logger.error(errorStr);</div><div class="line">    &#125; <span class="keyword">finally</span> &#123;</div><div class="line">        zk.close();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>其它的MR的方法，接下来会依次介绍，可以看到，这里主要实现了InputFormat、 Mapper、OutputFormat的方法来实现从Kafka消费数据，然后根据数据的类型写到不同的HDFS上。</p>
-<h2 id="关于InputSplit"><a href="#关于InputSplit" class="headerlink" title="关于InputSplit"></a>关于InputSplit</h2><p>﻿﻿在 MapReduce过程中，Map之前要进行的是Inputsplit，通过数据的切分，然后才能把数据分发到不同的节点上进行计算。</p>
-<p>InputSplit整个过程包含了个重要的方法getSplits和getRecorder方法。</p>
-<p>getSplits主要返回了一个InputSplit的对象，这个对象在逻辑上对整个数据进行了切片(注意，没有进行实际的物理切分)</p>
-<p>切分的过程中，会涉及到分片大小的问题：</p>
-<p>在默认的切分中，会通过下面的方式计算分片的大小：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">goalSize = totalSize / mapred.map.tasks <span class="comment">// mapred.map.tasks默认的配置为2</span></div><div class="line">minSize = max &#123;mapred.min.split.size, minSplitSize&#125;  <span class="comment">//mapred.min.split.size的默认配置为1</span></div><div class="line">splitSize = max (minSize, min(goalSize, dfs.block.size))  <span class="comment">//dfs.block.size默认为64M</span></div></pre></td></tr></table></figure>
-<p>通过最后一个计算公式，可以看到，一般正常配置的情况下分片最大不会超过dfs.block.size(minSize一般小于分块的大小)</p>
-<p>接下来分析我使用的分片方式</p>
-<h3 id="1、定义kafka-consumer的数据进行了分片结构："><a href="#1、定义kafka-consumer的数据进行了分片结构：" class="headerlink" title="1、定义kafka consumer的数据进行了分片结构："></a>1、定义kafka consumer的数据进行了分片结构：</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> String brokerId;  <span class="comment">//数据所在的broker的Id</span></div><div class="line"><span class="keyword">private</span> String broker;  <span class="comment">// 数据所在的broker</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">int</span> partition; <span class="comment">//具体的每个brocker的某个partition</span></div><div class="line"><span class="keyword">private</span> String topic; <span class="comment">//读取的topic</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastCommit; <span class="comment">//记录上一次的偏移量</span></div></pre></td></tr></table></figure>
-<h3 id="2、构建逻辑分片"><a href="#2、构建逻辑分片" class="headerlink" title="2、构建逻辑分片"></a>2、构建逻辑分片</h3><p>​     要想使用上面的数据结构来构建splits，需要从Kafka的consumer组中，查找指定的topic的各个数据。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">List splits = <span class="keyword">new</span> ArrayList();</div><div class="line">List partitions = zk.getPartitions(topic);  <span class="comment">//获取指定的topic的分区情况</span></div><div class="line"></div><div class="line"><span class="keyword">for</span> (String partition : partitions) &#123;</div><div class="line">    String[] sp = partition.split(<span class="string">"-"</span>); <span class="comment">//在消费队列中，存储的格式为brocker-partition的，通过切分获取相应的brocker和partition</span></div><div class="line">    <span class="keyword">long</span> last = zk.getLastCommit(group, topic, partition); <span class="comment">//获取对应的brocker-partition的最后便宜量</span></div><div class="line">    InputSplit split = <span class="keyword">new</span> KafkaSplit(sp[<span class="number">0</span>], zk.getBroker(sp[<span class="number">0</span>]),topic, Integer.valueOf(sp[<span class="number">1</span>]), last); <span class="comment">//构建split分片对象</span></div><div class="line">    splits.add(split); <span class="comment">//在总的分片列表中加入刚创建的分片对象</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>最后返回splits，这样就获取到了所有的逻辑分片,这样的分片，可以保证，每个Map读取对应的brocker的数据(因为Map的数量是由split的个数决定的)。</p>
-<h3 id="3、完成Reader"><a href="#3、完成Reader" class="headerlink" title="3、完成Reader"></a>3、完成Reader</h3><p>﻿﻿﻿﻿完成数据的逻辑分片后，需要对具体的某个分片，获取相应的数据，接下来就涉及到了InputSplit的另一个重要的方法。</p>
-<p>RecordReader方法的使命是通过逻辑分片，读取相应的数据，然后传递给Map。</p>
-<p>为什么用了使命呢，因为这部分是比较棘手的一部分。</p>
-<p>这部分是返回一个RecordReader的对象，需要重写以下几个方法：</p>
-<h4 id="1、initialize"><a href="#1、initialize" class="headerlink" title="1、initialize"></a>1、initialize</h4><p>初始化RecordReader对象，这个过程中，我会新开一个线程去从Kafka读取数据：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">kafka.api.FetchRequest request = <span class="keyword">new</span> FetchRequest(topic, partition, offset, fetchSize);</div><div class="line">messages = consumer.fetch(request);这里需要判断一下返回结构是否正确</div><div class="line"><span class="keyword">int</span> code = messages.getErrorCode();</div><div class="line"><span class="keyword">if</span> (code == <span class="number">0</span>) &#123;    </div><div class="line">  hasData = <span class="keyword">true</span>;  <span class="comment">//设置是否还有数据    </span></div><div class="line">  offset += messages.validBytes(); <span class="comment">// 把offset设置为当前的offset加上读出的数据的长度，为下次读取的偏移</span></div><div class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (hasData &amp;&amp; code == ErrorMapping.OffsetOutOfRangeCode()) &#123;    </div><div class="line">  <span class="comment">//表示已经没有数据了        </span></div><div class="line">  stop = <span class="keyword">true</span>; <span class="comment">//停止读取数据</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>但是这里访问kafka的时候，可能会有并发的问题，所以我加入了ArrayBlockingQueue队列来存储所有的message。在初始化阶段，还需要把偏移的start和end获取到：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">startOffset = SimpleConsumer kafka.consumer.KafkaContext.consumer.getOffsetsBefore(topic, partition, -<span class="number">2L</span>, <span class="number">1</span>)[<span class="number">0</span>];</div><div class="line">lastOffset = SimpleConsumer kafka.consumer.KafkaContext.consumer.getOffsetsBefore(topic, partition, -<span class="number">1L</span>, <span class="number">1</span>)[<span class="number">0</span>];</div></pre></td></tr></table></figure>
-<h4 id="2、nextKeyValue"><a href="#2、nextKeyValue" class="headerlink" title="2、nextKeyValue"></a>2、nextKeyValue</h4><p>这个方法是最为重要的一个方法，主要是把获取到的逻辑分片，返回一个key value的数据对，传递给Map。</p>
-<p>作为最重要的处理方法，在我们这里其实很简单，就是读取当前的message，把offset作为key，获取到的message作为value返回。</p>
-<p>通过 Iterator iterator.hasNext判断是否还有新的message，如果有的话，调用Iterator iterator.message获取到当前的消息，然后设置key和value返回。</p>
-<h4 id="3、getProgress"><a href="#3、getProgress" class="headerlink" title="3、getProgress"></a>3、getProgress</h4><p>这个函数主要是通过初始化的时候获取到的起始偏移来返回当前的进度，</p>
-<h4 id="4、close"><a href="#4、close" class="headerlink" title="4、close"></a>4、close</h4><p>在关闭当前的读取之后，需要把读取完之后的offset写回，</p>
-<p>和split的时候获取的方法想对应，这里调用的是：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">zk.setLastCommit(group, ksplit.getTopic(), partition, pos, <span class="keyword">true</span>);</div></pre></td></tr></table></figure>
-<p>写回的偏移保证下次的split的时候能从新的偏移开始读数据。</p>
-<p>通过createRecordReader(旧版的API里面为RecorderReader)返回上面的一个recorder对象，就可以提供在Map的时候处理的KV。</p>
-<h2 id="实现Map类"><a href="#实现Map类" class="headerlink" title="实现Map类"></a>实现Map类</h2><p>﻿其实Map类很简单，</p>
-<p>分到的key为上一次的offset</p>
-<p>分到的 value 为上一次读取到的message</p>
-<p>为什么是上一次呢，因为在上次读取完之后，已经修改了offset，对于每个map，下一次要处理的数据，不再是同一个。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"> Text out = <span class="keyword">new</span> Text();</div><div class="line">out.set(value.getBytes(), <span class="number">0</span>, value.getLength());</div></pre></td></tr></table></figure>
-<p>上面的两次可以获取到具体的message，然后可以进行处理，这里的处理不再细说。</p>
-<h2 id="实现output"><a href="#实现output" class="headerlink" title="实现output"></a>实现output</h2><p>﻿﻿首先我们的OutPut类继承了FileOutputFormat方法，这样就可以实现不同的数据存储到不同路径的需求。    </p>
-<p>然后需要重写方法getRecordWriter，这个方法需要返回一个RecordWriter的数据，这个数据中指定了不同的数据存储到不同的节点上。</p>
-<p>这里需要补充一个问题，因为我们的HDFS上需要存储数据的基本路径可能是固定的，比如/user/XXX的数据存放在相应的目录下。我们可以在主类中执行最基本的路径：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">OutputFormat.setOutputPath(job, <span class="keyword">new</span> Path(HDFS_PATH + <span class="string">"/"</span> + TOPIC));</div></pre></td></tr></table></figure>
-<p>然后可以通过一下方法在output的时候获取到相应的路径：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Path outputPath = <span class="keyword">super</span>.getOutputPath(conf);</div></pre></td></tr></table></figure>
-<p>基本路径取定后，我们需要实现一个RecordWriter类，这个类中可以定义构造函数，指定要写入的job名称和基础路径。<br>而RecordWriter需要重写以下的方法：</p>
-<p>在write中是将指定的数据写入到指定的HDFS上，基本路径在之前已经获取到，然后需要指定写入的文件名，我们可以简单的使用key.toString()作为文件名称。</p>
-<p>然后通过Path file = new Path(workPath,key.toString() );拼接出来新的路径。</p>
-<p>接下来创建一个HDFS的输出流：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">FSDataOutputStream fileOut = file.getFileSystem(conf).create(file, <span class="keyword">true</span>);</div></pre></td></tr></table></figure>
-<p>调用out.write方法，把刚才获取到的value值写到流中。</p>
-<p> 这里的write实现了数据的写入。</p>
-<p>在close的时候需要做的是，把所有打开的RecordWriter都关闭。</p>
-<p>我在实现的时候使用了private HashMap&gt; recordWriters 类存储所有的对象，然后轮寻所有hashmap,</p>
-<p>依次调用close方法关闭相应的输出流，最后应该清空hashMap,这样可以最快的释放内存。</p>
-<h2 id="ZK偏移量的管理"><a href="#ZK偏移量的管理" class="headerlink" title="ZK偏移量的管理"></a>ZK偏移量的管理</h2><p>﻿zk的使用，可以使用ZkClient或者使用org.apache.zookeeper.ZooKeeper，实现，本文使用的是前者。</p>
-<p>zk的创建：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ZkClient client = <span class="keyword">new</span> ZkClient(zk, stimeout, ctimeout, <span class="keyword">new</span> StringSerializer() );</div></pre></td></tr></table></figure>
-<p>zk获取目录的列表：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.getChildren(path);</div></pre></td></tr></table></figure>
-<p>zk获取节点的值：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.readData(znode, <span class="keyword">true</span>);</div></pre></td></tr></table></figure>
-<p>zk删除节点：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.delete(path);</div></pre></td></tr></table></figure>
-<p>zk创建路径：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.createPersistent(path, <span class="keyword">true</span>);</div></pre></td></tr></table></figure>
-<p>zk写值</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.writeData(path, value);</div></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right"></i></a>
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span><a class="page-number" href="/page/3/">3</a><span class="space">&hellip;</span><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/3/"><i class="fa fa-angle-right"></i></a>
   </nav>
 
 
@@ -1849,7 +1770,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">32</span>
+                  <span class="site-state-item-count">41</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1861,10 +1782,10 @@
               
               
               <div class="site-state-item site-state-tags">
-                
-                  <span class="site-state-item-count">7</span>
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">8</span>
                   <span class="site-state-item-name">标签</span>
-                
+                </a>
               </div>
             
 

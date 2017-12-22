@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hadoop," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="压测的方法通过Straming把压缩普通文件成为LZO的格式123456789hadoop jar /opt/hadoop/hadoop-2.6.0/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar``-Dmapred.min.split.size=$[1024*1024*1024]``-D mapred.output.compress=true`">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hadoop开启LZO后的压测">
+<meta property="og:url" content="http://yoursite.com/2016/03/23/Hadoop开启LZO后的压测/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="压测的方法通过Straming把压缩普通文件成为LZO的格式123456789hadoop jar /opt/hadoop/hadoop-2.6.0/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar``-Dmapred.min.split.size=$[1024*1024*1024]``-D mapred.output.compress=true`">
+<meta property="og:updated_time" content="2017-12-22T10:06:35.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Hadoop开启LZO后的压测">
+<meta name="twitter:description" content="压测的方法通过Straming把压缩普通文件成为LZO的格式123456789hadoop jar /opt/hadoop/hadoop-2.6.0/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar``-Dmapred.min.split.size=$[1024*1024*1024]``-D mapred.output.compress=true`">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2016/03/23/Hadoop开启LZO后的压测/"/>
+
+
+
+
+
+  <title>Hadoop开启LZO后的压测 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2016/03/23/Hadoop开启LZO后的压测/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Hadoop开启LZO后的压测</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2016-03-23T11:54:05+08:00">
+                2016-03-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="压测的方法"><a href="#压测的方法" class="headerlink" title="压测的方法"></a>压测的方法</h1><h2 id="通过Straming把压缩普通文件成为LZO的格式"><a href="#通过Straming把压缩普通文件成为LZO的格式" class="headerlink" title="通过Straming把压缩普通文件成为LZO的格式"></a>通过Straming把压缩普通文件成为LZO的格式</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">hadoop jar /opt/hadoop/hadoop-2.6.0/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar`</div><div class="line">`-Dmapred.min.split.size=$[1024*1024*1024]`</div><div class="line">`-D mapred.output.compress=true`</div><div class="line">`-D mapred.output.compression.codec=com.hadoop.compression.lzo.LzopCodec`</div><div class="line">`-D mapred.job.name=lap_lzo_compress`</div><div class="line">`-D mapred.reduce.tasks=0`</div><div class="line">`-mapper /bin/cat`</div><div class="line">`-input /raw_data/kafka/sourcedata/input/2016-03-02`</div><div class="line">`-output /raw_data/kafka/sourcedata/input/2016-03-02_tmp</div></pre></td></tr></table></figure>
+<p>当然也可以map的时候做一些处理，然后在输出的时候压缩</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">`hadoop jar /opt/hadoop/hadoop-2.6.0/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar -Dmapred.min.split.size=$[1024*1024*1024]`</div><div class="line">`-D mapreduce.output.fileoutputformat.compress=true`</div><div class="line">`-D mapreduce.output.fileoutputformat.compress.codec=com.hadoop.compression.lzo.LzopCodec`</div><div class="line">`-D mapred.job.name=lap_lzo_compress`</div><div class="line">`-D stream.non.zero.exit.is.failure=false`</div><div class="line">`-mapper /bin/cat`</div><div class="line">`-reducer /bin/cat`</div><div class="line">`-input /user/lap/SecurityAuth-hadoop.audit`</div><div class="line">`-output /user/lap/output4`</div></pre></td></tr></table></figure>
+<h2 id="通过Streaming读取压缩文件"><a href="#通过Streaming读取压缩文件" class="headerlink" title="通过Streaming读取压缩文件"></a>通过Streaming读取压缩文件</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">hadoop jar /opt/hadoop/hadoop-2.6.0/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar -Dmapred.min.split.size=$[1024*1024*1024]`</div><div class="line"></div><div class="line">`-D mapred.job.name=lap_lzo_compress`</div><div class="line"></div><div class="line">`-D mapred.reduce.tasks=0`</div><div class="line"></div><div class="line">`-D stream.non.zero.exit.is.failure=false`</div><div class="line"></div><div class="line">`-inputformat com.hadoop.mapred.DeprecatedLzoTextInputFormat`</div><div class="line"></div><div class="line">`-mapper /bin/cat`</div><div class="line"></div><div class="line">`-input /user/lap/lzo_output/part-00000.lzo`</div><div class="line"></div><div class="line">`-output /user/lap/lzooutput/outtest2</div></pre></td></tr></table></figure>
+<h2 id="MapReduce任务中，读取和输出压缩类型的文件"><a href="#MapReduce任务中，读取和输出压缩类型的文件" class="headerlink" title="MapReduce任务中，读取和输出压缩类型的文件"></a>MapReduce任务中，读取和输出压缩类型的文件</h2><p>首先，编译的时候需要获取到LZO的压缩的包。 在线上，这个包一般的存放路径为：    ${HADOOP_HOME}/share/hadoop/common/hadoop-lzo-0.4.20-SNAPSHOT.jar</p>
+<p>写一个简单的java版的示例代码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">lzoMapperOutput</span> </span>&#123;</div><div class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">TokenizerMapper</span> <span class="keyword">extends</span> <span class="title">Mapper</span></span>&#123;</div><div class="line">        <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> IntWritable one = <span class="keyword">new</span> IntWritable(<span class="number">1</span>);</div><div class="line">        <span class="keyword">private</span> Text word = <span class="keyword">new</span> Text();</div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">map</span><span class="params">(Object key, Text value, Context context)</span> <span class="keyword">throws</span> IOException, InterruptedException </span>&#123;</div><div class="line">            StringTokenizer itr = <span class="keyword">new</span> StringTokenizer(value.toString());</div><div class="line">            <span class="keyword">while</span> (itr.hasMoreTokens()) &#123;</div><div class="line">                word.set(itr.nextToken());</div><div class="line">                context.write(word, one);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">IntSumReducer</span> <span class="keyword">extends</span> <span class="title">Reducer</span> </span>&#123;</div><div class="line">        <span class="keyword">private</span> IntWritable result = <span class="keyword">new</span> IntWritable();</div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">reduce</span><span class="params">(Text key, Iterable values, Context context)</span> <span class="keyword">throws</span> IOException, InterruptedException </span>&#123;</div><div class="line">            <span class="keyword">int</span> sum = <span class="number">0</span>;</div><div class="line">            <span class="keyword">for</span> (IntWritable val : values) &#123;</div><div class="line">                sum += val.get();</div><div class="line">            &#125;</div><div class="line">            result.set(sum);</div><div class="line">            context.write(key, result);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String [] args)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">        Configuration conf = <span class="keyword">new</span> Configuration();</div><div class="line">        Job job = Job.getInstance(conf);</div><div class="line">        job.setJarByClass(lzoMapperOutput.class);</div><div class="line">        job.setMapperClass(TokenizerMapper.class);</div><div class="line">        job.setCombinerClass(IntSumReducer.class);</div><div class="line">        job.setReducerClass(IntSumReducer.class);</div><div class="line">        job.setOutputKeyClass(Text.class);</div><div class="line">        job.setOutputValueClass(IntWritable.class);</div><div class="line"></div><div class="line">        <span class="comment">//需要修改的地方，这里是重点</span></div><div class="line">        <span class="comment">//读取lzo类型的压缩的时候，进行以下的设置，或者通过conf的变量进行设置，或者通过Job提供的方法进行设置</span></div><div class="line">        <span class="comment">//注意conf的方式设置的话，需要在Job.getInstance(conf)初始化Job这一步之前</span></div><div class="line">        <span class="comment">// conf.setClass(MRJobConfig.INPUT_FORMAT_CLASS_ATTR, com.hadoop.mapreduce.LzoTextInputFormat.class,InputFormat.class);</span></div><div class="line">        job.setInputFormatClass(com.hadoop.mapreduce.LzoTextInputFormat.class);</div><div class="line">        <span class="comment">//也可以设置单独的shuffle为LZO，但是线上默认开启的是snappy压缩，所以建议不要覆盖</span></div><div class="line"></div><div class="line">        <span class="comment">//设置输出类型为LZO</span></div><div class="line">        FileOutputFormat.setCompressOutput(job, <span class="keyword">true</span>);</div><div class="line">        FileOutputFormat.setOutputCompressorClass(job, com.hadoop.compression.lzo.LzopCodec.class);</div><div class="line">        FileInputFormat.addInputPath(job, <span class="keyword">new</span> Path(args[<span class="number">0</span>]));</div><div class="line">        FileOutputFormat.setOutputPath(job, <span class="keyword">new</span> Path(args[<span class="number">1</span>]));</div><div class="line">        System.exit(job.waitForCompletion(<span class="keyword">true</span>) ? <span class="number">0</span> : <span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="Hive使用LZO的压缩"><a href="#Hive使用LZO的压缩" class="headerlink" title="Hive使用LZO的压缩"></a>Hive使用LZO的压缩</h2><p>Hive表使用LZO压缩的时候，需要在创建表的时候把压缩属性更改成lzo的格式</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">CREATE` `TABLE` ``raw_kafka_input_dt3`(`</div><div class="line">`   ```customer` string,`</div><div class="line">`   ```uid` ``int``)`</div><div class="line">`ROW FORMAT DELIMITED`</div><div class="line">`    ``FIELDS TERMINATED ``BY` `&apos;\t&apos;`</div><div class="line">`STORED ``AS` `INPUTFORMAT`</div><div class="line">`    ``&apos;com.hadoop.mapred.DeprecatedLzoTextInputFormat&apos;`</div><div class="line">`OUTPUTFORMAT`</div><div class="line">`     ``&apos;org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat&apos;`</div></pre></td></tr></table></figure>
+<p>注意，以上的inputformat在使用alter的时候会导致历史数据被删除，所以在更改属性之前，备份一下数据，也不建议使用这种方式申明。 仅仅把表的InputFormat修改为lzo的压缩还不够，因为压缩完后的文件，用传统的方式无法被切分，所以map就只能是一个，所以需要为压缩文件创建一个索引，这样才可以使用分布式的压缩，创建方法如下： hadoop jar ${HADOOP_HOME}/share/hadoop/common/hadoop-lzo-0.4.20-SNAPSHOT.jar com.hadoop.compression.lzo.DistributedLzoIndexer /warehouse/库名/表名 创建完索引后，以上的任务就是分布式的了。</p>
+<h2 id="HBase表使用LZO压缩"><a href="#HBase表使用LZO压缩" class="headerlink" title="HBase表使用LZO压缩"></a>HBase表使用LZO压缩</h2><p>修改表开启LZO压缩： alter ‘表名’,{NAME=&gt;’列簇名’,COMPRESSION=&gt;’LZO’} </p>
+<h1 id="测试总结"><a href="#测试总结" class="headerlink" title="测试总结"></a>测试总结</h1><p>其实一直有种误解,就是以为lzo本身是支持分布式的,也就是支持压缩后的数据可以分片.我们提供给它分片的逻辑,由lzo本身控制.但看了Hadoop lzo源码才发现,lzo只是个压缩和解压缩的工具,如何分片,是由Hadoop lzo(Javad代码里)控制.具体的分片算法写得也很简单,就是在内存中开一块大大的缓存,默认是256K,缓存可以在通过io.compression.codec.lzo.buffersize参数指定.数据读入缓存(实际上要更小一些),如果缓存满了,则交给lzo压缩,获取压缩后的数据,同时在lzo文件中写入压缩前后的大小以及压缩后的数据.所以这里,一个分片,其实就是&lt;=缓存大小.也就是我们常常使用的lzo索引机制。</p>
+<h1 id="遇到的问题以及解决办法"><a href="#遇到的问题以及解决办法" class="headerlink" title="遇到的问题以及解决办法"></a>遇到的问题以及解决办法</h1><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">`Error: java.io.IOException: No LZO codec found, cannot run.`</div><div class="line"></div><div class="line">`at com.hadoop.mapred.DeprecatedLzoLineRecordReader.(DeprecatedLzoLineRecordReader.java:53)`</div><div class="line"></div><div class="line">`at com.hadoop.mapred.DeprecatedLzoTextInputFormat.getRecordReader(DeprecatedLzoTextInputFormat.java:156)`</div><div class="line"></div><div class="line">`at org.apache.hadoop.mapred.MapTask$TrackedRecordReader.(MapTask.java:169)`</div><div class="line"></div><div class="line">`at org.apache.hadoop.mapred.MapTask.runOldMapper(MapTask.java:429)`</div><div class="line"></div><div class="line">`at org.apache.hadoop.mapred.MapTask.run(MapTask.java:343)`</div><div class="line"></div><div class="line">`at org.apache.hadoop.mapred.YarnChild$2.run(YarnChild.java:163)`</div><div class="line"></div><div class="line">`at java.security.AccessController.doPrivileged(Native Method)`</div><div class="line"></div><div class="line">`at javax.security.auth.Subject.doAs(Subject.java:415)`</div><div class="line"></div><div class="line">`at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:1628)`</div><div class="line"></div><div class="line">`at org.apache.hadoop.mapred.YarnChild.main(YarnChild.java:158)</div></pre></td></tr></table></figure>
+<p>这个是因为在查找split的压缩类型的时候，返回空了，根本原因是没有在core-site.xml中正确配置集群中所有支持的压缩类型，key 是io.compression.codecs value是org.apache.hadoop.io.compress.GzipCodec,org.apache.hadoop.io.compress.DefaultCodec,com.hadoop.compression.lzo.LzoCodec,com.hadoop.compression.lzo.LzopCodec,org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.SnappyCodec</p>
+<h1 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h1><p>1、如果集群中没有在默认配置core-site.xml中加载lzo的压缩的话，使用hadoop fs -text 无法读取lzo、snappy压缩后的文件 </p>
+<p>2、快速的检测一个文件是否是lzo，且集群支持lzo的方法 hadoop org.apache.hadoop.io.compress.CompressionCodecFactory $filepath </p>
+<p>3、对于所有的流式的任务，InputFormat的类型都应该是 com.hadoop.mapred.DeprecatedLzoTextInputFormat 对于普通的MR任务，InputFormat的类型是: com.hadoop.mapreduce.LzoTextInputFormat.class</p>
+<h1 id="测试效果"><a href="#测试效果" class="headerlink" title="测试效果"></a>测试效果</h1><p>1、存储对比 </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">359809200161 /raw_data/kafka/sourcedata/input/2016-03-02 </div><div class="line"></div><div class="line">133941395118 /raw_data/kafka/sourcedata/input/2016-03-02_lzo_tmp </div><div class="line"></div><div class="line">142546974490 /raw_data/kafka/sourcedata/input/2016-03-02_snappy_tmp </div><div class="line"></div><div class="line">54598916288 /raw_data/kafka/sourcedata/input/2016-03-02_tmp</div></pre></td></tr></table></figure>
+<p>2、计算对比 </p>
+<p>以线上的Input_Format为例，开启shuffle的snappy压缩后，效果明显：<br>从开启的压缩后的一段时间内，最多时候能到50%的性能优化， 从每天整体的性能看，大约能节约30%左右(以前每天总的执行时间(单位秒)6700W，到现在5000W左右)</p>
+<h1 id="LZO加载"><a href="#LZO加载" class="headerlink" title="LZO加载"></a>LZO加载</h1><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">`2016-03-17 14:53:16,192 DEBUG [main] com.hadoop.compression.lzo.GPLNativeCodeLoader: location: /native/Linux-amd64-64/lib`</div><div class="line">`2016-03-17 14:53:16,193 DEBUG [main] com.hadoop.compression.lzo.GPLNativeCodeLoader: temporary unpacked path: /opt/data7/yarn_dir/local/usercache/hadoop/appcache/application_1458035422051_0621/container_1458035422051_0621_01_000279/tmp/unpacked-7314810008241798412-libgplcompression.so`</div><div class="line">`2016-03-17 14:53:16,194 INFO [main] com.hadoop.compression.lzo.GPLNativeCodeLoader: Loaded native gpl library from the embedded binaries`</div><div class="line">`2016-03-17 14:53:16,197 INFO [main] com.hadoop.compression.lzo.LzoCodec: Successfully loaded &amp; initialized native-lzo library [hadoop-lzo rev d62701d4d05dfa6115bbaf8d9dff002df142e62d]</div></pre></td></tr></table></figure>
+<p>`</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Hadoop/" rel="tag"># Hadoop</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/27/HBase0-98以后的版本直接读取HFile文件/" rel="next" title="HBase0.98以后的版本直接读取HFile文件">
+                <i class="fa fa-chevron-left"></i> HBase0.98以后的版本直接读取HFile文件
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/10/12/Ranger对HSFS实现控制管理的流程分析/" rel="prev" title="Ranger对HDFS实现管理和控制的流程分析">
+                Ranger对HDFS实现管理和控制的流程分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">41</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#压测的方法"><span class="nav-number">1.</span> <span class="nav-text">压测的方法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#通过Straming把压缩普通文件成为LZO的格式"><span class="nav-number">1.1.</span> <span class="nav-text">通过Straming把压缩普通文件成为LZO的格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#通过Streaming读取压缩文件"><span class="nav-number">1.2.</span> <span class="nav-text">通过Streaming读取压缩文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MapReduce任务中，读取和输出压缩类型的文件"><span class="nav-number">1.3.</span> <span class="nav-text">MapReduce任务中，读取和输出压缩类型的文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Hive使用LZO的压缩"><span class="nav-number">1.4.</span> <span class="nav-text">Hive使用LZO的压缩</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HBase表使用LZO压缩"><span class="nav-number">1.5.</span> <span class="nav-text">HBase表使用LZO压缩</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#测试总结"><span class="nav-number">2.</span> <span class="nav-text">测试总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#遇到的问题以及解决办法"><span class="nav-number">3.</span> <span class="nav-text">遇到的问题以及解决办法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#注意"><span class="nav-number">4.</span> <span class="nav-text">注意</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#测试效果"><span class="nav-number">5.</span> <span class="nav-text">测试效果</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#LZO加载"><span class="nav-number">6.</span> <span class="nav-text">LZO加载</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

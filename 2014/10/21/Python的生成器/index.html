@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="python," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="python的生成器：yield
+生成器和迭代器其实是一个相反的过程，可以简单的理解为，一个是创建，一个是消费。而生成器就是那个创建者：
+   废话不多，直接例子：
+​        
+1234567891011121314151617181920212223242526272829\&amp;gt;&amp;gt;&amp;gt; def fu(nu):...     for i in range(nu):...">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python生成器的基本理解">
+<meta property="og:url" content="http://yoursite.com/2014/10/21/Python的生成器/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="python的生成器：yield
+生成器和迭代器其实是一个相反的过程，可以简单的理解为，一个是创建，一个是消费。而生成器就是那个创建者：
+   废话不多，直接例子：
+​        
+1234567891011121314151617181920212223242526272829\&amp;gt;&amp;gt;&amp;gt; def fu(nu):...     for i in range(nu):...">
+<meta property="og:updated_time" content="2017-12-22T09:36:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Python生成器的基本理解">
+<meta name="twitter:description" content="python的生成器：yield
+生成器和迭代器其实是一个相反的过程，可以简单的理解为，一个是创建，一个是消费。而生成器就是那个创建者：
+   废话不多，直接例子：
+​        
+1234567891011121314151617181920212223242526272829\&amp;gt;&amp;gt;&amp;gt; def fu(nu):...     for i in range(nu):...">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2014/10/21/Python的生成器/"/>
+
+
+
+
+
+  <title>Python生成器的基本理解 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/10/21/Python的生成器/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Python生成器的基本理解</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-10-20T18:05:33-08:00">
+                2014-10-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>python的生成器：yield</p>
+<p>生成器和迭代器其实是一个相反的过程，可以简单的理解为，一个是创建，一个是消费。而生成器就是那个创建者：</p>
+<p>   废话不多，直接例子：</p>
+<p>​        </p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; <span class="function"><span class="keyword">def</span> <span class="title">fu</span><span class="params">(nu)</span>:</span></div><div class="line"></div><div class="line"><span class="meta">... </span>    <span class="keyword">for</span> i <span class="keyword">in</span> range(nu):</div><div class="line"></div><div class="line"><span class="meta">... </span>            <span class="keyword">yield</span> i</div><div class="line"></div><div class="line">   在function fu中，轮寻了输入的数字，依次调用了生成器<span class="keyword">yield</span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; t=fu(<span class="number">3</span>)</div><div class="line"></div><div class="line">\&gt;&gt;&gt; t.next()</div><div class="line"></div><div class="line"><span class="number">0</span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; t.next()</div><div class="line"></div><div class="line"><span class="number">1</span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; t.next()</div><div class="line"></div><div class="line"><span class="number">2</span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; t.next()</div><div class="line"></div><div class="line">Traceback (most recent call last):</div><div class="line"></div><div class="line">  File <span class="string">""</span>, line <span class="number">1</span>, <span class="keyword">in</span></div><div class="line"></div><div class="line">StopIteration</div></pre></td></tr></table></figure>
+<p>  随后，在fu(3)的对象，可以调用next来轮寻的获取生成器中的结果，其实上面的例子类似于：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; <span class="keyword">for</span> p <span class="keyword">in</span> fu(<span class="number">3</span>):</div><div class="line"></div><div class="line"><span class="meta">... </span>    <span class="keyword">print</span> p</div><div class="line"></div><div class="line"><span class="meta">... </span></div><div class="line"></div><div class="line"><span class="number">0</span></div><div class="line"></div><div class="line"><span class="number">1</span></div><div class="line"></div><div class="line"><span class="number">2</span></div></pre></td></tr></table></figure>
+<p>从上面的过程，我们可以最简单的理解生成器其实相当与一个队列，然后函数执行的过程中，把我们需要的输出都扔到队列中，然后就可以通过迭代来查看结果。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; type(fu)</div><div class="line"></div><div class="line"> </div><div class="line"></div><div class="line">\&gt;&gt;&gt; type(fu(<span class="number">3</span>))</div></pre></td></tr></table></figure>
+<p>我们的猜测没错，fu函数已经不是一般的function了，它的对象不再是一个无类型的数据，而是一个迭代器了。对比如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">\&gt;&gt;&gt; type(fu(<span class="number">3</span>))</div><div class="line"></div><div class="line"> </div><div class="line"></div><div class="line">\&gt;&gt;&gt; <span class="function"><span class="keyword">def</span> <span class="title">fu</span><span class="params">(nu)</span>:</span></div><div class="line"></div><div class="line"><span class="meta">... </span>    <span class="keyword">for</span> i <span class="keyword">in</span> range(nu):</div><div class="line"></div><div class="line"><span class="meta">... </span>            <span class="keyword">print</span> i</div><div class="line"></div><div class="line"><span class="meta">... </span></div><div class="line"></div><div class="line">\&gt;&gt;&gt; type(fu(<span class="number">3</span>))</div><div class="line"></div><div class="line"><span class="number">0</span></div><div class="line"></div><div class="line"><span class="number">1</span></div><div class="line"></div><div class="line"><span class="number">2</span></div></pre></td></tr></table></figure>
+<p>从前面的例子中，可以看到，yield其实是对于逐渐生成结果的复杂递归算法的完美实现工具。这个特性在解决回溯的问题上有不错的表现。<br>  下面举一个实际中的例子，我们知道删除ZK节点的时候，API提供的delete只能删除不包含子目录的结点，这时候就需要递归删除，下面这个例子就是解决这个问题的</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> zookeeper</div><div class="line"></div><div class="line">handle = zookeeper.init(<span class="string">"localhost:2181"</span>,<span class="number">10.0</span>)</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">recursiveGet</span><span class="params">(path)</span>:</span></div><div class="line"></div><div class="line">    children = zookeeper.get_children(handle,path)</div><div class="line"></div><div class="line">    <span class="keyword">if</span> <span class="keyword">not</span> len(children) == <span class="number">0</span>:</div><div class="line"></div><div class="line">        <span class="keyword">for</span> childname <span class="keyword">in</span> children:</div><div class="line"></div><div class="line">            newPath = <span class="string">"%s%s%s"</span>%(path,<span class="string">"/"</span>,childname)</div><div class="line"></div><div class="line">            <span class="keyword">for</span> allPath <span class="keyword">in</span> recursiveGet(newPath):</div><div class="line"></div><div class="line">                <span class="keyword">yield</span> allPath</div><div class="line"></div><div class="line">            <span class="keyword">yield</span> newPath</div><div class="line"></div><div class="line">    <span class="keyword">yield</span> path</div><div class="line"></div><div class="line"><span class="keyword">for</span> path <span class="keyword">in</span> recursiveGet(<span class="string">"/root"</span>):</div><div class="line"></div><div class="line">    <span class="keyword">print</span> path</div></pre></td></tr></table></figure>
+<p>结果如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div></pre></td><td class="code"><pre><div class="line">/root/lap/abc</div><div class="line"></div><div class="line">/root/lap/abc</div><div class="line"></div><div class="line">/root/lap</div><div class="line"></div><div class="line">/root/lap</div><div class="line"></div><div class="line">/root/lap234/abcd</div><div class="line"></div><div class="line">/root/lap234/abcd</div><div class="line"></div><div class="line">/root/lap234</div><div class="line"></div><div class="line">/root/lap234</div><div class="line"></div><div class="line">/root/df/df2/abc/abc</div><div class="line"></div><div class="line">/root/df/df2/abc/abc</div><div class="line"></div><div class="line">/root/df/df2/abc</div><div class="line"></div><div class="line">/root/df/df2/abc</div><div class="line"></div><div class="line">/root/df/df2/abcd</div><div class="line"></div><div class="line">/root/df/df2/abcd</div><div class="line"></div><div class="line">/root/df/df2</div><div class="line"></div><div class="line">/root/df/df2</div><div class="line"></div><div class="line">/root/df</div><div class="line"></div><div class="line">/root/df</div><div class="line"></div><div class="line">/root/lap2/abc</div><div class="line"></div><div class="line">/root/lap2/abc</div><div class="line"></div><div class="line">/root/lap2</div><div class="line"></div><div class="line">/root/lap2</div><div class="line"></div><div class="line">/root/lap23</div><div class="line"></div><div class="line">/root/lap23</div><div class="line"></div><div class="line">/root</div></pre></td></tr></table></figure>
+<p>上面可以看到，yield是一个递归神器，值得入手啊！</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/python/" rel="tag"># python</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2014/09/21/HBase-Filter的介绍/" rel="next" title="HBase Filter的介绍">
+                <i class="fa fa-chevron-left"></i> HBase Filter的介绍
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2014/10/21/在Django项目中REST接口/" rel="prev" title="在Django项目中REST接口">
+                在Django项目中REST接口 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">41</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
