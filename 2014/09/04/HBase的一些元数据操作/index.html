@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="HBase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="NameSpace简介NameSpace 命名空间在很多地方都会用，主要其实是在指定一个规则，或者一个环境变量。在Hbase0.96后，增加了命名空间的概念。这个NameSpace是存储在ZK上的，类似与RDBMS里面的database的概念，主要似乎用来做权限管理和安全控制的。 
+收益 命名空间，是一个逻辑分组的概念，可见这个概念是为了多用户准备的，为的就是资源隔离。资源的隔离直接带来了几个特性">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase的一些元数据操作">
+<meta property="og:url" content="http://yoursite.com/2014/09/04/HBase的一些元数据操作/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="NameSpace简介NameSpace 命名空间在很多地方都会用，主要其实是在指定一个规则，或者一个环境变量。在Hbase0.96后，增加了命名空间的概念。这个NameSpace是存储在ZK上的，类似与RDBMS里面的database的概念，主要似乎用来做权限管理和安全控制的。 
+收益 命名空间，是一个逻辑分组的概念，可见这个概念是为了多用户准备的，为的就是资源隔离。资源的隔离直接带来了几个特性">
+<meta property="og:updated_time" content="2017-12-21T12:12:59.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HBase的一些元数据操作">
+<meta name="twitter:description" content="NameSpace简介NameSpace 命名空间在很多地方都会用，主要其实是在指定一个规则，或者一个环境变量。在Hbase0.96后，增加了命名空间的概念。这个NameSpace是存储在ZK上的，类似与RDBMS里面的database的概念，主要似乎用来做权限管理和安全控制的。 
+收益 命名空间，是一个逻辑分组的概念，可见这个概念是为了多用户准备的，为的就是资源隔离。资源的隔离直接带来了几个特性">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2014/09/04/HBase的一些元数据操作/"/>
+
+
+
+
+
+  <title>HBase的一些元数据操作 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/04/HBase的一些元数据操作/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">HBase的一些元数据操作</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-09-04T12:26:52+08:00">
+                2014-09-03
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="NameSpace"><a href="#NameSpace" class="headerlink" title="NameSpace"></a>NameSpace</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>NameSpace 命名空间在很多地方都会用，主要其实是在指定一个规则，或者一个环境变量。在Hbase0.96后，增加了命名空间的概念。这个NameSpace是存储在ZK上的，类似与RDBMS里面的database的概念，主要似乎用来做权限管理和安全控制的。 </p>
+<h2 id="收益"><a href="#收益" class="headerlink" title="收益"></a>收益</h2><p> 命名空间，是一个逻辑分组的概念，可见这个概念是为了多用户准备的，为的就是资源隔离。资源的隔离直接带来了几个特性： </p>
+<p>1、资源在Hbase中，逻辑上可以用的资源是table，在物理上可以用的资源是region(当然还有更细力度的storeFile) </p>
+<p>2、资源的分配主要是用来控制不同的namespace可以使用的资源</p>
+<p>3、资源的存储 Hbase对于一个逻辑的资源table，如何能根据其所在的空间，被固定的分配到一个或者个多个regionserver上 </p>
+<p>4、为不同的用户提供不同的资源 </p>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><h3 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h3><p>在系统中，有两个默认的命名空间，一个是hbase，是系统表.meta.使用的；另一个是default，主要是提供所有没有指定命名空间表用的。 </p>
+<p>接下来分析一个自定义的命名空间的创建和使用</p>
+<p>创建一个命名空间 最简单的办法是在hbase shell中创建，例如：create_namespace ‘lap’， </p>
+<p>在创建完后，最直观的是在/hbase/data/下多了一个文件夹lap，同时，在zk的/hbase/namespace下也会多一个lap的节点。</p>
+<p>在命名空间下创建一个表 create ‘lap:lapTable’,’info’。</p>
+<p>删除一个命名空间 drop_namespace ‘lap’ </p>
+<h3 id="使用namespace实现资源隔离"><a href="#使用namespace实现资源隔离" class="headerlink" title="使用namespace实现资源隔离"></a>使用namespace实现资源隔离</h3><p>每一个Table都隶属于一个NameSpace之下，每个NameSpace都有自己的Quota信息。例如Region的个数、hfile存储空间、甚至HBase之上的RPC的流量控制等。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">NamespaceDescriptor namespaceDescriptor = admin.getNamespaceDescriptor(tableName);</div><div class="line">namespaceDescriptor.setConfiguration(<span class="string">"hbase.namespace.quota.maxregion"</span>, <span class="string">"10"</span>);</div><div class="line">namespaceDescriptor.setConfiguration(<span class="string">"hbase.namespace.quota.maxtables"</span>, <span class="string">"10"</span>);</div></pre></td></tr></table></figure>
+<p>这一部分在0.10中还未实现，相信在新的版本中，一定能给出好的解决方案。</p>
+<h1 id="Table元数据操作"><a href="#Table元数据操作" class="headerlink" title="Table元数据操作"></a>Table元数据操作</h1><h2 id="创建表"><a href="#创建表" class="headerlink" title="创建表"></a>创建表</h2><p>table的操作 对表的操作主要包括增、删、改、查，接下来用一段代码来展示</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="title">voidcreateTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line"> 	Configuration conf = HBaseConfiguration.create();</div><div class="line">	HBaseAdmin admin = <span class="keyword">new</span> HBaseAdmin(conf);</div><div class="line">	<span class="comment">//创建一个新的命名空间</span></div><div class="line">	admin.createNamespace(NamespaceDescriptor.create(<span class="string">"lap"</span>).build());</div><div class="line">	<span class="comment">//申请新的表到该命名空间</span></div><div class="line">	HTableDescriptor tableDescriptor = <span class="keyword">new</span> HTableDescriptor(TableName.valueOf(<span class="string">"lap:"</span>+tableName));</div><div class="line">	<span class="comment">//设置表的属性，比如setDurability是设置acl的属性，而后一个直接设置所有的属性，当然这部分还包括列簇的属性</span></div><div class="line">	tableDescriptor.setDurability(Durability.SYNC_WAL);</div><div class="line">	tableDescriptor.setConfiguration(<span class="string">"BLOOMFILTER"</span>, <span class="string">"ROW"</span>);</div><div class="line"></div><div class="line">  	<span class="comment">//创建一个列簇并且加入到表中</span></div><div class="line">	HColumnDescriptor hColumnDescriptor = <span class="keyword">new</span> HcolumnDescriptor(<span class="string">"cf"</span>);</div><div class="line">	<span class="comment">//设置列簇的属性</span></div><div class="line">	hColumnDescriptor.setBloomFilterType(BloomType.ROW);</div><div class="line">	tableDescriptor.addFamily(hColumnDescriptor);</div><div class="line">	<span class="comment">//创建表</span></div><div class="line">	admin.createTable(tableDescriptor);</div><div class="line">	<span class="comment">//关闭链接</span></div><div class="line">	admin.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从上面可以看出来，表有两个Descriptor需要设置，一个是namespace的，一个是本身的。</p>
+<p>表的命名空间的描述短时间内应该不会有很大的应用，因为不是很完善。而本身的属性会有很多需要设置的，比如：DURABILIT（设置写日志的方式）、MEMSTORE_FLUSHSIZE（memstore刷到硬盘上的大小）、BLOOMFILTER（roekey的头压缩）、DATA_BLOCK_ENCODING（数据部分的压缩）、TTL（过期时间）、IN_MEMORY（是否在内存中）等一系列的属性。这些属性会直接影响到表的查询和写入速度等特性，所以需要根据实际的数据设置。</p>
+<h2 id="删除表"><a href="#删除表" class="headerlink" title="删除表"></a>删除表</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">deleteTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	HBaseAdmin admin = <span class="keyword">new</span> HBaseAdmin(conf);</div><div class="line">	<span class="keyword">if</span>(admin.tableExists(tableName))&#123;</div><div class="line">		<span class="keyword">try</span>&#123;</div><div class="line">			<span class="comment">//必须要禁用表</span></div><div class="line">			admin.disableTable(tableName);</div><div class="line">			<span class="comment">//删除表</span></div><div class="line">			admin.deleteTable(tableName);</div><div class="line">		&#125;<span class="keyword">catch</span>(Exception e)&#123;</div><div class="line">			e.printStackTrace();</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	admin.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可见，删除表的时候就比较简单了，直接用admin的对象，禁用表（这里必须禁用，防止别人正在操作该表，出现异常的问题），然后直接删除就可以了，在命令行是同样的道理。</p>
+<h2 id="更新表"><a href="#更新表" class="headerlink" title="更新表"></a>更新表</h2><p>更新表分为两个部分，一部分是更新表的属性，一部分是更新表中的数据，所以这里要分两个部分讲： 对于更新表的属性，这里依旧要用表的描述符来修改，主要的操作包括，增加删除一个列簇，修改一个列簇的属性，具体如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">alterTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	HBaseAdmin admin= <span class="keyword">new</span> HBaseAdmin(conf);</div><div class="line">	<span class="keyword">if</span>(admin.tableExists(tableName))&#123;</div><div class="line">		<span class="comment">//和删除同样的道理，在更改表的描述符之前，必须先disable掉表</span></div><div class="line">		admin.disableTable(tableName);</div><div class="line">		<span class="comment">//获取当前表的描述符</span></div><div class="line">      	HTableDescriptor descriptor = admin.getTableDescriptor(Bytes.toBytes(tableName));</div><div class="line">		<span class="comment">//判断如果存在info的列簇，删除</span></div><div class="line">		<span class="keyword">if</span>(descriptor.hasFamily(Bytes.toBytes(<span class="string">"info"</span>)))&#123;</div><div class="line">			descriptor.removeFamily(Bytes.toBytes(<span class="string">"info"</span>));</div><div class="line">         &#125;</div><div class="line">		<span class="comment">//创建一个新的列簇</span></div><div class="line">		HColumnDescriptor hColumnDescriptor = <span class="keyword">new</span> HColumnDescriptor(Bytes.toBytes(<span class="string">"lapNew"</span>));</div><div class="line">		<span class="comment">//设置列簇的属性</span></div><div class="line">		hColumnDescriptor.setCompressionType(Algorithm.GZ);</div><div class="line">		<span class="comment">//为表增加一个新的列簇</span></div><div class="line">      	descriptor.addFamily(hColumnDescriptor);</div><div class="line">		<span class="comment">//获取到原先表中的列簇对象</span></div><div class="line">		HColumnDescriptor changeInfo = descriptor.getFamily(Bytes.toBytes(<span class="string">"clomun"</span>));</div><div class="line">		<span class="comment">//修改该对象的属性</span></div><div class="line">		changeInfo.setBlockCacheEnabled(<span class="keyword">true</span>);</div><div class="line">		<span class="comment">//让新的表描述符生效</span></div><div class="line">		admin.modifyTable(tableName, descriptor);</div><div class="line">		<span class="comment">//启用表</span></div><div class="line">		admin.enableTable(tableName);</div><div class="line">      	admin.close();</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>对于表内容的修改，其实就是增加一行，因为Hbase的存储直接依赖与HDFS，而HDFS是只支持创建和追加的，不支持某一行的单独修改，所以Hbase对表的增删改的操作，事实上都是在对表增加，不同的是，如果是删除，会在表中删除字段标记为true，在表进行major compaction的时候，会删除该行。对表的修改实际是，增加一个新的时间戳或者新版本的行，在查询的时候，会按照时间戳排序，保证能查到最新的修改。鉴于上面这些，这里不会单独讲表内容的修改，会在接下来文章中详细将对与表内容的所有动作。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2014/08/17/HBase读写性能相关-请求不均匀的问题优化/" rel="next" title="HBase读写性能相关-请求不均匀的问题优化">
+                <i class="fa fa-chevron-left"></i> HBase读写性能相关-请求不均匀的问题优化
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2014/09/06/HBase基本操作/" rel="prev" title="HBase基本操作">
+                HBase基本操作 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#NameSpace"><span class="nav-number">1.</span> <span class="nav-text">NameSpace</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#简介"><span class="nav-number">1.1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#收益"><span class="nav-number">1.2.</span> <span class="nav-text">收益</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用"><span class="nav-number">1.3.</span> <span class="nav-text">使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基本使用"><span class="nav-number">1.3.1.</span> <span class="nav-text">基本使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用namespace实现资源隔离"><span class="nav-number">1.3.2.</span> <span class="nav-text">使用namespace实现资源隔离</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Table元数据操作"><span class="nav-number">2.</span> <span class="nav-text">Table元数据操作</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#创建表"><span class="nav-number">2.1.</span> <span class="nav-text">创建表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#删除表"><span class="nav-number">2.2.</span> <span class="nav-text">删除表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#更新表"><span class="nav-number">2.3.</span> <span class="nav-text">更新表</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

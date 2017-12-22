@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="HBase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="更新表 经常用的更新表的操作主要包括四类： put、get、scan、delete 
+putput的操作主要是对表中单行的操作，这里要提示一句，HBase的表是按行加锁的，所以put的时候要避免同时操作同一行的行为发生。接下来用代码演示所有的put常用动作：
+12345678910111213141516171819public void putTable(String tableName)  t">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase基本操作">
+<meta property="og:url" content="http://yoursite.com/2014/09/06/HBase基本操作/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="更新表 经常用的更新表的操作主要包括四类： put、get、scan、delete 
+putput的操作主要是对表中单行的操作，这里要提示一句，HBase的表是按行加锁的，所以put的时候要避免同时操作同一行的行为发生。接下来用代码演示所有的put常用动作：
+12345678910111213141516171819public void putTable(String tableName)  t">
+<meta property="og:updated_time" content="2017-12-21T11:05:07.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HBase基本操作">
+<meta name="twitter:description" content="更新表 经常用的更新表的操作主要包括四类： put、get、scan、delete 
+putput的操作主要是对表中单行的操作，这里要提示一句，HBase的表是按行加锁的，所以put的时候要避免同时操作同一行的行为发生。接下来用代码演示所有的put常用动作：
+12345678910111213141516171819public void putTable(String tableName)  t">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2014/09/06/HBase基本操作/"/>
+
+
+
+
+
+  <title>HBase基本操作 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/06/HBase基本操作/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">HBase基本操作</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-09-06T13:26:53+08:00">
+                2014-09-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>更新表 经常用的更新表的操作主要包括四类： put、get、scan、delete </p>
+<h1 id="put"><a href="#put" class="headerlink" title="put"></a>put</h1><p>put的操作主要是对表中单行的操作，这里要提示一句，HBase的表是按行加锁的，所以put的时候要避免同时操作同一行的行为发生。接下来用代码演示所有的put常用动作：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">putTable</span><span class="params">(String tableName)</span>  <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	<span class="comment">//对于put的操作，所有的行为都是发生在Htable上的，对应的物理存储就是HStore,也就是一个StoreFile,这里初始化一个HTable的对象</span></div><div class="line">	HTable hTable = <span class="keyword">new</span> HTable(conf, tableName);</div><div class="line">	<span class="comment">//创建一个Put的对象，定义所有的Put行为</span></div><div class="line">	Put put = <span class="keyword">new</span> Put(Bytes.toBytes(<span class="string">"rowName"</span>));</div><div class="line">	<span class="comment">//接下来讲put对象的add操作，add操作可以用来增加或者更新某一行，主要有4个构造方法，详细内容可以自己查看，这里演示一种</span></div><div class="line">	put.add(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key"</span>), Bytes.toBytes(<span class="string">"value"</span>));</div><div class="line">	put.add(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key1"</span>), Bytes.toBytes(<span class="string">"value1"</span>));</div><div class="line">	<span class="comment">//这条add，会给列簇是columnName，key为key1的列更新其值为value2，在实际的物理存储中，实际是增加了一行</span></div><div class="line">	put.add(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key1"</span>), Bytes.toBytes(<span class="string">"value2"</span>));</div><div class="line"></div><div class="line">	<span class="comment">//这里表示是否要写wal，对于要追求高效的插入数据又可以允许丢失少量数据，推介使用SKIP_WAL,如果对于严格要求不能丢失数据的用SYNC_WAL,</span></div><div class="line">	put.setDurability(Durability.FSYNC_WAL);</div><div class="line">	<span class="comment">//生效刚才put对象</span></div><div class="line">	hTable.put(put);</div><div class="line">	<span class="comment">//关闭对象</span></div><div class="line">	hTable.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="get"><a href="#get" class="headerlink" title="get"></a>get</h1><p>get主要的作用是获取指定rowkey的单行数据。对于一个get，获取到的对象均为一个Result的对象，一个Result的对象占用了一个RPC。一般来说，RPC的通信耗时，是系统主要的时间消耗，所以减少RPC的次数，将直接的提升性能。Get是一个获取单行结果的对象，与之对应的是Scan，是一个范围扫描的对象，所以要区分get和scan的不同功能。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">getTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf= HBaseConfiguration.create();</div><div class="line">	<span class="comment">//初始胡table</span></div><div class="line">	HTable table = <span class="keyword">new</span> HTable(conf,tableName);</div><div class="line">  </div><div class="line">	<span class="comment">//指定要获取的row</span></div><div class="line">	Get get = <span class="keyword">new</span> Get(Bytes.toBytes(<span class="string">"newRow"</span>));</div><div class="line">	<span class="comment">//通过列簇名称和key值李获取指定的value</span></div><div class="line">	get.addColumn(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key1"</span>));</div><div class="line">	<span class="comment">//过滤获取指定时间戳额值</span></div><div class="line">	get.setTimeStamp(<span class="number">1409886920751L</span>);</div><div class="line">	<span class="comment">//指定要获取的值的版本号，这里表示获取所有的版本号</span></div><div class="line">	get.setMaxVersions();</div><div class="line">	<span class="comment">//通过filter过滤减少返回结果，这里表示只返回一个结果，如果不过滤，对于有多个CF，或者有多个KV的，将会返回多个结果</span></div><div class="line">	get.setFilter(<span class="keyword">new</span> ColumnCountGetFilter(<span class="number">1</span>));</div><div class="line">	<span class="comment">//设置该值是否写到读缓存中，对于经常读的词，要设置为true，对于非热点，非经常读的，要设置为flase</span></div><div class="line">	get.setCacheBlocks(<span class="keyword">true</span>); </div><div class="line"></div><div class="line">	<span class="comment">//返回结果是一个result的对象，一个result的对象就表示一次的RPC，因此，如果想提升get的性能，降低RPC的次数是一个很沉重的话题</span></div><div class="line">	Result result = table.get(get);</div><div class="line"></div><div class="line">	<span class="comment">//解析一个Result的对象。要通过Cell对象来获取其具体的内容</span></div><div class="line">	<span class="keyword">for</span> (Cell cell: result.rawCells())&#123;</div><div class="line">		System.out.println(<span class="string">"Rowkey : "</span>+ Bytes.toString(result.getRow())+ <span class="string">" Familiy:Quilifier : "</span></div><div class="line">		<span class="comment">//通过cloneQualifier获取到列簇和key的值</span></div><div class="line">		\+ Bytes.toString(CellUtil.cloneQualifier(cell)) + <span class="string">" Value : "</span></div><div class="line">		<span class="comment">//通过cloneValue获取到结果中的value</span></div><div class="line">		\+ Bytes.toString(CellUtil.cloneValue(cell)));</div><div class="line">	&#125;</div><div class="line">	table.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h1><p> scan是一个可以返回特定的数据集合的方法。如Get中的描述，scan是获取多行数据的一个对象，通过scan可以批量查询，主要用在查询指定开始到结束行，或者指定时间范围，或者有某个filter特性的数据。具体的使用可以参考如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">scanTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	HTable table = <span class="keyword">new</span> HTable(conf, tableName);</div><div class="line">	<span class="comment">//创建一个scan对象的时候，不需要指定rowkey</span></div><div class="line">  	Scan scan = <span class="keyword">new</span> Scan();</div><div class="line">	<span class="comment">//设置查询的起始rowkey，在Hbase中，rowkey是按照字典排序的，所以这里指定的时候，是一个Byte的数据</span></div><div class="line">	scan.setStartRow(Bytes.toBytes(<span class="string">"key"</span>));</div><div class="line">	scan.setStopRow(Bytes.toBytes(<span class="string">"key"</span>));</div><div class="line"></div><div class="line">	<span class="comment">//这样可以获取到那些被打上了删除标签，但是没有被compaction删除的数据</span></div><div class="line">	scan.setRaw(<span class="keyword">true</span>);</div><div class="line">	<span class="comment">//获取的最大的结果条数，这个结果就死和一个result对象</span></div><div class="line">	scan.setMaxResultSize(<span class="number">1l</span>);</div><div class="line">	<span class="comment">//设置每个result中包含的行数</span></div><div class="line">	scan.setCaching(<span class="number">2</span>);</div><div class="line">	<span class="comment">//设置每个result中包含的列数</span></div><div class="line">	scan.setBatch(<span class="number">3</span>);</div><div class="line">	<span class="comment">//设置为逆序查找</span></div><div class="line">	scan.setReversed(<span class="keyword">true</span>);</div><div class="line">	<span class="comment">//设置一个过滤列表</span></div><div class="line">	FilterList filter = <span class="keyword">new</span> FilterList(FilterList.Operator.MUST_PASS_ALL);</div><div class="line">	<span class="comment">//设置一个filter的对象，过滤cf列簇中，qualifiter的等于0的所有的行</span></div><div class="line">	SingleColumnValueFilter filter1 = <span class="keyword">new</span> SingleColumnValueFilter(Bytes.toBytes(<span class="string">"cf"</span>), 		Bytes.toBytes(<span class="string">"qualifiter"</span>), CompareOp.EQUAL, Bytes.toBytes(<span class="string">"0"</span>));</div><div class="line"></div><div class="line">	<span class="comment">//为列表增加过滤</span></div><div class="line">	filter.addFilter(filter1);</div><div class="line">	<span class="comment">//为scan设置过滤器</span></div><div class="line">	scan.setFilter(filter);</div><div class="line">	ResultScanner rScanner = table.getScanner(scan);</div><div class="line">	<span class="comment">//这部分可以参考get部分的</span></div><div class="line">	<span class="keyword">for</span>(Result r : rScanner) &#123;</div><div class="line">		<span class="keyword">for</span>(Cell cell : r.rawCells()) &#123;</div><div class="line">			System.out.println(<span class="string">"Rowkey : "</span>+ Bytes.toString(r.getRow())+ <span class="string">" Familiy:Quilifier : "</span></div><div class="line">			\+ Bytes.toString(CellUtil.cloneQualifier(cell))+ <span class="string">" Value : "</span></div><div class="line">			\+ Bytes.toString(CellUtil.cloneValue(cell))</div><div class="line">			+ <span class="string">" Time : "</span>+ cell.getTimestamp());</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	table.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="delete"><a href="#delete" class="headerlink" title="delete"></a>delete</h1><p>delete delete可以删除整个表（前面已经进行了分析），删除列簇、行、版本，用代码演示如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">deleteTab</span> <span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	HTable table = <span class="keyword">new</span> HTable(conf, tableName);</div><div class="line">	<span class="comment">//创建一个删除整行的delete对象并删除</span></div><div class="line">	Delete delete = <span class="keyword">new</span> Delete(Bytes.toBytes(<span class="string">"rowkey"</span>));</div><div class="line">	<span class="comment">//删除一个指定的列簇下指定的qualifier</span></div><div class="line">	delete.deleteColumn(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>));</div><div class="line">  	<span class="comment">//和上面的类似，但是在这个删除中，会把所有的历史版本都删除</span></div><div class="line">	delete.deleteColumns(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>));</div><div class="line">	<span class="comment">//也可以删除一个指定时间戳的数据</span></div><div class="line">	delete.deleteFamilyVersion(Bytes.toBytes(<span class="string">"cf"</span>), <span class="number">1405390959464L</span>);</div><div class="line">	table.delete(delete);</div><div class="line">	table.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这里需要再强调一下，删除的时候，不会直接删除数据，而是先做一个删除的标记，在major compaction的时候，才会真正删除。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2014/09/04/HBase的一些元数据操作/" rel="next" title="HBase的一些元数据操作">
+                <i class="fa fa-chevron-left"></i> HBase的一些元数据操作
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2014/09/14/HBase-Thrift的部署/" rel="prev" title="HBase Thrift的部署">
+                HBase Thrift的部署 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#put"><span class="nav-number">1.</span> <span class="nav-text">put</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#get"><span class="nav-number">2.</span> <span class="nav-text">get</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#scan"><span class="nav-number">3.</span> <span class="nav-text">scan</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#delete"><span class="nav-number">4.</span> <span class="nav-text">delete</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

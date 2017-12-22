@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="HBase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="split触发时机a、compact之后会调用CompactSplitThread.requestSplit(HRegion)
+b、flush之前会检测区域中HStoreFile数目是否超hbase.hstore.blockingStoreFiles，如果超过且没有等待超时会调用CompactSplitThread.requestSplit(HRegion)
+c、flush之后会调用HRegion">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase读写性能相关-基本优化">
+<meta property="og:url" content="http://yoursite.com/2014/07/28/HBase读写性能相关-基本优化/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="split触发时机a、compact之后会调用CompactSplitThread.requestSplit(HRegion)
+b、flush之前会检测区域中HStoreFile数目是否超hbase.hstore.blockingStoreFiles，如果超过且没有等待超时会调用CompactSplitThread.requestSplit(HRegion)
+c、flush之后会调用HRegion">
+<meta property="og:updated_time" content="2017-12-21T13:18:10.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HBase读写性能相关-基本优化">
+<meta name="twitter:description" content="split触发时机a、compact之后会调用CompactSplitThread.requestSplit(HRegion)
+b、flush之前会检测区域中HStoreFile数目是否超hbase.hstore.blockingStoreFiles，如果超过且没有等待超时会调用CompactSplitThread.requestSplit(HRegion)
+c、flush之后会调用HRegion">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2014/07/28/HBase读写性能相关-基本优化/"/>
+
+
+
+
+
+  <title>HBase读写性能相关-基本优化 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/07/28/HBase读写性能相关-基本优化/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">HBase读写性能相关-基本优化</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-07-28T13:52:42+08:00">
+                2014-07-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="split触发时机"><a href="#split触发时机" class="headerlink" title="split触发时机"></a>split触发时机</h1><p>a、compact之后会调用CompactSplitThread.requestSplit(HRegion)</p>
+<p>b、flush之前会检测区域中HStoreFile数目是否超hbase.hstore.blockingStoreFiles，如果超过且没有等待超时会调用CompactSplitThread.requestSplit(HRegion)</p>
+<p>c、flush之后会调用HRegion.checkSplit()检测是否需要split，如果需要则调用  </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">CompactSplitThread.requestSplit(HRegion)</div></pre></td></tr></table></figure>
+<p>d、手动的split</p>
+<h1 id="compact发生的时间"><a href="#compact发生的时间" class="headerlink" title="compact发生的时间"></a>compact发生的时间</h1><p>a、Memstoreflush时；</p>
+<p>b、HRegionServer定期做Compaction Checker时；</p>
+<p>c、HBaseAdmin客户端发起的请求；</p>
+<p>d、CompactTool发起。</p>
+<h1 id="影响写速度的因素"><a href="#影响写速度的因素" class="headerlink" title="影响写速度的因素"></a>影响写速度的因素</h1><p>1、rowKey是否足够合理</p>
+<p>因为hbase是按rowKey连续存储的，因此如应用写入数据时rowKey是连续的，那么就会造成写的压力会集中在单台region server上，这样造成了负载不均衡。因此应用在设计rowKey时，要尽可能的保证写入是分散的，当然，这可能会对有连续读需求的场景产生一定的冲击。</p>
+<p>2、写阻塞等待</p>
+<p>造成这个现象的原因是各个region的memstore使用的大小加起来超过了总的阈值，于是阻塞并开始进行flush，这个过程会需要消耗掉一些时间，通常来说造成这个的原因是单台RegionServer上region数太多了，因此其实单台RegionServer上最好不要放置过多的region，一种调节方法是调大split的fileSize，这样可以适当的减少region数，但需要关注调整后读性能的变化。一般会报错：Flush thread woke up with memory above low water。或者在memstore的大小超过其阈值的时候，也会进行flush，错误日志：delaying flush up to。</p>
+<p>3、compact带来的影响</p>
+<p>通常是store file太多compact造成的，错误日志： has too many store files; delaying flush up to</p>
+<p> 4、 split造成的</p>
+<p>split会造成读写短暂的失败，如写的数据比较大的话，可能会有频繁的split出现，sptlit期间会让region下线，然后block住该region的写请求。</p>
+<h1 id="随机写的测试工具YCSB"><a href="#随机写的测试工具YCSB" class="headerlink" title="随机写的测试工具YCSB"></a>随机写的测试工具YCSB</h1><p> ycsb是一个非常方便的针对分布式文件系统的测试工具,它的特点是：1 可以任意设置读写比例、线程数量，打印结果比较详细；2 它是hbase等nosql官方jira上面的测试标准，与人交流时ycsb的测试数据最能说明问题。</p>
+<p>下载0.1.3版本，编译hbase的测试类，把hbase的配置文件拷贝到db/hbase/conf下，依次执行ant &amp;&amp; ant dbcompile-hbase</p>
+<p>执行随机写的测试：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">java -cp build/ycsb.jar:db/hbase/lib/* com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.db.HBaseClient -P workloads/workloada -p columnfamily=family -p table=hello -p recordcount=100000000 -p threadcount=4  -s 2&gt;&amp;1 &gt;result</div></pre></td></tr></table></figure>
+<p> 执行随机读的测试：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">java -cp build/ycsb.jar:db/hbase/lib/* com.yahoo.ycsb.Client -t -db com.yahoo.ycsb.db.HBaseClient -P workloads/workloada -p columnfamily=info -p table=hee -p operationcount=100000 -s -threads 10 -target 100 &gt; transactions.dat</div></pre></td></tr></table></figure>
+<p> workload[a-f]依次代表的百分比为：</p>
+<p>结果分析(以插入1000000条数据的结果做分析)：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">3 [OVERALL], RunTime(ms), 2459212.0  //总的运行时间</div><div class="line"></div><div class="line">4 [OVERALL], Throughput(ops/sec), 406.63432026193755  //每秒内插入的数据 </div><div class="line"></div><div class="line">5 [INSERT], Operations, 1000000 //插入的总数量</div><div class="line"></div><div class="line">6 [INSERT], AverageLatency(ms), 9.27774  //每条数据的插入时间</div><div class="line"></div><div class="line">7 [INSERT], MinLatency(ms), 0 //最短插入间隔</div><div class="line"></div><div class="line">8 [INSERT], MaxLatency(ms), 265720 //最长的插入间隔</div><div class="line"></div><div class="line">9 [INSERT], 95thPercentileLatency(ms), 0 </div><div class="line"></div><div class="line">10 [INSERT], 99thPercentileLatency(ms), 0 </div><div class="line"></div><div class="line">11 [INSERT], Return=0, 1000000 //插入1000000万条的返回值</div><div class="line"></div><div class="line">12 [INSERT], 0, 994510 //有994510条数据在0-1s内插入</div></pre></td></tr></table></figure>
+<h1 id="表的信息影响随机读写性能的测试"><a href="#表的信息影响随机读写性能的测试" class="headerlink" title="表的信息影响随机读写性能的测试"></a>表的信息影响随机读写性能的测试</h1><p>1、DEFERRED_LOG_FLUSH的设置：</p>
+<p>设置数据表的DEFERRED_LOG_FLUSH属性为true，服务端将采用异步写hlog的方式，客户端写响应时间会降到1ms以下。如果regionserver挂掉会丢失1s的数据。同样有数据丢失风险，这种方式会小很多很多（rs被kill -9或者物理机器直接宕机），而且写入的数据马上可以被读取到，客户端也不需要采取特别的策略。</p>
+<p>2、BLOOMFILTER 的设置：</p>
+<p>对于某个region的随机读，HBase会遍历读memstore及storefile（按照一定的顺序），将结果合并返回给客户端。如果你设置了bloomfilter，那么在遍历读storefile时，就可以利用bloomfilter，忽略某些storefile</p>
+<p>有两种类型的bloomfilter类型：</p>
+<p> a)ROW, 根据KeyValue中的row来过滤storefile </p>
+<p>举例：假设有2个storefile文件sf1和sf2， </p>
+<p>sf1包含kv1（r1 cf:q1 v）、kv2（r2 cf:q1 v） </p>
+<p>sf2包含kv3（r3 cf:q1 v）、kv4（r4 cf:q1 v） </p>
+<p>如果设置了CF属性中的bloomfilter为ROW，那么get(r1)时就会过滤sf2，get(r3)就会过滤sf1 </p>
+<p>b)ROWCOL,根据KeyValue中的row+qualifier来过滤storefile </p>
+<p>举例：假设有2个storefile文件sf1和sf2， </p>
+<p>sf1包含kv1（r1 cf:q1 v）、kv2（r2 cf:q1 v） </p>
+<p>sf2包含kv3（r1 cf:q2 v）、kv4（r2 cf:q2 v） </p>
+<p>如果设置了CF属性中的bloomfilter为ROW，无论get(r1,q1)还是get(r1,q2)，都会读取sf1+sf2； 而如果设置了CF属性中的bloomfilter为ROWCOL，那么get(r1,q1)就会过滤sf2，get(r1,q2)就会过滤sf1 </p>
+<p>3、DATA_BLOCK_ENCODING的设置：</p>
+<p> Data Block Encoding是0.94的重要特性，可以很大程度上改善lrucache的使用率，从而提高get scan性能。从测试结果来看设置DATA_BLOCK_ENCODING =&gt; ‘DIFF’可以获得最有性价比的性能提升。可以选择的类型包括：</p>
+<p>PREFIX(这是一个比较公用的压缩算法，其压缩过程也比较简单快速，通用于存在相同的Row前缀的情景);</p>
+<p>DIFF(相比于PREFIX，同样是需要应用在存在相同的Row前缀的情景，但其只写一份family内容，写入timestamp的差值，比较长度是否一样等特性，使其压缩幅度会更大，当然压缩的CPU开销也会稍大);    </p>
+<p>FAST_DIFF(和DIFF类似，但是对于存在相同Value内容的场景,那肯定是使用它了)</p>
+<p>更加详细的内容请参考   <a href="http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/" target="_blank" rel="external">http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/</a></p>
+<p>4、BLOCKSIZE的设置(HBase-3864)：</p>
+<p>在配置中有一个hbase.mapreduce.hfileoutputformat.blocksize，这个参数和表描述中的一样，主要是用来初始化MR的。配置中的采纳数主要是从HFileOutputFormat写hfile的时候，会强制改成这个值。但是表中的配置会覆盖这个配置，所以这个配置一般没有用。</p>
+<p>5、COMPRESSION的设置：</p>
+<p>设置压缩格式，可以间接的提高查询效率，但是会影响写入的效率。</p>
+<p>接下来测试开启该配置和不开启的区别：</p>
+<p>我们用4线程，写入100w条记录做实验，查看平均的插入时间</p>
+<table>
+<thead>
+<tr>
+<th>表”描述”</th>
+<th>写入时间</th>
+<th>读取时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>默认</code></td>
+<td>668214ms</td>
+<td>4768452ms</td>
+</tr>
+<tr>
+<td><code>BLOOMFILTER =&gt; &#39;ROW&#39;</code></td>
+<td>683444ms</td>
+<td>3175800ms</td>
+</tr>
+<tr>
+<td><code>DATA_BLOCK_ENCODING =&gt; &#39;DIFF&#39;</code></td>
+<td>633093ms</td>
+<td>3452708ms</td>
+</tr>
+<tr>
+<td><code>BLOCKSIZE =&gt; &#39;16384&#39;</code></td>
+<td>670335ms</td>
+<td>3472540ms</td>
+</tr>
+</tbody>
+</table>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/" rel="next" title="Hadoop和HBase开启对LZO压缩的支持">
+                <i class="fa fa-chevron-left"></i> Hadoop和HBase开启对LZO压缩的支持
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2014/07/30/HBase读写性能相关-关于缓存/" rel="prev" title="HBase读写性能相关-关于缓存">
+                HBase读写性能相关-关于缓存 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#split触发时机"><span class="nav-number">1.</span> <span class="nav-text">split触发时机</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#compact发生的时间"><span class="nav-number">2.</span> <span class="nav-text">compact发生的时间</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#影响写速度的因素"><span class="nav-number">3.</span> <span class="nav-text">影响写速度的因素</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#随机写的测试工具YCSB"><span class="nav-number">4.</span> <span class="nav-text">随机写的测试工具YCSB</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#表的信息影响随机读写性能的测试"><span class="nav-number">5.</span> <span class="nav-text">表的信息影响随机读写性能的测试</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

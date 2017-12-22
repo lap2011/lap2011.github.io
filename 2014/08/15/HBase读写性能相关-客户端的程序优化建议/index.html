@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="ApacheEagle," />
+  <meta name="keywords" content="HBase," />
 
 
 
@@ -79,16 +79,22 @@
 
 
 
-<meta name="description" content="aiping.liang s home">
+<meta name="description" content="对于rowkey的设计a、表的设计，尽量要把一起访问的放到一个cf里面
+b、借助HBase单行操作的原子性。一个用户的所有信息存储成一行,这包括消息本身、Message Index、Search Index、以及相关Meta Data(Actions:addMessage、markAsRead,etc)
+c、存储时，数据按照Row key的字典 序(byte order)排序存储。设计key时，要">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Apache Eagle 基本介绍">
-<meta property="og:url" content="http://yoursite.com/2017/11/22/Apache-Eagle-基本介绍/index.html">
+<meta property="og:title" content="HBase读写性能相关-客户端的程序优化建议">
+<meta property="og:url" content="http://yoursite.com/2014/08/15/HBase读写性能相关-客户端的程序优化建议/index.html">
 <meta property="og:site_name" content="Aiping.LAP">
-<meta property="og:description" content="aiping.liang s home">
-<meta property="og:updated_time" content="2017-12-21T06:52:06.000Z">
+<meta property="og:description" content="对于rowkey的设计a、表的设计，尽量要把一起访问的放到一个cf里面
+b、借助HBase单行操作的原子性。一个用户的所有信息存储成一行,这包括消息本身、Message Index、Search Index、以及相关Meta Data(Actions:addMessage、markAsRead,etc)
+c、存储时，数据按照Row key的字典 序(byte order)排序存储。设计key时，要">
+<meta property="og:updated_time" content="2017-12-21T12:59:48.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Apache Eagle 基本介绍">
-<meta name="twitter:description" content="aiping.liang s home">
+<meta name="twitter:title" content="HBase读写性能相关-客户端的程序优化建议">
+<meta name="twitter:description" content="对于rowkey的设计a、表的设计，尽量要把一起访问的放到一个cf里面
+b、借助HBase单行操作的原子性。一个用户的所有信息存储成一行,这包括消息本身、Message Index、Search Index、以及相关Meta Data(Actions:addMessage、markAsRead,etc)
+c、存储时，数据按照Row key的字典 序(byte order)排序存储。设计key时，要">
 
 
 
@@ -118,13 +124,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2017/11/22/Apache-Eagle-基本介绍/"/>
+  <link rel="canonical" href="http://yoursite.com/2014/08/15/HBase读写性能相关-客户端的程序优化建议/"/>
 
 
 
 
 
-  <title>Apache Eagle 基本介绍 | Aiping.LAP</title>
+  <title>HBase读写性能相关-客户端的程序优化建议 | Aiping.LAP</title>
   
 
 
@@ -231,7 +237,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/22/Apache-Eagle-基本介绍/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/08/15/HBase读写性能相关-客户端的程序优化建议/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="aiping.lap">
@@ -248,7 +254,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">Apache Eagle 基本介绍</h1>
+          <h1 class="post-title" itemprop="name headline">HBase读写性能相关-客户端的程序优化建议</h1>
         
 
         <div class="post-meta">
@@ -260,8 +266,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-22T06:23:35+08:00">
-                2017-11-21
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-08-15T13:35:16+08:00">
+                2014-08-14
               </time>
             
 
@@ -298,7 +304,27 @@
       
 
       
-        
+        <h1 id="对于rowkey的设计"><a href="#对于rowkey的设计" class="headerlink" title="对于rowkey的设计"></a>对于rowkey的设计</h1><p>a、表的设计，尽量要把一起访问的放到一个cf里面</p>
+<p>b、借助HBase单行操作的原子性。一个用户的所有信息存储成一行,这包括消息本身、Message Index、Search Index、以及相关Meta Data(Actions:addMessage、markAsRead,etc)</p>
+<p>c、存储时，数据按照Row key的字典 序(byte order)排序存储。设计key时，要充分排序存储这个特性，将经常一起读取的行存储放到一起。(位置相关性)</p>
+<p>d、推介RowKey：md5sum(userid)+userid。</p>
+<h2 id="关于表的scan操作"><a href="#关于表的scan操作" class="headerlink" title="关于表的scan操作"></a>关于表的scan操作</h2><p>a、每次遍历完Scan的返回结果集后，都不要忘了关闭ResultScanner对象，否则会引发问题。</p>
+<p>b、如果生产环境有mapred任务去scan hbase的时候，如果读取的是热点数据，可以在mapred scan类中加一个</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">scan.setCacheBlocks(<span class="keyword">true</span>)</div></pre></td></tr></table></figure>
+<p>c、几个重要的方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setBatch</span><span class="params">(<span class="keyword">int</span> batch)</span> ：<span class="comment">//为设置获取记录的列个数，默认无限制，也就是返回所有的列</span></span></div><div class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setCaching</span><span class="params">(<span class="keyword">int</span> caching)</span>：<span class="comment">//每次从服务器端读取的行数，默认为配置文件中设置的值,可以减少RPC的次数：</span></div><div class="line">HTable.<span class="title">setScannerCaching</span><span class="params">(<span class="keyword">int</span> scannerCaching)</span></div></pre></td></tr></table></figure>
+<p>注意：有三个地方可以进行配置(上面三个参数)：</p>
+<p>1）在HBase的conf配置文件中进行配置；</p>
+<p>2）通过调用HTable.setScannerCaching(int scannerCaching)进行配置；</p>
+<p>3）通过调用Scan.setCaching(int caching)进行配置。三者的优先级越来越高。</p>
+<p> RPCs=(Rows* Cols per Row) / Min(Cols per Row, Batch size) / Scanner caching</p>
+<p>d、默认情况下，HBase的自动刷新功能是处于激活状态的。则样每一个单个的Put都会自动调用一次RPC向server发送一次请求，为性能计，可以关闭自动刷新功能(setAutoFlush(false))，这样会客户端的write buffer已“满”或客户端强制flushComits()刷新再或者调用HTable的close()时才调用RPC一次把多个Put操作发送给服务器。</p>
+<h2 id="关于put操作"><a href="#关于put操作" class="headerlink" title="关于put操作"></a>关于put操作</h2><p>a、在Put操作保存数据时，可以考虑关闭WAL的功能——调用writeToWAL(false)，这意味着在写数据时不会讲数据先写到WAL日志文件，直接写入memstore，这可以提高一些性能。但是者会带来一些副作用，那就是当Region Server出问题时，没有写log的数据会丢失，这在保存重要数据时会带来很大的危险，只有在保存不南无重要的数据时才考虑这样做。</p>
+<p>或者设置setDeferredLogFlush为true，服务端将采用异步写hlog的方式，客户端写响应时间会降到1ms以下。如果regionserver挂掉会丢失1s的数据。同样有数据丢失风险，这种方式会小很多很多（rs被kill -9或者物理机器直接宕机），而且写入的数据马上可以被读取到，客户端也不需要采取特别的策略。</p>
+<p>b、setWriteBufferSize可以设置table的客户端缓存。</p>
+<p>c、通过batch 方式来put：HTable.put(List)</p>
+<h1 id="其它的一些技术"><a href="#其它的一些技术" class="headerlink" title="其它的一些技术"></a>其它的一些技术</h1><p> 使用filter <a href="http://mysun.iteye.com/blog/1584635" target="_blank" rel="external">http://mysun.iteye.com/blog/1584635</a></p>
+
       
     </div>
     
@@ -315,7 +341,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/ApacheEagle/" rel="tag"># ApacheEagle</a>
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
           
         </div>
       
@@ -328,8 +354,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2017/10/12/Ranger对HSFS实现控制管理的流程分析/" rel="next" title="Ranger对HDFS实现管理和控制的流程分析">
-                <i class="fa fa-chevron-left"></i> Ranger对HDFS实现管理和控制的流程分析
+              <a href="/2014/07/30/HBase读写性能相关-关于缓存/" rel="next" title="HBase读写性能相关-关于缓存">
+                <i class="fa fa-chevron-left"></i> HBase读写性能相关-关于缓存
               </a>
             
           </div>
@@ -337,6 +363,10 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2014/08/17/HBase读写性能相关-请求不均匀的问题优化/" rel="prev" title="HBase读写性能相关-请求不均匀的问题优化">
+                HBase读写性能相关-请求不均匀的问题优化 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -386,8 +416,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -440,6 +479,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#对于rowkey的设计"><span class="nav-number">1.</span> <span class="nav-text">对于rowkey的设计</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#关于表的scan操作"><span class="nav-number">1.1.</span> <span class="nav-text">关于表的scan操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关于put操作"><span class="nav-number">1.2.</span> <span class="nav-text">关于put操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#其它的一些技术"><span class="nav-number">2.</span> <span class="nav-text">其它的一些技术</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       

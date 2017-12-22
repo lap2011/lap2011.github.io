@@ -350,6 +350,143 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/10/12/Ranger对HSFS实现控制管理的流程分析/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2017/10/12/Ranger对HSFS实现控制管理的流程分析/" itemprop="url">Ranger对HDFS实现管理和控制的流程分析</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-10-11T14:23:35-08:00">
+                2017-10-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="一、Apache-Ranger简介"><a href="#一、Apache-Ranger简介" class="headerlink" title="一、Apache Ranger简介"></a>一、Apache Ranger简介</h1><p>​       Apache Ranger提供一个集中式安全管理框架, 并解决授权和审计。它可以对Hadoop生态的组件如HDFS、Yarn、Hive、Hbase等进行细粒度的数据访问控制。通过操作Ranger控制台,管理员可以轻松的通过配置策略来控制用户访问权限。在2017年2月左右，Apache 软件基金会<a href="https://blogs.apache.org/foundation/entry/the-apache-software-foundation-announces3" target="_blank" rel="external">宣布</a>，Apache Ranger 已经成功地从孵化毕业，成为基金会的一个新的顶级项目</p>
+<h1 id="二、Instrumentation-简介"><a href="#二、Instrumentation-简介" class="headerlink" title="二、Instrumentation 简介"></a>二、Instrumentation 简介</h1><p>​      利用 Java 代码，即 java.lang.instrument 做动态 Instrumentation 是 Java SE 5 的新特性，它把 Java 的 instrument 功能从本地代码中解放出来，使之可以用 Java 代码的方式解决问题。使用 Instrumentation，开发者可以构建一个独立于应用程序的代理程序（Agent），用来监测和协助运行在 JVM 上的程序，甚至能够替换和修改某些类的定义。有了这样的功能，开发者就可以实现更为灵活的运行时虚拟机监控和 Java 类操作了，这样的特性实际上提供了一种虚拟机级别支持的 AOP 实现方式，使得开发者无需对 JDK 做任何升级和改动，就可以实现某些 AOP 的功能。</p>
+<h1 id="三、Ranger利用Instrumentation实现对HDFS的权限控制和管理"><a href="#三、Ranger利用Instrumentation实现对HDFS的权限控制和管理" class="headerlink" title="三、Ranger利用Instrumentation实现对HDFS的权限控制和管理"></a>三、Ranger利用Instrumentation实现对HDFS的权限控制和管理</h1><h2 id="1、策略的编辑和管理"><a href="#1、策略的编辑和管理" class="headerlink" title="1、策略的编辑和管理"></a>1、策略的编辑和管理</h2><p>​       Ranger对于用户策略的控制是通过控制台完成的，首先是通过ServiceREST的updatePolicy方法，</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@PUT</span></div><div class="line"><span class="meta">@Path</span>(<span class="string">"/services/&#123;id&#125;"</span>)</div><div class="line"><span class="meta">@Produces</span>(&#123; <span class="string">"application/json"</span>, <span class="string">"application/xml"</span> &#125;)</div><div class="line"><span class="meta">@PreAuthorize</span>(<span class="string">"@rangerPreAuthSecurityHandler.isAPIAccessible(\""</span> + RangerAPIList.UPDATE_SERVICE + <span class="string">"\")"</span>) <span class="comment">//这里会对界面的操作者鉴权，确定是否有相应的管理员权限编辑当前的策略</span></div><div class="line"><span class="function"><span class="keyword">public</span> RangerService <span class="title">updateService</span><span class="params">(RangerService service)</span> </span>&#123;</div><div class="line">     <span class="comment">//...省略上下文</span></div><div class="line">     </div><div class="line">      <span class="comment">//这里主要检查输入的参数中，是否缺少了必须要有的参数</span></div><div class="line">		RangerPolicyValidator validator = validatorFactory.getPolicyValidator(svcStore);</div><div class="line">		validator.validate(policy, Action.UPDATE, bizUtil.isAdmin());</div><div class="line"></div><div class="line">		ensureAdminAccess(policy.getService(), policy.getResources());</div><div class="line"></div><div class="line">		ret = svcStore.updatePolicy(policy);</div><div class="line">      <span class="comment">//...省略上下文</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>然后调用ServiceDBStore的updatePolicy的方法把更新的策略直接写入到数据库中：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> RangerPolicy <span class="title">updatePolicy</span><span class="params">(RangerPolicy policy)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">  <span class="comment">//...省略上下文</span></div><div class="line"></div><div class="line">   XXPolicy xxExisting = daoMgr.getXXPolicy().getById(policy.getId());</div><div class="line">   <span class="comment">//确定是一个存在的服务类型，比如HDFS</span></div><div class="line">   RangerPolicy existing = policyService.getPopulatedViewObject(xxExisting);</div><div class="line">   <span class="comment">//确定是已经创建的一个服务，例如Sandbox_hadoop</span></div><div class="line">   RangerService service = getServiceByName(policy.getService());</div><div class="line">   <span class="comment">//..这里省略了一些和上面类似的判断，都是在完成写入前不为空的一些逻辑检查</span></div><div class="line">   </div><div class="line">   <span class="comment">//这里是目前支持的四种类型的策略，多个策略组成了策略组，也就是一条policy</span></div><div class="line">   List&lt;RangerPolicyItem&gt; policyItems     = policy.getPolicyItems();</div><div class="line">   List&lt;RangerPolicyItem&gt; denyPolicyItems = policy.getDenyPolicyItems();</div><div class="line">   List&lt;RangerPolicyItem&gt; allowExceptions = policy.getAllowExceptions();</div><div class="line">   List&lt;RangerPolicyItem&gt; denyExceptions  = policy.getDenyExceptions();</div><div class="line">   <span class="comment">//..skip</span></div><div class="line">   <span class="comment">//写入相应的策略到数据库中</span></div><div class="line">   createNewPolicyItemsForPolicy(policy, newUpdPolicy, policyItems, xServiceDef, RangerPolicyItemEvaluator.POLICY_ITEM_TYPE_ALLOW);</div><div class="line"></div><div class="line">  <span class="comment">//很重要的一步，更新策略的版本号，方便后续根据版本号确定客户端执行最新的策略</span></div><div class="line">   handlePolicyUpdate(service, isTagVersionUpdateNeeded);</div><div class="line">   <span class="comment">//把上一步的策略存储起来，方便后续的回滚和查询</span></div><div class="line">   RangerPolicy updPolicy = policyService.getPopulatedViewObject(newUpdPolicy);</div><div class="line">   dataHistService.createObjectDataHistory(updPolicy, RangerDataHistService.ACTION_UPDATE);</div><div class="line">   <span class="comment">//所有的transaction Log (XXTrxLog)都是用于审计 </span></div><div class="line">   bizUtil.createTrxLog(trxLogList);</div><div class="line">   </div><div class="line">   <span class="keyword">return</span> updPolicy;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="2、触发策略的更新"><a href="#2、触发策略的更新" class="headerlink" title="2、触发策略的更新"></a>2、触发策略的更新</h2><p> Ranger服务端对于策略更新后，客户端获取更新后的策略的方式比较简单，就是通过一个异步的类PolicyRefresher来不断的检查策略的id是否发生了更新，然后就调用更新，默认更新的间隔是pollingIntervalMs   = 30 * 1000。更新主要调用的方法如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">loadPolicy</span><span class="params">()</span> </span>&#123;</div><div class="line"></div><div class="line">   RangerPerfTracer perf = <span class="keyword">null</span>;</div><div class="line"></div><div class="line">   <span class="keyword">try</span> &#123;</div><div class="line">      <span class="comment">//获取需要更新的策略列表</span></div><div class="line">      ServicePolicies svcPolicies = loadPolicyfromPolicyAdmin();</div><div class="line"></div><div class="line">      <span class="comment">//如果获取到的策略列表为空，则直接从上次的缓存中读取，否则把结果写入到缓存</span></div><div class="line">      <span class="keyword">if</span> (svcPolicies == <span class="keyword">null</span>) &#123;</div><div class="line">         <span class="keyword">if</span> (!policiesSetInPlugin) &#123;</div><div class="line">            svcPolicies = loadFromCache();</div><div class="line">         &#125;</div><div class="line">      &#125; <span class="keyword">else</span> &#123;</div><div class="line">         saveToCache(svcPolicies);</div><div class="line">      &#125;</div><div class="line"></div><div class="line">      <span class="keyword">if</span> (svcPolicies != <span class="keyword">null</span>) &#123;</div><div class="line">        <span class="comment">//注意，这里的RangerHdfsPlugin是后续鉴权中使用的插件</span></div><div class="line">         plugIn.setPolicies(svcPolicies);</div><div class="line">         policiesSetInPlugin = <span class="keyword">true</span>;</div><div class="line">         <span class="comment">//这两部很重要，每次更新完之后，一定要设置上一次更新的时间和版本号</span></div><div class="line">         setLastActivationTimeInMillis(System.currentTimeMillis());</div><div class="line">         lastKnownVersion = svcPolicies.getPolicyVersion();</div><div class="line">      &#125; <span class="keyword">else</span> &#123;</div><div class="line">         <span class="keyword">if</span> (!policiesSetInPlugin &amp;&amp; !serviceDefSetInPlugin) &#123;</div><div class="line">            plugIn.setPolicies(<span class="keyword">null</span>);</div><div class="line">            serviceDefSetInPlugin = <span class="keyword">true</span>;</div><div class="line">         &#125;</div><div class="line">      &#125;</div><div class="line">   &#125; <span class="keyword">catch</span> (RangerServiceNotFoundException snfe) &#123;</div><div class="line">      <span class="comment">//一旦更新失败，则回滚所有的版本号到最原始的版本，然后下一次会下载所有的版本</span></div><div class="line">      <span class="keyword">if</span> (disableCacheIfServiceNotFound) &#123;</div><div class="line">         disableCache();</div><div class="line">         plugIn.setPolicies(<span class="keyword">null</span>);</div><div class="line">         setLastActivationTimeInMillis(System.currentTimeMillis());</div><div class="line">         lastKnownVersion = -<span class="number">1</span>;</div><div class="line">         serviceDefSetInPlugin = <span class="keyword">true</span>;</div><div class="line">      &#125;</div><div class="line">   &#125; <span class="keyword">catch</span> (Exception excp) &#123;</div><div class="line">      LOG.error(<span class="string">"Encountered unexpected exception, ignoring.."</span>, excp);</div><div class="line">   &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>获取需要更新的策略的逻辑如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> ServicePolicies <span class="title">loadPolicyfromPolicyAdmin</span><span class="params">()</span> <span class="keyword">throws</span> RangerServiceNotFoundException </span>&#123;</div><div class="line">  <span class="comment">//...省略一些无关内容</span></div><div class="line"></div><div class="line">   ServicePolicies svcPolicies = <span class="keyword">null</span>;</div><div class="line"></div><div class="line">   RangerPerfTracer perf = <span class="keyword">null</span>;</div><div class="line"></div><div class="line">   <span class="keyword">try</span> &#123;</div><div class="line">      <span class="comment">//根据上次更新完以后的版本号，以及上次更新的时间，来获取所有需要更新的内容</span></div><div class="line">      svcPolicies = rangerAdmin.getServicePoliciesIfUpdated(lastKnownVersion, lastActivationTimeInMillis);</div><div class="line"></div><div class="line">      <span class="keyword">boolean</span> isUpdated = svcPolicies != <span class="keyword">null</span>;</div><div class="line">     <span class="comment">//如果获取到的更新内容不为空，则把所有的更新内容</span></div><div class="line">      <span class="keyword">if</span>(isUpdated) &#123;</div><div class="line">         <span class="keyword">long</span> newVersion = svcPolicies.getPolicyVersion() == <span class="keyword">null</span> ? -<span class="number">1</span> : svcPolicies.getPolicyVersion().longValue();</div><div class="line"></div><div class="line">         <span class="keyword">if</span>(!StringUtils.equals(serviceName, svcPolicies.getServiceName())) &#123;</div><div class="line">            LOG.warn(<span class="string">"PolicyRefresher(serviceName="</span> + serviceName + <span class="string">"): ignoring unexpected serviceName '"</span> + svcPolicies.getServiceName() + <span class="string">"' in service-store"</span>);</div><div class="line"></div><div class="line">            svcPolicies.setServiceName(serviceName);</div><div class="line">         &#125;</div><div class="line">    <span class="keyword">return</span> svcPolicies;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="3、通过插件最终实现对hdfs的权限控制"><a href="#3、通过插件最终实现对hdfs的权限控制" class="headerlink" title="3、通过插件最终实现对hdfs的权限控制"></a>3、通过插件最终实现对hdfs的权限控制</h2><p>   在上文中，我们介绍了Instrumentation的技术，在ranger中，通过HadoopAuthClassTransformer类来实现注入，并且检查所有访问org/apache/hadoop/hdfs/server/namenode/FSPermissionChecker方法的请求。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="keyword">public</span> <span class="keyword">byte</span>[] transform(ClassLoader aClassLoader, String aClassName, Class&lt;?&gt; aClassBeingRedefined, ProtectionDomain aProtectionDomain, <span class="keyword">byte</span>[] aClassFileBuffer) <span class="keyword">throws</span> IllegalClassFormatException &#123;</div><div class="line">   <span class="keyword">byte</span>[] ret = aClassFileBuffer;</div><div class="line"></div><div class="line">   <span class="comment">//拦截Hadoop原始的文件权限鉴权类FSPermissionChecker</span></div><div class="line">   <span class="keyword">if</span> (aClassName.equals(<span class="string">"org/apache/hadoop/hdfs/server/namenode/FSPermissionChecker"</span>)) &#123;</div><div class="line">           <span class="keyword">byte</span>[] result = transformedClassByteCode;</div><div class="line">           <span class="keyword">if</span> (result == <span class="keyword">null</span>) &#123;</div><div class="line"></div><div class="line">         <span class="keyword">byte</span>[] injectedClassCode = injectFSPermissionCheckerHooks(aClassName);</div><div class="line"></div><div class="line">         <span class="keyword">if</span>(injectedClassCode != <span class="keyword">null</span>) &#123;</div><div class="line">                   <span class="comment">//通过HadoopAuthClassTransformer来实现控制</span></div><div class="line">                   <span class="keyword">synchronized</span> (HadoopAuthClassTransformer.class) &#123;</div><div class="line">                       result = transformedClassByteCode;</div><div class="line">                       <span class="keyword">if</span> (result == <span class="keyword">null</span>) &#123;</div><div class="line">                           transformedClassByteCode = result = injectedClassCode;</div><div class="line">                       &#125;</div><div class="line">                   &#125;</div><div class="line">               &#125;</div><div class="line">      &#125;</div><div class="line"></div><div class="line">      <span class="keyword">if</span>(result != <span class="keyword">null</span>) &#123;</div><div class="line">         ret = result;</div><div class="line">      &#125;</div><div class="line">   &#125;</div><div class="line"></div><div class="line">   <span class="keyword">return</span> ret;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>   HDFS默认使用的权限检查策略为FSPermissionChecker，这部分的检查是在namenode中，当用户在获取要访问数据的元数据的时候，进行检查，在org.apache.hadoop.hdfs.server.namenode.FSPermissionChecker中</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">checkPermission</span><span class="params">(INodesInPath inodesInPath, <span class="keyword">boolean</span> doCheckOwner,</span></span></div><div class="line">  //...skip</div><div class="line">  //获取acl的控制对象,这里通过调用了RangerHdfsAuthorizer来生成一个内部类RangerAccessControlEnforcer对象</div><div class="line">  AccessControlEnforcer enforcer =</div><div class="line">      getAttributesProvider().<span class="title">getExternalAccessControlEnforcer</span><span class="params">(<span class="keyword">this</span>)</span>;</div><div class="line">   <span class="comment">//权限检查,这里调用了RangerAccessControlEnforcer来进行实际的检查</span></div><div class="line">  enforcer.checkPermission(fsOwner, supergroup, callerUgi, inodeAttrs, inodes,</div><div class="line">      pathByNameArr, snapshotId, path, ancestorIndex, doCheckOwner,</div><div class="line">      ancestorAccess, parentAccess, access, subAccess, ignoreEmptyDir);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在RangerHdfsAuthorizer中的内部类getExternalAccessControlEnforcer实现了INodeAttributeProvider的权限检查接口AccessControlEnforcer，替代了默认的FSPermissionChecker提供的checkPermission方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">checkPermission</span><span class="params">(String fsOwner, String superGroup, UserGroupInformation ugi,</span></span></div><div class="line">                     INodeAttributes[] inodeAttrs, INode[] inodes, <span class="keyword">byte</span>[][] pathByNameArr,</div><div class="line">                     <span class="keyword">int</span> snapshotId, String path, <span class="keyword">int</span> ancestorIndex, <span class="keyword">boolean</span> doCheckOwner,</div><div class="line">                     FsAction ancestorAccess, FsAction parentAccess, FsAction access,</div><div class="line">                     FsAction subAccess, <span class="keyword">boolean</span> ignoreEmptyDir) <span class="keyword">throws</span> AccessControlException &#123;</div><div class="line">  <span class="comment">//...skip</span></div><div class="line"></div><div class="line">   <span class="keyword">try</span> &#123;</div><div class="line">      <span class="comment">//先确定RangerHdfsPlugin不为空</span></div><div class="line">      <span class="keyword">if</span>(plugin != <span class="keyword">null</span> &amp;&amp; !ArrayUtils.isEmpty(inodes)) &#123;</div><div class="line">         <span class="keyword">if</span>(ancestorIndex &gt;= inodes.length) &#123;</div><div class="line">            ancestorIndex = inodes.length - <span class="number">1</span>;</div><div class="line">         &#125;</div><div class="line"></div><div class="line">         <span class="comment">//轮训所有的要访问的节点</span></div><div class="line">         <span class="keyword">for</span>(; ancestorIndex &gt;= <span class="number">0</span> &amp;&amp; inodes[ancestorIndex] == <span class="keyword">null</span>; ancestorIndex--);</div><div class="line">        <span class="comment">//...skip</span></div><div class="line"></div><div class="line">         <span class="comment">// 跳过白名单用户和owner的检查</span></div><div class="line">         <span class="comment">// 判断是否有父路径的权限</span></div><div class="line">         <span class="comment">//检查当前节点的路径权限</span></div><div class="line">         <span class="comment">//检查访问的类型</span></div><div class="line">         <span class="comment">//...经过一系列检查后，如果不抛出异常，则认为当前用户可以访问指定的资源</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>参考文章：</p>
+<p><a href="https://www.ibm.com/developerworks/cn/java/j-lo-jse61/index.html" target="_blank" rel="external">https://www.ibm.com/developerworks/cn/java/j-lo-jse61/index.html</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/10/27/HBase0-98以后的版本直接读取HFile文件/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -477,7 +614,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/10/24/HBase-Region的状态迁移流程/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="aiping.lap">
@@ -496,7 +633,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/" itemprop="url">Hadoop和HBase开启对LZO压缩的支持</a></h1>
+                <a class="post-title-link" href="/2015/10/24/HBase-Region的状态迁移流程/" itemprop="url">HBase Region的状态迁移流程</a></h1>
         
 
         <div class="post-meta">
@@ -508,8 +645,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-07-15T21:19:12-08:00">
-                2014-07-15
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-10-23T21:33:34-08:00">
+                2015-10-23
               </time>
             
 
@@ -548,63 +685,820 @@
       
         
           
-            <p>这本来是想写一个小的系列，包括后续的压测，所以先从环境搭建开始.</p>
-<p>PS:看了很多的文章后，总结出来的结论：网络上搭建方式各种坑，实践才是检验真理的唯一方式</p>
-<h1 id="基础环境"><a href="#基础环境" class="headerlink" title="基础环境"></a>基础环境</h1><p>hadoop版本1.0.4,Hbase0.94.3，系统环境：Centos5X, 64位</p>
-<h1 id="搭建过程"><a href="#搭建过程" class="headerlink" title="搭建过程"></a>搭建过程</h1><p> 一共需要准备4部分东西，这4个部分缺一不可。</p>
-<h2 id="1、lzo的系统库文件"><a href="#1、lzo的系统库文件" class="headerlink" title="1、lzo的系统库文件"></a>1、lzo的系统库文件</h2><p>不用相信网上的方法，亲测了，和很多库一样，这个不需要编译环境和运行环境是同一套，不过最好本地和运行的基本库一样，否则会有一些系统库不是向下兼容的问题。</p>
-<p>下载lzo-2.06.tar.gz</p>
-<p>然后依次执行以下的命令编译系统库</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">tar -zxvf lzo-2.06.tar.gz</div><div class="line"></div><div class="line">./configure --enable-shared --prefix /usr/local/lzo-2.06</div><div class="line"></div><div class="line">make</div><div class="line"></div><div class="line">make install</div></pre></td></tr></table></figure>
-<p>生成的库文件如下所示：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">├── lib</div><div class="line">│   ├── liblzo2.a</div><div class="line">│   ├── liblzo2.la</div><div class="line">│   ├── liblzo2.so -&gt; liblzo2.so.2.0.0</div><div class="line">│   ├── liblzo2.so.2 -&gt; liblzo2.so.2.0.0</div><div class="line">│   └── liblzo2.so.2.0.0</div></pre></td></tr></table></figure>
-<p>由于这些都是最基本的lzo压缩库，所以需要放到集群上的公共库中(我的系统是64位的，放在了/usr/lib64下面)，要求每个节点都有该库，因为所有的Map和Reduce都只依赖节点本身的库。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">[hadoop@hadoop131 ~]$ ls /usr/lib64/liblzo2.*</div><div class="line"></div><div class="line">/usr/lib64/liblzo2.a   /usr/lib64/liblzo2.so    /usr/lib64/liblzo2.so.2.0.0</div><div class="line"></div><div class="line">/usr/lib64/liblzo2.la  /usr/lib64/liblzo2.so.2</div></pre></td></tr></table></figure>
-<h2 id="2、导入hadoop依赖lzo的jar包"><a href="#2、导入hadoop依赖lzo的jar包" class="headerlink" title="2、导入hadoop依赖lzo的jar包"></a>2、导入hadoop依赖lzo的jar包</h2><p>下载hadoop-gpl-packaging-0.6.1-1.x86_64.rpm</p>
-<p>在系统上安装:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">rpm -ivh hadoop-gpl-packaging-0.6.1-1.x86_64.rpm</div></pre></td></tr></table></figure>
-<p>将会在本地安装以下的目录文件：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line">├── lib</div><div class="line">│   ├── cdh4.0.1</div><div class="line">│   │   └── elephant-bird-gerritjvv</div><div class="line">│   │       └── elephant-bird-2.0.5.jar</div><div class="line">│   ├── guava-12.0.jar</div><div class="line">│   ├── hadoop-lzo-0.4.17.jar</div><div class="line">│   ├── hadoop-lzo.jar -&gt; /opt/hadoopgpl/lib/hadoop-lzo-0.4.17.jar</div><div class="line">│   ├── pig-0.10.0</div><div class="line">│   │   ├── elephant-bird-gerritjvv</div><div class="line">│   │   │   └── elephant-bird-2.0.5.jar</div><div class="line">│   │   ├── elephant-bird.jar -&gt; /opt/hadoopgpl/lib/pig-0.10.0/elephant-bird-gerritjvv/elephant-bird-2.0.5.jar</div><div class="line">│   │   ├── udfs-0.3.1.jar</div><div class="line">│   │   └── udfs.jar -&gt; /opt/hadoopgpl/lib/pig-0.10.0/udfs-0.3.1.jar</div><div class="line">│   ├── pig-0.6.0</div><div class="line">│   │   └── elephant-bird-1.0.jar</div><div class="line">│   ├── pig-0.7.0</div><div class="line">│   │   └── elephant-bird-1.0.jar</div><div class="line">│   ├── pig-0.8.0</div><div class="line">│   │   ├── elephant-bird-dvryaboy</div><div class="line">│   │   │   └── elephant-bird-2.0.jar</div><div class="line">│   │   └── elephant-bird-gerritjvv</div><div class="line">│   │       └── elephant-bird-2.0.jar</div><div class="line">│   ├── protobuf-java-2.4.1.jar</div><div class="line">│   ├── slf4j-api-1.5.8.jar</div><div class="line">│   ├── slf4j-log4j12-1.5.10.jar</div><div class="line">│   └── yamlbeans-0.9.3.jar</div><div class="line">└── native</div><div class="line">    └── Linux-amd64-64</div><div class="line">        ├── libgplcompression.a</div><div class="line">        ├── libgplcompression.la</div><div class="line">        ├── libgplcompression.so</div><div class="line">        ├── libgplcompression.so.0</div><div class="line">        ├── libgplcompression.so.0.0.0</div><div class="line">        ├── LzoCompressor.lo</div><div class="line">        ├── LzoCompressor.o</div><div class="line">        ├── LzoDecompressor.lo</div><div class="line">        └── LzoDecompressor.o</div></pre></td></tr></table></figure>
-<p>现在只需要 hadoop-lzo.jar，需要将这个jar包拷贝到$HADOOP_HOME/lib和$HBAS_HOME/lib下，需要集群中所有的节点都有这个包。</p>
-<h2 id="3、hadoop调用系统库的jni库文件"><a href="#3、hadoop调用系统库的jni库文件" class="headerlink" title="3、hadoop调用系统库的jni库文件"></a>3、hadoop调用系统库的jni库文件</h2><p>在上面的Linux-amd64-64目录下，存放了需要的所有的JNI库文件，需要把这些库放到          </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$HADOOP_HOME/lib/native/Linux-amd64-64</div></pre></td></tr></table></figure>
-<p>拷贝其中所有的libgplcompression.* 到</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$HBASE_HOME/lib/native/Linux-amd64-64</div></pre></td></tr></table></figure>
-<p>注意，一般Hbase中不存在该目录，直接创建就可以了。</p>
-<h2 id="4、需要配置中，引用相关的库文件"><a href="#4、需要配置中，引用相关的库文件" class="headerlink" title="4、需要配置中，引用相关的库文件"></a>4、需要配置中，引用相关的库文件</h2><p>需要修改3个hadoop的配置：</p>
-<h3 id="core-site-xml-中增加："><a href="#core-site-xml-中增加：" class="headerlink" title="core-site.xml 中增加："></a>core-site.xml 中增加：</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">name</span>&gt;</span>io.compression.codecs<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">value</span>&gt;</span>com.hadoop.compression.lzo.LzoCodec,com.hadoop.compression.lzo.LzopCodec<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">name</span>&gt;</span>io.compression.codec.lzo.class<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">value</span>&gt;</span>com.hadoop.compression.lzo.LzoCodec<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div></pre></td></tr></table></figure>
-<h3 id="mapred-site-xml-中增加："><a href="#mapred-site-xml-中增加：" class="headerlink" title="mapred-site.xml 中增加："></a>mapred-site.xml 中增加：</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.map.output.compress<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>mapred.child.java.opts<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>-Djava.library.path=$&#123;HADOOP_HOME&#125;/lib/native/Linux-amd64-64<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>mapred.map.output.compression.codec<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>com.hadoop.compression.lzo.LzoCodec<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div></pre></td></tr></table></figure>
-<h3 id="hadoop-env-sh-中增加："><a href="#hadoop-env-sh-中增加：" class="headerlink" title="hadoop-env.sh 中增加："></a>hadoop-env.sh 中增加：</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:$HADOOP_HOME/lib:$HBASE_HOME/lib:</div><div class="line"></div><div class="line">export JAVA_LIBRARY_PATH=$JAVA_LIBRARY_PATH:$HADOOP_HOME/lib/native/Linux-amd64-64:$HADOOP_HOME/lib/native:$HADOOP_HOME/lib</div></pre></td></tr></table></figure>
-<h1 id="结果测试"><a href="#结果测试" class="headerlink" title="结果测试"></a>结果测试</h1><p>完成上述的4步配置后，需要重启集群。使用下面的方式对结果进行测试</p>
-<h2 id="hadoop测试使用lzo的压缩："><a href="#hadoop测试使用lzo的压缩：" class="headerlink" title="hadoop测试使用lzo的压缩："></a>hadoop测试使用lzo的压缩：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hadoop jar $&#123;HADOOP_HOME&#125;/contrib/streaming/hadoop-streaming-1.0.4.jar -input /in/part-00009 -output /testalzo -mapper cat -reducer cat -jobconf mapred.output.compress=true -jobconf mapred.output.compression.codec=org.apache.hadoop.io.compress.LzoCodec</div></pre></td></tr></table></figure>
-<p>测试成功的话会生成/in/part-00009的压缩文件/testalzo/part-00000.lzo_deflate</p>
-<h2 id="hbase测试使用lzo压缩："><a href="#hbase测试使用lzo压缩：" class="headerlink" title="hbase测试使用lzo压缩："></a>hbase测试使用lzo压缩：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase org.apache.hadoop.hbase.util.CompressionTest hdfs://hadoop131/terasort/output/part-00005 lzo</div></pre></td></tr></table></figure>
-<p>测试成功的话会输出SUCCESS   </p>
-<p>修改表压缩方式为lzo，接下来以usertable为例子进行</p>
-<p>1、describe ‘usertable’ 查看原来的压缩方式，默认情况下的压缩方式 COMPRESSION =&gt; ‘NONE’</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">hbase(main):003:0&gt; describe &apos;usertable&apos; </div><div class="line">DESCRIPTION                                                       ENABLED                           </div><div class="line">&#123;NAME =&gt; &apos;usertable&apos;, FAMILIES =&gt; [&#123;NAME =&gt; &apos;cf&apos;, DATA_BLOCK_ENC true                              </div><div class="line">ODING =&gt; &apos;NONE&apos;, BLOOMFILTER =&gt; &apos;NONE&apos;, REPLICATION_SCOPE =&gt; &apos;0&apos;                                   </div><div class="line">, VERSIONS =&gt; &apos;3&apos;, COMPRESSION =&gt; &apos;NONE&apos;, MIN_VERSIONS =&gt; &apos;0&apos;, T                                   </div><div class="line">TL =&gt; &apos;2147483647&apos;, KEEP_DELETED_CELLS =&gt; &apos;false&apos;, BLOCKSIZE =&gt;                                    </div><div class="line">&apos;65536&apos;, IN_MEMORY =&gt; &apos;false&apos;, ENCODE_ON_DISK =&gt; &apos;true&apos;, BLOCKCA                                   </div><div class="line">CHE =&gt; &apos;true&apos;&#125;]&#125;  </div><div class="line">&gt;disable &apos;usertable&apos;</div><div class="line">&gt;alter &apos;usertable&apos;,&#123;NAME=&gt;&apos;info&apos;,COMPRESSION=&gt;&apos;LZO&apos;&#125;</div><div class="line">&gt;enable &apos;TestTable&apos;</div><div class="line">&gt;compact &apos;TestTable&apos;</div></pre></td></tr></table></figure>
-<p>测试结果：</p>
-<p>先用自带的工具生成1G的测试数据：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase org.apache.hadoop.hbase.PerformanceEvaluation  sequentialWrite 1</div></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">1059592589  hdfs://hadoop131/hbase/TestTable</div><div class="line">409232235   hdfs://hadoop131/hbase/TestTable</div></pre></td></tr></table></figure>
-<p>原来1G的数据被压缩到了400M，这个压缩效果和数据有关系，但是从网上的经验看，至少20%的压缩比还是能达到的。</p>
-<h1 id="补充"><a href="#补充" class="headerlink" title="补充"></a>补充</h1><p>2014-10-24日增加:</p>
-<p>升级为hadoop2.4.1版本，为新版本增加LZO的压缩：</p>
-<p>1、编译本地的LZO库同上</p>
-<p>2、编译Hadoop-LZO依赖：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">git init </div><div class="line"></div><div class="line">git clone https://github.com/twitter/hadoop-lzo</div><div class="line"></div><div class="line">export C_INCLUDE_PATH=/usr/local/lzo/include</div><div class="line"></div><div class="line">export LIBRARY_PATH=/usr/local/lzo/lib</div><div class="line"></div><div class="line">mvn clean package -Dmaven.test.skip=true</div></pre></td></tr></table></figure>
-<p>3、拷贝相应的库和包到集群上：</p>
-<p>需要拷贝的包括(如果需要HBase支持ZLO，需要把所有的包拷贝到hbase下的lib下，没有的话创建</p>
-<p>所有的lzo依赖库，把所有/usr/local/lzo/lib下的库文件拷贝到集群上，且通过ldd的工具设置为系统库。</p>
-<p>拷贝maven编译完成后的target/hadoop-lzo-0.4.20-SNAPSHOT.jar拷贝到hadoop的share/hadoop/common下</p>
-<p>拷贝target/native/Linux-amd64-64/lib下的所有库文件到hadoop的lib/native/下</p>
-<p>4、配置集群文件同上<br>5、重启集群<br>6、测试压缩是否可以用<br>在本地安装lzop的工具，然后随便找一个文件，执行<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">lzop -U -9 testFile</div></pre></td></tr></table></figure></p>
-<p> 然后上传到HDFS上，如果直接用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hadoop fs -cat</div></pre></td></tr></table></figure>
-<p> 可以看到文件是乱码，但是用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hdfs dfs -text</div></pre></td></tr></table></figure>
-<p> 看到的是非乱码就证明lzo正确安装了。</p>
-<h1 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h1><p><a href="http://www.quora.com/How-do-I-install-LZO-compression-with-Hbase-and-Hadoop" target="_blank" rel="external">http://www.quora.com/How-do-I-install-LZO-compression-with-Hbase-and-Hadoop</a><br><a href="http://shitouer.cn/2013/01/hadoop-hbase-snappy-setup-final-tutorial/" target="_blank" rel="external">http://shitouer.cn/2013/01/hadoop-hbase-snappy-setup-final-tutorial/</a></p>
+            <p><img src="http://hbase.apache.org/images/region_states.png" alt="HBase Region状态迁移"></p>
+<p>1、master控制把一个region从offline的状态迁移到opening 的状态，并且把该region分配到一个regionServer上。在到达rpc的重试最大次数(11次)之前，master会一直尝试发送打开region的请求。等到regionserver接收到request之后，就会开始打开region</p>
+<p>2、如果master超过请求重试次数，master会停止启动region，然后把该region迁移到closing的状态，然后停止该region(注意，这里即使某个regnionserver已经开始打开该region，也会强制再停止的)。</p>
+<p>3、等到regionserver打开region，它会一直notify master，直到master把该region的状态更改为open并且notifies所有的regionserver,到此为止，改region正式open</p>
+<p>4、如果regionserver无法打开region，它会notify master，master会把region迁移到closed的状态，然后在其它的regionserver上重试打开</p>
+<p>5、如果region无法打开，master会它迁移到failed_open的状态，直到hbase shell发出重新assign的命令，或者在该服务重启之前，对这个region将不再会有任何操作</p>
+<p>6、master会把region从open到close的状态.regionserver会一直保持region直到收到close的状态</p>
+<p>7、如果regionserver停止服务了，或者有NotServingRegionException异常的时候，master会负责把region迁移到offline的状态，然后把该region迁移到其它的reginserver</p>
+<p>8、如果regionserver正常服务，但是在master重试多次后仍然不可达，master会把该region迁移到filed_close的状态，直到hbase shell发出重新assign的命令，或者在该服务重启之前，对这个region将不再会有任何操作</p>
+<p>9、当regionserver得到关闭region的请求时候，它会关闭region，并且通知master，后者会把该region标记为closed的状态，并且会移动到其它的regionserver</p>
+<p>10、在移动到其它的regionserver之前，master会先把一个closed的region标记为offline的状态</p>
+<p>11、当一个regionserver准备split一个region，它会通知master。master会把将要切分的reigon从open状态移动到splitting状态，然后把切分出来的两个region初始化成spliting_new的状态</p>
+<p>12、通知了master以后，regionserver开始切分region.如果返回超时，regionserver会再次通知master来更新hbase:meta表。在master确定split结束之前，master不会更新region的状态。如果split切分成功后，正在被切分的region会从splitting状态切换到split状态，然后被切分的两个新region会从splitting_new切换到open状态</p>
+<p>13、如果切分失败，被切分的region从splitting状态切换回滚到open状态，然后两个新切出来的region被从splitting_new切换到offline的状态</p>
+<p>14、如果regionserver要合并两个region，会先通知master。master会把要合并的两个region从open切换到merging的状态，然后增加一个新的region到regionserver，这个新的region是merging_new的状态</p>
+<p>15、通知完master之后，regionserver开始合并region，一旦超时，regionserver会再次通知master来更新meta表。如果合并成功，两个正在合并的region会从merging迁移到merged状态，而新的region会从merging_new到open的状态</p>
+<p>16、如果合并失败，两个需要合并的region会从merging迁移到open的状态，然后准备要合并到的目的region会从merging_new到offline的状态</p>
+<p>17、对于一个region处于failed_open或者failed_close状态，master会尝试关闭这些节点.</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/10/19/如何自定义一个HBase命令行的命令/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2015/10/19/如何自定义一个HBase命令行的命令/" itemprop="url">如何自定义一个HBase命令行的命令</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-10-18T21:06:06-08:00">
+                2015-10-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>在一些场景下，我们会大量频繁的执行一些HBase的代码，如果每次都通过jar命令的方式，会很麻烦，需要指定很多的系统库的路径，比如在前文中我们开发了一个单标balance的工具，想要把这个命令方便执行，那么最好的方法是把这个工具加入到命令行中，让这件事情变得傻瓜化。</p>
+<h1 id="开发目的"><a href="#开发目的" class="headerlink" title="开发目的"></a>开发目的</h1><p>完成对单表的迅速balance小工具的命令行开发</p>
+<h1 id="实现步骤"><a href="#实现步骤" class="headerlink" title="实现步骤"></a>实现步骤</h1><h2 id="1、自定义相应的命令行接口"><a href="#1、自定义相应的命令行接口" class="headerlink" title="1、自定义相应的命令行接口"></a>1、自定义相应的命令行接口</h2><figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">module</span> <span class="title">Shell</span></span></div><div class="line">  <span class="class"><span class="keyword">module</span> <span class="title">Commands</span></span></div><div class="line">    <span class="class"><span class="keyword">class</span> <span class="title">STableBalancer</span> &lt; Command</span></div><div class="line">      <span class="function"><span class="keyword">def</span> <span class="title">help</span></span></div><div class="line">        <span class="keyword">return</span> <span class="string">&lt;&lt;-EOF</span></div><div class="line">BaiFenDian table balancer. Returns true if balancer ran and was able to</div><div class="line">tell the region servers to unassign all the regions to balance  (the re-assignment itself is async). </div><div class="line">Otherwise false (Will not run if regions in transition). </div><div class="line">Author: aiping.liang</div><div class="line">Describe the named table. For example:</div><div class="line">    hbase&gt; bfd_table_balance 't1'</div><div class="line">EOF</div><div class="line">      <span class="keyword">end</span> </div><div class="line">      <span class="function"><span class="keyword">def</span> <span class="title">command</span><span class="params">(table_name)</span></span></div><div class="line">        format_simple_command <span class="keyword">do</span></div><div class="line">          formatter.row([admin.tableBalancer(table_name.to_java_bytes)? <span class="string">"true"</span>: <span class="string">"false"</span>]) </div><div class="line">        <span class="keyword">end</span> </div><div class="line">      <span class="keyword">end</span> </div><div class="line">    <span class="keyword">end</span> </div><div class="line">  <span class="keyword">end</span> </div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure>
+<p>这是一个简单的ruby脚本，稍微解释下，formatter.header、formatter.row、formatter.footer都是自定义的一些输出到命令行的一些命令，这里Class的方法一定要注意格式，因为Class的名字代表着命令行的名称</p>
+<h2 id="2、定义自己操作对应的方法"><a href="#2、定义自己操作对应的方法" class="headerlink" title="2、定义自己操作对应的方法"></a>2、定义自己操作对应的方法</h2><p>增加改命令对应的实际的操作到HBase的admin命令行中</p>
+<p>修改hbase-shell/src/main/ruby/hbase/admin.rb，如下</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#----------------------------------------------------------------------------------------------</span></div><div class="line"><span class="comment"># Requests a table balance</span></div><div class="line"><span class="comment"># Returns true if balancer ran</span></div><div class="line"><span class="comment"># Add by aiping.liang                                                                                                             </span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">tableBalancer</span><span class="params">(table_or_region_name)</span></span></div><div class="line">   @admin.tableBalancer(table_or_region_name)</div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure>
+<p>​    注意，这里的@admin就是HBaseAdmin的对象</p>
+<h2 id="3、实现相应的接口"><a href="#3、实现相应的接口" class="headerlink" title="3、实现相应的接口"></a>3、实现相应的接口</h2><p>   修改hbase-client/src/main/java/org/apache/hadoop/hbase/client/Admin.java接口，增加相应的接口方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">tableBalancer</span><span class="params">(<span class="keyword">final</span> <span class="keyword">byte</span>[] tableName)</span> <span class="keyword">throws</span> IOException</span>;</div><div class="line"><span class="function"><span class="keyword">boolean</span> <span class="title">tableBalancer</span><span class="params">(<span class="keyword">final</span> TableName tableName)</span> <span class="keyword">throws</span>  IOException</span>;</div></pre></td></tr></table></figure>
+<h2 id="4、实现该接口"><a href="#4、实现该接口" class="headerlink" title="4、实现该接口"></a>4、实现该接口</h2><p>   客户端默认的接口只有一个HBaseAdmin.java，实现如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">tableBalancer</span><span class="params">(<span class="keyword">final</span> <span class="keyword">byte</span>[] tableName)</span> <span class="keyword">throws</span> IOException</span>&#123; </div><div class="line">    <span class="keyword">return</span> tableBalancer(TableName.valueOf(tableName));</div><div class="line">  &#125;</div><div class="line">  </div><div class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">tableBalancer</span><span class="params">(<span class="keyword">final</span> TableName tableName)</span><span class="keyword">throws</span> TableNotFoundException,IOException</span>&#123;</div><div class="line">          <span class="keyword">if</span> (!tableExists(tableName))&#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> TableNotFoundException(tableName);</div><div class="line">    &#125;   </div><div class="line">       <span class="keyword">return</span> <span class="keyword">true</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>   这一步需要实现自己的具体方法，具体的table balance的算法见上一篇文章</p>
+<h2 id="5、-在命令行增加相应的命令"><a href="#5、-在命令行增加相应的命令" class="headerlink" title="5、 在命令行增加相应的命令"></a>5、 在命令行增加相应的命令</h2><p>  修改hbase-shell/src/main/ruby/shell.rb文件</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Shell.load_command_group(  <span class="string">'ddl'</span>,  <span class="symbol">:full_name</span> =&gt; <span class="string">'TABLES MANAGEMENT COMMANDS'</span>,  <span class="symbol">:commands</span> =&gt; <span class="string">%w[     alter    bfd_table_balancer</span></div></pre></td></tr></table></figure>
+<p>​    这一步是在命令行能自动tap，且使用自定义命令 必要的</p>
+<h2 id="6、部署"><a href="#6、部署" class="headerlink" title="6、部署"></a>6、部署</h2><p>​    部署分两部分：</p>
+<p>​     a、把更改后的包编译</p>
+<p>​     b、 把hbase-client下相应的jar包，以及hbase-shell下修改的rb文件放到HBASE_HOME相应的路径下</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/10/16/实现一个HBase单表balance的工具/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2015/10/16/实现一个HBase单表balance的工具/" itemprop="url">实现一个HBase单表balance的工具</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-10-15T22:41:06-08:00">
+                2015-10-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="需求-问题"><a href="#需求-问题" class="headerlink" title="需求+问题"></a>需求+问题</h1><h2 id="需求"><a href="#需求" class="headerlink" title="需求"></a>需求</h2><p>所有人都知道HBase中表的region的分布对于读写性能影响很大，如果所有的region集中到一台机器上，势必会导致读写都很慢，所以我们希望HBase的Region能够尽量均匀的分布在集群的所有机器上。</p>
+<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>HBase自己有Balance的机智，主要是靠HMaster通过定期的检查所有机器的region分布来调整单个节点上的region个数，尽量保证整个集群的reigon在每台机器上的数量是接近的。</p>
+<p>但是在一些特殊的场景下，会导致所有的reigon，或者很大部分的region分不到一台机器上</p>
+<p>1、通过自定的rowkey分割方法对表进行预分配</p>
+<p>2、HBase加载过程中，如果某一个region出问题，导致加载异常</p>
+<p>3、表的个数小于集群机器数量，会导致一些机器个数多余其它机器</p>
+<h1 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h1><p>主要的思路是，通过HMaster的管理机制，通过读取表的region个数，以及按照机器轮训的方式来对特定表负载更多region的机器迁移出一些reigon到负载低的机器上。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//初始化系统配置，读取要balance的表</span></div><div class="line">Configuration conf = <span class="keyword">new</span> Configuration();</div><div class="line">String tableName = args[<span class="number">0</span>];</div><div class="line"></div><div class="line"><span class="keyword">try</span> &#123;</div><div class="line">    <span class="comment">//创建HBase的连接</span></div><div class="line">    <span class="comment">//98以后最新的连接池的方法</span></div><div class="line">    Connection conn = ConnectionFactory.createConnection(conf);</div><div class="line"></div><div class="line">    <span class="comment">//存放所有的均衡表所有的信息，结构为region所在的机器HostName, 需要迁移的serverName对象，可以迁移的region的列别哦</span></div><div class="line">    Map regionCountCalculator = <span class="keyword">new</span> HashMap&lt;&lt;Integer&gt;&gt;();</div><div class="line"></div><div class="line">    <span class="comment">//创建HMaster的Admin对象,然后获取服务信息</span></div><div class="line">    Admin admin = conn.getAdmin();</div><div class="line">    ClusterStatus clusterStatus = admin.getClusterStatus();</div><div class="line">    Collection servers = clusterStatus.getServers();</div><div class="line"></div><div class="line">    <span class="keyword">int</span> serverTotal = servers.size();</div><div class="line">    <span class="keyword">for</span> (ServerName server:servers)&#123;</div><div class="line">        LOG.info(<span class="string">"Get Servername:"</span>+ server.getHostname());</div><div class="line">        <span class="comment">//初始化所有的RS存储信息</span></div><div class="line">        regionCountCalculator.put(server.getHostname(),  <span class="keyword">new</span> Pair&lt;&gt;(server, <span class="keyword">new</span> HashSet()));</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// calculator the regionserver -- servername -- regionInfo</span></div><div class="line"></div><div class="line">    RegionLocator regionLocator = conn.getRegionLocator(TableName.valueOf(tableName));</div><div class="line">    Pair regionPari = regionLocator.getStartEndKeys();</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; regionPari.getFirst().length;i++)&#123;</div><div class="line">        LOG.info(<span class="string">"Get Start Key"</span> + <span class="keyword">new</span> String(CellUtil.cloneRow(CellUtil.createCell(regionPari.getFirst()[i]))));</div><div class="line">        HRegionLocation regionLocat = regionLocator.getRegionLocation(regionPari.getFirst()[i], <span class="keyword">false</span>);</div><div class="line">        String regionHostName = regionLocat.getHostname();</div><div class="line">        <span class="comment">//初始化regionCountCalculator对象中的servername对象，并且把所有的该节点上的region初始化</span></div><div class="line">        regionCountCalculator.get(regionHostName).getSecond().add(regionLocat.getRegionInfo());</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//按照机器数，获取平均每台机器上应该存储的region的数量</span></div><div class="line">    <span class="keyword">int</span> avgRegionNum = regionPari.getFirst().length/serverTotal;</div><div class="line">    <span class="comment">//初始化两个小map，类似，分别存放可以移入和移出的region信息</span></div><div class="line">    Map moveOutMap = <span class="keyword">new</span> HashMap();</div><div class="line">    Map moveInMap = <span class="keyword">new</span> HashMap();</div><div class="line"></div><div class="line">    <span class="comment">//第一遍轮训获取所有的可以移入和移除的region信息</span></div><div class="line">    <span class="keyword">for</span> (String hostKey: regionCountCalculator.keySet())&#123;</div><div class="line">        <span class="comment">//获取当前机器上已经分配的region的个数</span></div><div class="line">        <span class="keyword">int</span> regionCount = regionCountCalculator.get(hostKey).getSecond().size();</div><div class="line">        LOG.info(<span class="string">"Get region count:"</span>+regionCount+<span class="string">" and avgRegionNum:"</span>+avgRegionNum);</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (regionCount &lt; avgRegionNum)&#123;</div><div class="line">            <span class="comment">//如果小于平均值，则表明该server可以写入region</span></div><div class="line">            moveInMap.put(regionCountCalculator.get(hostKey).getFirst(), avgRegionNum-regionCount+<span class="number">1</span>);</div><div class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (regionCount &gt; avgRegionNum+<span class="number">1</span>)&#123;</div><div class="line">            <span class="comment">//相反，如果大于平均值，则表明该server可移出region</span></div><div class="line">            moveOutMap.put(regionCountCalculator.get(hostKey).getFirst(), regionCount-avgRegionNum);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    LOG.info(<span class="string">"Get in length:"</span>+moveInMap.size()+<span class="string">" and out length:"</span>+moveOutMap.size());</div><div class="line">    <span class="comment">//第二遍轮训开始迁移所有的可以移除和移入的region</span></div><div class="line">    <span class="comment">//轮寻所有需要移除的队列</span></div><div class="line">    <span class="keyword">for</span> (ServerName outHost: moveOutMap.keySet())&#123;</div><div class="line">        <span class="keyword">boolean</span> needMoveOut = <span class="keyword">true</span>;</div><div class="line">        <span class="comment">//记录已经移出的个数，如果超过可移除的最大值，则停止移除</span></div><div class="line">        <span class="keyword">int</span> moveCount = moveOutMap.get(outHost);</div><div class="line"></div><div class="line">        <span class="keyword">for</span> (HRegionInfo moveOutRegionInfo:regionCountCalculator.get(outHost.getHostname()).getSecond())&#123;</div><div class="line">            <span class="keyword">if</span> (needMoveOut)&#123;</div><div class="line">                ServerName inHost = <span class="keyword">null</span>;</div><div class="line">                <span class="keyword">int</span> inCount = <span class="number">0</span>;</div><div class="line">                <span class="comment">//轮寻所有的可以移入的队列，获取可以移入的机器</span></div><div class="line">                <span class="keyword">for</span> (ServerName moveInHost: moveInMap.keySet())&#123;</div><div class="line">                    inCount = moveInMap.get(moveInHost);</div><div class="line">                    LOG.info(<span class="string">"Host in :"</span>+moveInHost+<span class="string">" can be in :"</span>+inCount);</div><div class="line">                    <span class="keyword">if</span> (inCount &gt; <span class="number">0</span> )&#123;</div><div class="line">                        inHost = moveInHost;</div><div class="line">                    &#125;</div><div class="line">                &#125;</div><div class="line">                LOG.info(<span class="string">"Move Region "</span>+moveOutRegionInfo.getRegionNameAsString()+<span class="string">" from "</span>+outHost.getHostname() + <span class="string">" to "</span>+inHost.getHostname());</div><div class="line">                <span class="keyword">int</span> outCount = <span class="number">0</span>;</div><div class="line">                <span class="keyword">if</span> (moveOutRegionInfo != <span class="keyword">null</span>)&#123;</div><div class="line">                    <span class="comment">//调用服务管理接口，把region移动到相应的机器</span></div><div class="line">                    admin.move(moveOutRegionInfo.getEncodedNameAsBytes(), Bytes.toBytes(inHost.toString()));</div><div class="line">                    LOG.info(<span class="string">"Move from: "</span>+moveOutRegionInfo.getRegionNameAsString()+<span class="string">" to:"</span>+inHost.toString());</div><div class="line"></div><div class="line">                &#125;</div><div class="line">                moveInMap.remove(inHost);</div><div class="line">                <span class="keyword">if</span> (--inCount &gt; <span class="number">0</span>)&#123;</div><div class="line">                    <span class="comment">//如果可移入的机器已经移入最大值，则从map中移除</span></div><div class="line">                    moveInMap.put(inHost,inCount);</div><div class="line">                &#125;</div><div class="line"></div><div class="line">                <span class="keyword">if</span> (--moveCount == <span class="number">0</span>)&#123;</div><div class="line">                    needMoveOut = <span class="keyword">false</span>;</div><div class="line">                    <span class="comment">//如果需要移出的机器已经把所有的region都移出，则从map中删除</span></div><div class="line">                    outCount++;</div><div class="line">                &#125;</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                <span class="keyword">break</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        LOG.info(<span class="string">"Get out host length:"</span>+moveOutMap.size());</div><div class="line">    &#125;</div><div class="line">&#125;<span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">    <span class="comment">//handle exception</span></div><div class="line">    e.printStackTrace();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>通过以上一个小小的脚本，解决了我们的问题。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/04/07/记录一次HBase的问题排查/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2015/04/07/记录一次HBase的问题排查/" itemprop="url">记录一次HBase的问题排查</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-04-06T19:22:14-08:00">
+                2015-04-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="问题现象"><a href="#问题现象" class="headerlink" title="问题现象"></a>问题现象</h1><p>所有的region被卡死，无法打开，访问缓慢</p>
+<h1 id="问题跟踪"><a href="#问题跟踪" class="headerlink" title="问题跟踪"></a>问题跟踪</h1><p>老实说，这个现象很常见，有时候是因为压力太大，有时候因为别的原因，所以我这里的跟进方法是一般的一个方法，但是不能解决所有问题，具体问题需要具体分析。</p>
+<h1 id="1、找到有问题的region"><a href="#1、找到有问题的region" class="headerlink" title="1、找到有问题的region"></a>1、找到有问题的region</h1><p>这个方法比较多，一般来说可以根据请求慢的key，以及通过管理页面，定位到确定的出问题的Region，一个形如0313e59d82326803c21470f5c25fef79的串</p>
+<h2 id="2、查找出问题region所在的物理机"><a href="#2、查找出问题region所在的物理机" class="headerlink" title="2、查找出问题region所在的物理机"></a>2、查找出问题region所在的物理机</h2><p>从管理页面上看到的region分布不一定是正确的分布，因为中间可能发生过迁移，所以最稳妥的方法是去Master上搜索所有和这个region相关的日志，查找出问题时间段这个region应该所处的节点，例如发现如下日志</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="number">2015</span>-<span class="number">04</span>-<span class="number">05</span> <span class="number">14</span>:<span class="number">08</span>:<span class="number">49</span>,<span class="number">257</span> INFO org.apache.hadoop.hbase.master.AssignmentManager: Server bjlg-<span class="number">48</span>p28-hadoop18.bfdabc.com,<span class="number">60020</span>,<span class="number">1420985184893</span> returned java.net.SocketTimeoutException: Call to [bjlg-<span class="number">48</span>p28-hadoop18.bfdabc.com/<span class="number">192.168</span>.48.28:<span class="number">60020</span>](http:<span class="comment">//bjlg-48p28-hadoop18.bfdabc.com/192.168.48.28:60020) failed on socket timeout exception: java.net.SocketTimeoutException: 20000 millis timeout while waiting for channel to be ready for connect. ch : java.nio.channels.SocketChannel[connection-pending remote=[bjlg-48p28-hadoop18.bfdabc.com/192.168.48.28:60020](http://bjlg-48p28-hadoop18.bfdabc.com/192.168.48.28:60020)] for 0313e59d82326803c21470f5c25fef79</span></div></pre></td></tr></table></figure>
+<h2 id="3、到相关的节点上进一步排查"><a href="#3、到相关的节点上进一步排查" class="headerlink" title="3、到相关的节点上进一步排查"></a>3、到相关的节点上进一步排查</h2><p>一般来说，先从机器的load，或者磁盘使用率、cpu使用率、内存状况等开始入手排查，这些基本的我都跳过了，直接说一个我们的问题：查看regionserver的进程，发现了一个死锁</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"># Found one Java-level deadlock:</div><div class="line"></div><div class="line">"IPC Server handler 39 on 60020":</div><div class="line">waiting to lock monitor 0x00002aaac9c5b838 (object 0x000000058cacc9b8, a java.lang.Object),</div><div class="line">which is held by "regionserver60020.logRoller"</div><div class="line">"regionserver60020.logRoller":</div><div class="line">waiting to lock monitor 0x00002aaac981f4d0 (object 0x000000058cacc9d0, a java.lang.Object),</div><div class="line">which is held by "IPC Server handler 37 on 60020"</div><div class="line">"IPC Server handler 37 on 60020":</div><div class="line">waiting to lock monitor 0x00002aaac9c5b838 (object 0x000000058cacc9b8, a java.lang.Object),</div><div class="line">which is held by "regionserver60020.logRoller"</div></pre></td></tr></table></figure>
+<h2 id="4、跟踪死锁的进程："><a href="#4、跟踪死锁的进程：" class="headerlink" title="4、跟踪死锁的进程："></a>4、跟踪死锁的进程：</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"><span class="string">"IPC Server handler 39 on 60020"</span>:</div><div class="line">at org.apache.hadoop.hbase.regionserver.wal.HLog.append(HLog.[java:<span class="number">1122</span>](http:<span class="comment">//java:1122/))</span></div><div class="line">\- waiting to lock &lt;<span class="number">0x000000058cacc9b8</span>&gt; (a java.lang.Object)</div><div class="line">at org.apache.hadoop.hbase.regionserver.wal.HLog.appendNoSync(HLog.[java:<span class="number">1168</span>](http:<span class="comment">//java:1168/))</span></div><div class="line">at org.apache.hadoop.hbase.regionserver.HRegion.doMiniBatchMutation(HRegion.[java:<span class="number">2225</span>](http:<span class="comment">//java:2225/))</span></div><div class="line">at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.[java:<span class="number">1973</span>](http:<span class="comment">//java:1973/))</span></div><div class="line">at org.apache.hadoop.hbase.regionserver.HRegionServer.multi(HRegionServer.[java:<span class="number">3492</span>](http:<span class="comment">//java:3492/))</span></div><div class="line">at sun.reflect.GeneratedMethodAccessor38.invoke(Unknown Source)</div><div class="line">at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:<span class="number">25</span>)</div><div class="line">at java.lang.reflect.Method.invoke(Method.[java:<span class="number">597</span>](http:<span class="comment">//java:597/))</span></div><div class="line">at org.apache.hadoop.hbase.ipc.WritableRpcEngine$Server.call(WritableRpcEngine.[java:<span class="number">364</span>](http:<span class="comment">//java:364/))</span></div><div class="line">at org.apache.hadoop.hbase.ipc.HBaseServer$Handler.run(HBaseServer.[java:<span class="number">1426</span>](http:<span class="comment">//java:1426/))</span></div><div class="line"><span class="string">"regionserver60020.logRoller"</span>:</div><div class="line">at org.apache.hadoop.hbase.regionserver.wal.HLog.syncer(HLog.[java:<span class="number">1302</span>](http:<span class="comment">//java:1302/))</span></div><div class="line">\- waiting to lock &lt;<span class="number">0x000000058cacc9d0</span>&gt; (a java.lang.Object)</div><div class="line">at org.apache.hadoop.hbase.regionserver.wal.HLog.syncer(HLog.[java:<span class="number">1280</span>](http:<span class="comment">//java:1280/))</span></div><div class="line">at org.apache.hadoop.hbase.regionserver.wal.HLog.sync(HLog.[java:<span class="number">1433</span>](http:<span class="comment">//java:1433/))</span></div><div class="line">at org.apache.hadoop.hbase.regionserver.wal.HLog.cleanupCurrentWriter(HLog.[java:<span class="number">866</span>](http:<span class="comment">//java:866/))</span></div><div class="line">at org.apache.hadoop.hbase.regionserver.wal.HLog.rollWriter(HLog.[java:<span class="number">640</span>](http:<span class="comment">//java:640/))</span></div><div class="line">\- locked &lt;<span class="number">0x000000058cacc9b8</span>&gt; (a java.lang.Object)</div><div class="line">at org.apache.hadoop.hbase.regionserver.LogRoller.run(LogRoller.java:<span class="number">94</span>)</div><div class="line">at java.lang.Thread.run(Thread.[java:<span class="number">662</span>](http:<span class="comment">//java:662/))</span></div><div class="line"><span class="string">"IPC Server handler 37 on 60020"</span>:</div><div class="line">at org.apache.hadoop.hbase.regionserver.wal.HLog.syncer(HLog.[java:<span class="number">1311</span>](http:<span class="comment">//java:1311/))</span></div><div class="line">\- waiting to lock &lt;<span class="number">0x000000058cacc9b8</span>&gt; (a java.lang.Object)</div><div class="line">\- locked &lt;<span class="number">0x000000058cacc9d0</span>&gt; (a java.lang.Object)</div><div class="line">at org.apache.hadoop.hbase.regionserver.wal.HLog.sync(HLog.[java:<span class="number">1437</span>](http:<span class="comment">//java:1437/))</span></div><div class="line"></div><div class="line">at org.apache.hadoop.hbase.regionserver.HRegion.syncOrDefer(HRegion.[java:<span class="number">5205</span>](http:<span class="comment">//java:5205/))</span></div><div class="line"></div><div class="line">at org.apache.hadoop.hbase.regionserver.HRegion.doMiniBatchMutation(HRegion.[java:<span class="number">2245</span>](http:<span class="comment">//java:2245/))</span></div><div class="line">at org.apache.hadoop.hbase.regionserver.HRegion.batchMutate(HRegion.[java:<span class="number">1973</span>](http:<span class="comment">//java:1973/))</span></div><div class="line">at org.apache.hadoop.hbase.regionserver.HRegionServer.multi(HRegionServer.[java:<span class="number">3492</span>](http:<span class="comment">//java:3492/))</span></div><div class="line">at sun.reflect.GeneratedMethodAccessor38.invoke(Unknown Source)</div><div class="line">at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:<span class="number">25</span>)</div><div class="line">at java.lang.reflect.Method.invoke(Method.[java:<span class="number">597</span>](http:<span class="comment">//java:597/))</span></div><div class="line">at org.apache.hadoop.hbase.ipc.WritableRpcEngine$Server.call(WritableRpcEngine.[java:<span class="number">364</span>](http:<span class="comment">//java:364/))</span></div><div class="line">at org.apache.hadoop.hbase.ipc.HBaseServer$Handler.run(HBaseServer.[java:<span class="number">1426</span>](http:<span class="comment">//java:1426/))</span></div></pre></td></tr></table></figure>
+<h2 id="5、分析"><a href="#5、分析" class="headerlink" title="5、分析"></a>5、分析</h2><p>最后确定这是logRoller和HLog.syncer两个线程发生了死锁。</p>
+<p>在HBase，采用WAL(Write Ahead Log)的方式来保证数据不丢失。一个Region Server对应一个HLog，任何数据都是先写HLog，然后才真正的写MemStore。HLog文件有个轮转的过程，当达到默认大小（一般是block size * 0.95）就会写一个新的HLog文件，logRoller线程就是做这个事情的。而buffer中的数据每隔一秒钟会写一次HLog文件，这个是HLog.syncer线程负责的。logRoller和HLog.syncer进程不能同时进行，不然会导致数据问题，于是就需要通过锁来进行互斥了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">append</span><span class="params">(HRegionInfo info, <span class="keyword">byte</span> [] tableName, WALEdit edits, UUID clusterId,</span></span></div><div class="line"></div><div class="line"><span class="keyword">final</span> <span class="keyword">long</span> now, HTableDescriptor htd, <span class="keyword">boolean</span> doSync)</div><div class="line"></div><div class="line"><span class="keyword">throws</span> IOException &#123;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (edits.isEmpty())</div><div class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.unflushedEntries.get();</div><div class="line">    ;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (<span class="keyword">this</span>.closed) &#123;</div><div class="line"></div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Cannot append; log is closed"</span>);</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">long</span> txid = <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>.updateLock) &#123; <span class="comment">//在追加Hlog文件的时候，需要获取到文件的锁</span></div><div class="line"></div><div class="line">        <span class="keyword">long</span> seqNum = obtainSeqNum();</div><div class="line"></div><div class="line">        <span class="comment">// The 'lastSeqWritten' map holds the sequence number of the oldest</span></div><div class="line"></div><div class="line">        <span class="comment">// write for each region (i.e. the first edit added to the particular</span></div><div class="line"></div><div class="line">        <span class="comment">// memstore). . When the cache is flushed, the entry for the</span></div><div class="line"></div><div class="line">        <span class="comment">// region being flushed is removed if the sequence number of the flush</span></div><div class="line"></div><div class="line">        <span class="comment">// is greater than or equal to the value in lastSeqWritten.</span></div><div class="line"></div><div class="line">        <span class="comment">// Use encoded name.  Its shorter, guaranteed unique and a subset of</span></div><div class="line"></div><div class="line">        <span class="comment">// actual  name.</span></div><div class="line"></div><div class="line">        <span class="keyword">byte</span>[] encodedRegionName = info.getEncodedNameAsBytes();</div><div class="line"></div><div class="line">        <span class="keyword">this</span>.lastSeqWritten.putIfAbsent(encodedRegionName, seqNum);</div><div class="line"></div><div class="line">        HLogKey logKey = makeKey(encodedRegionName, tableName, seqNum, now, clusterId);</div><div class="line"></div><div class="line">        doWrite(info, logKey, edits, htd);</div><div class="line"></div><div class="line">        <span class="keyword">this</span>.numEntries.incrementAndGet();</div><div class="line"></div><div class="line">        txid = <span class="keyword">this</span>.unflushedEntries.incrementAndGet();</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (htd.isDeferredLogFlush()) &#123;</div><div class="line"></div><div class="line">            lastDeferredTxid = txid;</div><div class="line"></div><div class="line">        &#125;</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line"></div><div class="line">        <span class="keyword">long</span> doneUpto;</div><div class="line"></div><div class="line">        <span class="keyword">long</span> now = System.currentTimeMillis();</div><div class="line"></div><div class="line">        <span class="comment">// First flush all the pending writes to HDFS. Then</span></div><div class="line"></div><div class="line">        <span class="comment">// issue the sync to HDFS. If sync is successful, then update</span></div><div class="line"></div><div class="line">        <span class="comment">// syncedTillHere to indicate that transactions till this</span></div><div class="line"></div><div class="line">        <span class="comment">// number has been successfully synced.</span></div><div class="line"></div><div class="line">        <span class="keyword">synchronized</span> (flushLock) &#123;</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (txid &lt;= <span class="keyword">this</span>.syncedTillHere) &#123;</div><div class="line"></div><div class="line">                <span class="keyword">return</span>;</div><div class="line"></div><div class="line">            &#125;</div><div class="line"></div><div class="line">            doneUpto = <span class="keyword">this</span>.unflushedEntries.get();</div><div class="line"></div><div class="line">            List pending = logSyncerThread.getPendingWrites();</div><div class="line"></div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line"></div><div class="line">                logSyncerThread.hlogFlush(tempWriter, pending);</div><div class="line"></div><div class="line">            &#125; <span class="keyword">catch</span> (IOException io) &#123;</div><div class="line"></div><div class="line">                <span class="keyword">synchronized</span> (<span class="keyword">this</span>.updateLock) &#123; <span class="comment">//当hlogFlush发生exception的时候发生了死锁</span></div><div class="line"></div><div class="line">                    <span class="comment">// HBASE-4387, HBASE-5623, retry with updateLock held</span></div><div class="line"></div><div class="line">                    tempWriter = <span class="keyword">this</span>.writer;</div><div class="line"></div><div class="line">                    logSyncerThread.hlogFlush(tempWriter, pending);</div><div class="line"></div><div class="line">                &#125;</div><div class="line"></div><div class="line">            &#125;</div><div class="line"></div><div class="line">        &#125;</div><div class="line"></div><div class="line">    &#125;</div></pre></td></tr></table></figure>
+<p>查看了下代码，是在logSyncerThread.hlogFlush往HDFS写文件发生IO Exception时会触发死锁。<a href="http://www.rigongyizu.com/tag/hbase/" target="_blank" rel="external">hbase</a> 0.94.X版本的一个bug，在社区已经修复了：<a href="https://issues.apache.org/jira/browse/HBASE-7728" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-7728</a>。</p>
+<h2 id="6、修复"><a href="#6、修复" class="headerlink" title="6、修复"></a>6、修复</h2><p>​    临时的修复方案是sync所有的memstore后、重启regionserver</p>
+<p>​    长久的修复方案就是老老实实打patch修复</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/21/HBase-Filter的介绍/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/09/21/HBase-Filter的介绍/" itemprop="url">HBase Filter的介绍</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-09-20T15:17:03-08:00">
+                2014-09-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h1><p>因为HBase的所有数据聚合是在客户端完成的，所以Filter是HBase提供一个很重要的查询过滤神器，所以能够熟练的使用filter会让性能有质的飞跃。接下来分析一下HBase的Filter。</p>
+<h1 id="几种常用的Filter"><a href="#几种常用的Filter" class="headerlink" title="几种常用的Filter"></a>几种常用的Filter</h1><h2 id="SingleColumnValueFilter和SingleColomnuValueExcludeFilter"><a href="#SingleColumnValueFilter和SingleColomnuValueExcludeFilter" class="headerlink" title="SingleColumnValueFilter和SingleColomnuValueExcludeFilter"></a>SingleColumnValueFilter和SingleColomnuValueExcludeFilter</h2><p>SingleColumnValueFilter 和 SingleColomnuValueExcludeFilter 这两个filter是比较简单的单个值的查询过滤器，构建了一个查询指定的行中指定的列值是否满足该条件的过滤器。这里可以进行的比较包括： LESS 、LESS_OR_EQUAL、EQUAL、NOT_EQUAL、GREATER_OR_EQUAL、GREATER、NO_OP 构建和使用的方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">SingleColumnValueFilter filter = <span class="keyword">new</span> SingleColumnValueFilter(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>), CompareOp.EQUAL, Bytes.toBytes(<span class="string">"checkValue"</span>));</div><div class="line"></div><div class="line">get.setFilter(filter);</div></pre></td></tr></table></figure>
+<p>上面的例子中构建了一个查询表中cf列中指定的qualifier中字段为checkValue的列。需要特别指出的是，过滤的条件，可以不是一个特定的值，也就是支持正则表达式，如下面的初始化filter：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">RegexStringComparator regexStringComparatorOrBuilder = <span class="keyword">new</span> RegexStringComparator(<span class="string">"abc."</span>);</div><div class="line"></div><div class="line">SingleColumnValueFilter filter = <span class="keyword">new</span> SingleColumnValueFilter(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>), CompareOp.EQUAL, regexStringComparatorOrBuilder);</div></pre></td></tr></table></figure>
+<p>不管是正则还是直接的值，这类型的过滤都是需要过滤在列簇里面具体的某一列的value。</p>
+<h2 id="PageFilter"><a href="#PageFilter" class="headerlink" title="PageFilter"></a>PageFilter</h2><p>这是一个特殊的过滤器，它是过滤结果，指定了页面的行数，也就是返回对应行数的结果集，但是这里要说明，这里并不能保证返回结果的总行数小于与面的行数，这个仅仅能保证单独的一个RS返回的结果小于等于该行数，也就是如果这个表要查询的key值范围(对于scan来说)的分布在两个不同的RS上，那么结果返回的Result对象个数会超过过滤器的值。这个过滤器的作用是，防止单台机器上有很多的要查询结果，而导致这台机器的负载太高。接下来展示PageFilter的使用：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">PageFilter pageFilter = <span class="keyword">new</span> PageFilter(<span class="number">10</span>);</div></pre></td></tr></table></figure>
+<h3 id="PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter"><a href="#PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter" class="headerlink" title="PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter"></a>PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter</h3><p>PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter 这三个过滤器都是在对全表查询，然后找到行或者列中，满足一个或者多个过滤条件的过滤器。其中 PrefixFilter是查找所有rowkey满足规则结果集。ColumnPrefixFilter和MultipleColumnPrefixFilter分别是查询列中满足一个或者多个条件的列。综上所述，可以看到这两个过滤器是在查找表中满足某个规则的行或者列的时候用，但是这是一个全表的过滤，是比较耗时的。使用如下： </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">PrefixFilter pFilter = <span class="keyword">new</span> PrefixFilter(Bytes.toBytes(<span class="string">"a"</span>));</div><div class="line"></div><div class="line">ColumnPrefixFilter columnPrefixFilter= <span class="keyword">new</span> ColumnPrefixFilter(Bytes.toBytes(<span class="string">"a"</span>));</div><div class="line"></div><div class="line">MultipleColumnPrefixFilter multipleColumnPrefixFilter= <span class="keyword">new</span> MultipleColumnPrefixFilter(<span class="keyword">new</span> <span class="keyword">byte</span>[][] &#123;Bytes.toBytes(<span class="string">"a"</span>),Bytes.toBytes(<span class="string">"b"</span>)&#125;);</div></pre></td></tr></table></figure>
+<h2 id="KeyOnlyFilter、FirstKeyOnlyFilter"><a href="#KeyOnlyFilter、FirstKeyOnlyFilter" class="headerlink" title="KeyOnlyFilter、FirstKeyOnlyFilter"></a>KeyOnlyFilter、FirstKeyOnlyFilter</h2><p>在查询的时候，可能会遇到只需要查询key的需求，这时候，可以使用KeyOnlyFilter。如果对于每个rowkey，只需要第一个符合条件的key，这时候就可以用FirstKeyOnlyFilter。申明方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">KeyOnlyFilter keyOnlyFilter = <span class="keyword">new</span> KeyOnlyFilter();</div><div class="line">FirstKeyOnlyFilter firstKeyOnlyFilter = <span class="keyword">new</span> FirstKeyOnlyFilter();</div></pre></td></tr></table></figure>
+<h2 id="TimestampsFilter"><a href="#TimestampsFilter" class="headerlink" title="TimestampsFilter"></a>TimestampsFilter</h2><p>如果在某次查询中，需要查询的为指定的某个或者某几个时间戳的数据，可以使用TimestampsFilter。如果是使用scan查询，则可以直接调用scan对象的setTimeRange方法来实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">ListTimestamp = <span class="keyword">new</span> ArrayList();</div><div class="line"></div><div class="line">Timestamp.add(newLong(<span class="number">1</span>));</div><div class="line"></div><div class="line">Timestamp.add(newLong(<span class="number">2</span>));</div><div class="line"></div><div class="line">TimestampsFilter timestampsFilter = <span class="keyword">new</span> TimestampsFilter(Timestamp);</div></pre></td></tr></table></figure>
+<h2 id="RandomRowFilter"><a href="#RandomRowFilter" class="headerlink" title="RandomRowFilter"></a>RandomRowFilter</h2><p>这是一个很特殊的行过滤器，初始化的时候只需要指定一个float的值。在随后的查询中，会随机查询该百分比的数据，如果小于0，则不会查询，如果大于1，就查询所有的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">RandomRowFilter randomRowFilter = <span class="keyword">new</span> RandomRowFilter(<span class="number">0.5f</span>);</div></pre></td></tr></table></figure>
+<p>//这样会从所有的数据中随机查询50%的数据，看是否有满足条件的查询</p>
+<h2 id="DependentColumnFilter"><a href="#DependentColumnFilter" class="headerlink" title="DependentColumnFilter"></a>DependentColumnFilter</h2><p>DependentColumnFilter过滤器稍微复杂一点。它可以说是timeStamp Filter和ValueFilter的结合。因为DependentColumnFilter需要指定一个参考列，然后获取跟改参考列有相同时间戳的所有列，再在此基础上获取满足ValueFilter的列值。构造函数如下：用户可以根据自己喜好省略valueFilter或者通过设置dropDependentColumn为true省略timestamp Filter。不过需要注意的是：此过滤器不能跟Scan中的Batch操作结合使用。</p>
+<h2 id="ValueFilter、QualifierFilter"><a href="#ValueFilter、QualifierFilter" class="headerlink" title="ValueFilter、QualifierFilter"></a>ValueFilter、QualifierFilter</h2><p>这两个都比较类似，分别是查询value和qualifilter是否等于，大于，小于某个值的过滤器：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">ValueFilter valueFilter = <span class="keyword">new</span> ValueFilter(CompareFilter.CompareOp.EQUAL,<span class="keyword">new</span> BinaryComparator(Bytes.toBytes(<span class="string">"value"</span>)));</div><div class="line"></div><div class="line">QualifierFilterqualifierFilter = <span class="keyword">new</span> QualifierFilter (CompareFilter.CompareOp.EQUAL,<span class="keyword">new</span> BinaryComparator(Bytes.toBytes(<span class="string">"qualifier"</span>)));</div></pre></td></tr></table></figure>
+<h2 id="特殊的过滤器组合对象，FilterList"><a href="#特殊的过滤器组合对象，FilterList" class="headerlink" title="特殊的过滤器组合对象，FilterList"></a>特殊的过滤器组合对象，FilterList</h2><p>FilterList是一个过滤器的列表，前面所有的过滤器类型都可以放到这个列表中，然后可以选择过滤方式为全部满足或者单个满足(或者其它的)，这样使得过滤更加的强大。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">FilterList filterList = newFilterList(FilterList.Operator.MUST_PASS_ALL);</div><div class="line">filterList.addFilter(timestampsFilter);</div><div class="line">...</div></pre></td></tr></table></figure>
+<p>这里所有的过滤器，可以降低查询结果的数量，降低网络的传输消耗，但是本身并没有减少RPC的次数。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/14/HBase-Thrift的部署/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/09/14/HBase-Thrift的部署/" itemprop="url">HBase Thrift的部署</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-09-13T19:57:53-08:00">
+                2014-09-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="下载最新的thrift客户端："><a href="#下载最新的thrift客户端：" class="headerlink" title="下载最新的thrift客户端："></a>下载最新的thrift客户端：</h1><p>​    <a href="https://dist.apache.org/repos/dist/release/thrift/" target="_blank" rel="external">https://dist.apache.org/repos/dist/release/thrift/</a></p>
+<h1 id="安装thift"><a href="#安装thift" class="headerlink" title="安装thift"></a>安装thift</h1><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">tar -zxvf thrift-XXX.tar.gz</div><div class="line">cd thrift-XXX</div><div class="line">./configure –prefix=/usr/local/thrift-XXX</div><div class="line">make </div><div class="line">make install</div></pre></td></tr></table></figure>
+<h1 id="生成Hbase相应的客户端文件："><a href="#生成Hbase相应的客户端文件：" class="headerlink" title="生成Hbase相应的客户端文件："></a>生成Hbase相应的客户端文件：</h1><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">thrift –gen py $HBASE_HOME/src/main/resources/org/apache/hadoop/hbase/thrift/Hbase.thrift</div></pre></td></tr></table></figure>
+<p> 会生成一个gen-py的文件夹，把该文件夹的内容拷贝到hbase的库目录下：</p>
+<p> 默认是在/usr/lib/pythonXX/site-packages/</p>
+<h2 id="测试thrift"><a href="#测试thrift" class="headerlink" title="测试thrift"></a>测试thrift</h2><p>写了一个简单的读表的python脚本</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#!/usr/bin/python</span></div><div class="line"><span class="keyword">import</span> sys</div><div class="line"><span class="keyword">from</span> thrift <span class="keyword">import</span> Thrift</div><div class="line"><span class="keyword">from</span> thrift.transport <span class="keyword">import</span> TSocket</div><div class="line"><span class="keyword">from</span> thrift.transport <span class="keyword">import</span> TTransport</div><div class="line"><span class="keyword">from</span> thrift.protocol <span class="keyword">import</span> TBinaryProtocol</div><div class="line"><span class="keyword">from</span> hbase <span class="keyword">import</span> Hbase</div><div class="line"><span class="keyword">from</span> hbase.ttypes <span class="keyword">import</span> *</div><div class="line"></div><div class="line">clientIp = <span class="string">'localhost'</span></div><div class="line">clientPort = <span class="string">'9090'</span></div><div class="line">returnRet = <span class="number">0</span></div><div class="line"></div><div class="line"><span class="keyword">if</span> len(sys.argv) &gt;= <span class="number">2</span>:</div><div class="line">    clientIp = sys.argv[<span class="number">1</span>]</div><div class="line"></div><div class="line"><span class="keyword">if</span> len(sys.argv) &gt;= <span class="number">3</span>:</div><div class="line">    clientPort = sys.argv[<span class="number">2</span>]</div><div class="line">\<span class="comment">#open connection </span></div><div class="line"><span class="keyword">try</span>:</div><div class="line">    transport = TSocket.TSocket(clientIp, clientPort)</div><div class="line">    transport = TTransport.TBufferedTransport(transport)</div><div class="line">    protocol = TBinaryProtocol.TBinaryProtocol(transport)</div><div class="line">    client = Hbase.Client(protocol)</div><div class="line">    transport.open()</div><div class="line">    <span class="keyword">print</span> <span class="string">"Open connection success!"</span></div><div class="line"><span class="keyword">except</span> Exception,e:</div><div class="line">    <span class="keyword">print</span> <span class="string">"Get exception: "</span>,e</div><div class="line">    sys.exit(<span class="number">2</span>)</div><div class="line">\<span class="comment"># create table</span></div><div class="line"><span class="keyword">try</span>:</div><div class="line">    tableName = <span class="string">"testThrfit"</span></div><div class="line">    colusername = ColumnDescriptor( name = <span class="string">'username:'</span>,maxVersions = <span class="number">1</span> )</div><div class="line">    colpass = ColumnDescriptor( name = <span class="string">'pass:'</span>,maxVersions = <span class="number">1</span> )</div><div class="line">    colage = ColumnDescriptor( name = <span class="string">'age:'</span>,maxVersions = <span class="number">1</span> )</div><div class="line">    colinfo = ColumnDescriptor( name = <span class="string">'info:'</span>,maxVersions = <span class="number">1</span> )</div><div class="line">    client.createTable(tableName, [colusername,colpass,colage,colinfo])</div><div class="line">    tables = client.getTableNames()</div><div class="line">    <span class="keyword">if</span> tableName <span class="keyword">in</span> tables:</div><div class="line">        <span class="keyword">print</span> <span class="string">"Create table Success!"</span></div><div class="line">    <span class="keyword">else</span>:</div><div class="line">        returnRet = <span class="number">1</span></div><div class="line"><span class="keyword">except</span> Exception,e:</div><div class="line">    <span class="keyword">print</span> <span class="string">"When create table, Get exception: "</span>,e</div><div class="line">    sys.exit(<span class="number">2</span>)</div><div class="line">\<span class="comment">#insert and get or scan number</span></div><div class="line"><span class="keyword">try</span>:</div><div class="line">    rowKey = <span class="string">'rowTest'</span></div><div class="line">    testKey = <span class="string">'info:testName'</span></div><div class="line">    testValue = <span class="string">'testValue'</span></div><div class="line">    mutations = [Mutation(column=testKey,value=testValue)]</div><div class="line">    client.mutateRow(tableName,rowKey,mutations,<span class="keyword">None</span>)</div><div class="line">    result = client.getRow(tableName,rowKey,<span class="keyword">None</span>)</div><div class="line">    <span class="keyword">if</span> result:</div><div class="line">        <span class="keyword">for</span> r <span class="keyword">in</span> result:</div><div class="line">            <span class="keyword">print</span> <span class="string">"get row:%s, and value is %s"</span>%(r.row,r.columns.get(testKey).value)</div><div class="line">    <span class="keyword">else</span>:</div><div class="line">        returnRet = <span class="number">1</span></div><div class="line">    <span class="keyword">print</span> <span class="string">"Get from table Success!"</span></div><div class="line">    scan = TScan()</div><div class="line">    id = client.scannerOpenWithScan(tableName,scan,<span class="keyword">None</span>)</div><div class="line">    result = client.scannerGet(id)</div><div class="line">    <span class="keyword">while</span> result:</div><div class="line">        <span class="keyword">print</span> result</div><div class="line">        result = client.scannerGet(id)</div><div class="line">    <span class="keyword">print</span> <span class="string">"Scan from table Success!"</span></div><div class="line"><span class="keyword">except</span> Exception,e:</div><div class="line">    <span class="keyword">print</span> <span class="string">"When insert,scan,get, Get exception: "</span>,e</div><div class="line">    sys.exit(<span class="number">2</span>)</div><div class="line">\<span class="comment">#delete table</span></div><div class="line"><span class="keyword">try</span>:</div><div class="line">    <span class="keyword">if</span> client.isTableEnabled(tableName):</div><div class="line">       client.disableTable(tableName)</div><div class="line">       client.deleteTable(tableName)</div><div class="line">       <span class="keyword">if</span> tableName <span class="keyword">not</span> <span class="keyword">in</span> client.getTableNames():</div><div class="line">            <span class="keyword">print</span> <span class="string">"Drop table Success!"</span></div><div class="line">       <span class="keyword">else</span>:</div><div class="line">            returnRet = <span class="number">1</span></div><div class="line"><span class="keyword">except</span> Exception,e:</div><div class="line">    <span class="keyword">print</span> <span class="string">"When delete, Get Excepiton: "</span>,e</div><div class="line">    sys.exit(<span class="number">2</span>)</div><div class="line">sys.exit(returnRet)</div></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/06/HBase基本操作/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/09/06/HBase基本操作/" itemprop="url">HBase基本操作</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-09-05T21:26:53-08:00">
+                2014-09-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>更新表 经常用的更新表的操作主要包括四类： put、get、scan、delete </p>
+<h1 id="put"><a href="#put" class="headerlink" title="put"></a>put</h1><p>put的操作主要是对表中单行的操作，这里要提示一句，HBase的表是按行加锁的，所以put的时候要避免同时操作同一行的行为发生。接下来用代码演示所有的put常用动作：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">putTable</span><span class="params">(String tableName)</span>  <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	<span class="comment">//对于put的操作，所有的行为都是发生在Htable上的，对应的物理存储就是HStore,也就是一个StoreFile,这里初始化一个HTable的对象</span></div><div class="line">	HTable hTable = <span class="keyword">new</span> HTable(conf, tableName);</div><div class="line">	<span class="comment">//创建一个Put的对象，定义所有的Put行为</span></div><div class="line">	Put put = <span class="keyword">new</span> Put(Bytes.toBytes(<span class="string">"rowName"</span>));</div><div class="line">	<span class="comment">//接下来讲put对象的add操作，add操作可以用来增加或者更新某一行，主要有4个构造方法，详细内容可以自己查看，这里演示一种</span></div><div class="line">	put.add(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key"</span>), Bytes.toBytes(<span class="string">"value"</span>));</div><div class="line">	put.add(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key1"</span>), Bytes.toBytes(<span class="string">"value1"</span>));</div><div class="line">	<span class="comment">//这条add，会给列簇是columnName，key为key1的列更新其值为value2，在实际的物理存储中，实际是增加了一行</span></div><div class="line">	put.add(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key1"</span>), Bytes.toBytes(<span class="string">"value2"</span>));</div><div class="line"></div><div class="line">	<span class="comment">//这里表示是否要写wal，对于要追求高效的插入数据又可以允许丢失少量数据，推介使用SKIP_WAL,如果对于严格要求不能丢失数据的用SYNC_WAL,</span></div><div class="line">	put.setDurability(Durability.FSYNC_WAL);</div><div class="line">	<span class="comment">//生效刚才put对象</span></div><div class="line">	hTable.put(put);</div><div class="line">	<span class="comment">//关闭对象</span></div><div class="line">	hTable.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="get"><a href="#get" class="headerlink" title="get"></a>get</h1><p>get主要的作用是获取指定rowkey的单行数据。对于一个get，获取到的对象均为一个Result的对象，一个Result的对象占用了一个RPC。一般来说，RPC的通信耗时，是系统主要的时间消耗，所以减少RPC的次数，将直接的提升性能。Get是一个获取单行结果的对象，与之对应的是Scan，是一个范围扫描的对象，所以要区分get和scan的不同功能。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">getTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf= HBaseConfiguration.create();</div><div class="line">	<span class="comment">//初始胡table</span></div><div class="line">	HTable table = <span class="keyword">new</span> HTable(conf,tableName);</div><div class="line">  </div><div class="line">	<span class="comment">//指定要获取的row</span></div><div class="line">	Get get = <span class="keyword">new</span> Get(Bytes.toBytes(<span class="string">"newRow"</span>));</div><div class="line">	<span class="comment">//通过列簇名称和key值李获取指定的value</span></div><div class="line">	get.addColumn(Bytes.toBytes(<span class="string">"columnName"</span>), Bytes.toBytes(<span class="string">"key1"</span>));</div><div class="line">	<span class="comment">//过滤获取指定时间戳额值</span></div><div class="line">	get.setTimeStamp(<span class="number">1409886920751L</span>);</div><div class="line">	<span class="comment">//指定要获取的值的版本号，这里表示获取所有的版本号</span></div><div class="line">	get.setMaxVersions();</div><div class="line">	<span class="comment">//通过filter过滤减少返回结果，这里表示只返回一个结果，如果不过滤，对于有多个CF，或者有多个KV的，将会返回多个结果</span></div><div class="line">	get.setFilter(<span class="keyword">new</span> ColumnCountGetFilter(<span class="number">1</span>));</div><div class="line">	<span class="comment">//设置该值是否写到读缓存中，对于经常读的词，要设置为true，对于非热点，非经常读的，要设置为flase</span></div><div class="line">	get.setCacheBlocks(<span class="keyword">true</span>); </div><div class="line"></div><div class="line">	<span class="comment">//返回结果是一个result的对象，一个result的对象就表示一次的RPC，因此，如果想提升get的性能，降低RPC的次数是一个很沉重的话题</span></div><div class="line">	Result result = table.get(get);</div><div class="line"></div><div class="line">	<span class="comment">//解析一个Result的对象。要通过Cell对象来获取其具体的内容</span></div><div class="line">	<span class="keyword">for</span> (Cell cell: result.rawCells())&#123;</div><div class="line">		System.out.println(<span class="string">"Rowkey : "</span>+ Bytes.toString(result.getRow())+ <span class="string">" Familiy:Quilifier : "</span></div><div class="line">		<span class="comment">//通过cloneQualifier获取到列簇和key的值</span></div><div class="line">		\+ Bytes.toString(CellUtil.cloneQualifier(cell)) + <span class="string">" Value : "</span></div><div class="line">		<span class="comment">//通过cloneValue获取到结果中的value</span></div><div class="line">		\+ Bytes.toString(CellUtil.cloneValue(cell)));</div><div class="line">	&#125;</div><div class="line">	table.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="scan"><a href="#scan" class="headerlink" title="scan"></a>scan</h1><p> scan是一个可以返回特定的数据集合的方法。如Get中的描述，scan是获取多行数据的一个对象，通过scan可以批量查询，主要用在查询指定开始到结束行，或者指定时间范围，或者有某个filter特性的数据。具体的使用可以参考如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">scanTable</span><span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	HTable table = <span class="keyword">new</span> HTable(conf, tableName);</div><div class="line">	<span class="comment">//创建一个scan对象的时候，不需要指定rowkey</span></div><div class="line">  	Scan scan = <span class="keyword">new</span> Scan();</div><div class="line">	<span class="comment">//设置查询的起始rowkey，在Hbase中，rowkey是按照字典排序的，所以这里指定的时候，是一个Byte的数据</span></div><div class="line">	scan.setStartRow(Bytes.toBytes(<span class="string">"key"</span>));</div><div class="line">	scan.setStopRow(Bytes.toBytes(<span class="string">"key"</span>));</div><div class="line"></div><div class="line">	<span class="comment">//这样可以获取到那些被打上了删除标签，但是没有被compaction删除的数据</span></div><div class="line">	scan.setRaw(<span class="keyword">true</span>);</div><div class="line">	<span class="comment">//获取的最大的结果条数，这个结果就死和一个result对象</span></div><div class="line">	scan.setMaxResultSize(<span class="number">1l</span>);</div><div class="line">	<span class="comment">//设置每个result中包含的行数</span></div><div class="line">	scan.setCaching(<span class="number">2</span>);</div><div class="line">	<span class="comment">//设置每个result中包含的列数</span></div><div class="line">	scan.setBatch(<span class="number">3</span>);</div><div class="line">	<span class="comment">//设置为逆序查找</span></div><div class="line">	scan.setReversed(<span class="keyword">true</span>);</div><div class="line">	<span class="comment">//设置一个过滤列表</span></div><div class="line">	FilterList filter = <span class="keyword">new</span> FilterList(FilterList.Operator.MUST_PASS_ALL);</div><div class="line">	<span class="comment">//设置一个filter的对象，过滤cf列簇中，qualifiter的等于0的所有的行</span></div><div class="line">	SingleColumnValueFilter filter1 = <span class="keyword">new</span> SingleColumnValueFilter(Bytes.toBytes(<span class="string">"cf"</span>), 		Bytes.toBytes(<span class="string">"qualifiter"</span>), CompareOp.EQUAL, Bytes.toBytes(<span class="string">"0"</span>));</div><div class="line"></div><div class="line">	<span class="comment">//为列表增加过滤</span></div><div class="line">	filter.addFilter(filter1);</div><div class="line">	<span class="comment">//为scan设置过滤器</span></div><div class="line">	scan.setFilter(filter);</div><div class="line">	ResultScanner rScanner = table.getScanner(scan);</div><div class="line">	<span class="comment">//这部分可以参考get部分的</span></div><div class="line">	<span class="keyword">for</span>(Result r : rScanner) &#123;</div><div class="line">		<span class="keyword">for</span>(Cell cell : r.rawCells()) &#123;</div><div class="line">			System.out.println(<span class="string">"Rowkey : "</span>+ Bytes.toString(r.getRow())+ <span class="string">" Familiy:Quilifier : "</span></div><div class="line">			\+ Bytes.toString(CellUtil.cloneQualifier(cell))+ <span class="string">" Value : "</span></div><div class="line">			\+ Bytes.toString(CellUtil.cloneValue(cell))</div><div class="line">			+ <span class="string">" Time : "</span>+ cell.getTimestamp());</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	table.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="delete"><a href="#delete" class="headerlink" title="delete"></a>delete</h1><p>delete delete可以删除整个表（前面已经进行了分析），删除列簇、行、版本，用代码演示如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">deleteTab</span> <span class="params">(String tableName)</span> <span class="keyword">throws</span> Exception</span>&#123;</div><div class="line">	Configuration conf = HBaseConfiguration.create();</div><div class="line">	HTable table = <span class="keyword">new</span> HTable(conf, tableName);</div><div class="line">	<span class="comment">//创建一个删除整行的delete对象并删除</span></div><div class="line">	Delete delete = <span class="keyword">new</span> Delete(Bytes.toBytes(<span class="string">"rowkey"</span>));</div><div class="line">	<span class="comment">//删除一个指定的列簇下指定的qualifier</span></div><div class="line">	delete.deleteColumn(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>));</div><div class="line">  	<span class="comment">//和上面的类似，但是在这个删除中，会把所有的历史版本都删除</span></div><div class="line">	delete.deleteColumns(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>));</div><div class="line">	<span class="comment">//也可以删除一个指定时间戳的数据</span></div><div class="line">	delete.deleteFamilyVersion(Bytes.toBytes(<span class="string">"cf"</span>), <span class="number">1405390959464L</span>);</div><div class="line">	table.delete(delete);</div><div class="line">	table.close();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这里需要再强调一下，删除的时候，不会直接删除数据，而是先做一个删除的标记，在major compaction的时候，才会真正删除。</p>
 
           
         
@@ -643,6 +1537,10 @@
   </section>
 
   
+  <nav class="pagination">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right"></i></a>
+  </nav>
+
 
 
           </div>
@@ -686,7 +1584,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">16</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

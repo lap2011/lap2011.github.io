@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="ApacheEagle," />
+  <meta name="keywords" content="HBase," />
 
 
 
@@ -79,16 +79,21 @@
 
 
 
-<meta name="description" content="aiping.liang s home">
+<meta name="description" content="1、master控制把一个region从offline的状态迁移到opening 的状态，并且把该region分配到一个regionServer上。在到达rpc的重试最大次数(11次)之前，master会一直尝试发送打开region的请求。等到regionserver接收到request之后，就会开始打开region
+2、如果master超过请求重试次数，master会停止启动region，然后">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Apache Eagle 基本介绍">
-<meta property="og:url" content="http://yoursite.com/2017/11/22/Apache-Eagle-基本介绍/index.html">
+<meta property="og:title" content="HBase Region的状态迁移流程">
+<meta property="og:url" content="http://yoursite.com/2015/10/24/HBase-Region的状态迁移流程/index.html">
 <meta property="og:site_name" content="Aiping.LAP">
-<meta property="og:description" content="aiping.liang s home">
-<meta property="og:updated_time" content="2017-12-21T06:52:06.000Z">
+<meta property="og:description" content="1、master控制把一个region从offline的状态迁移到opening 的状态，并且把该region分配到一个regionServer上。在到达rpc的重试最大次数(11次)之前，master会一直尝试发送打开region的请求。等到regionserver接收到request之后，就会开始打开region
+2、如果master超过请求重试次数，master会停止启动region，然后">
+<meta property="og:image" content="http://hbase.apache.org/images/region_states.png">
+<meta property="og:updated_time" content="2017-12-21T08:38:23.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Apache Eagle 基本介绍">
-<meta name="twitter:description" content="aiping.liang s home">
+<meta name="twitter:title" content="HBase Region的状态迁移流程">
+<meta name="twitter:description" content="1、master控制把一个region从offline的状态迁移到opening 的状态，并且把该region分配到一个regionServer上。在到达rpc的重试最大次数(11次)之前，master会一直尝试发送打开region的请求。等到regionserver接收到request之后，就会开始打开region
+2、如果master超过请求重试次数，master会停止启动region，然后">
+<meta name="twitter:image" content="http://hbase.apache.org/images/region_states.png">
 
 
 
@@ -118,13 +123,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2017/11/22/Apache-Eagle-基本介绍/"/>
+  <link rel="canonical" href="http://yoursite.com/2015/10/24/HBase-Region的状态迁移流程/"/>
 
 
 
 
 
-  <title>Apache Eagle 基本介绍 | Aiping.LAP</title>
+  <title>HBase Region的状态迁移流程 | Aiping.LAP</title>
   
 
 
@@ -231,7 +236,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2017/11/22/Apache-Eagle-基本介绍/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/10/24/HBase-Region的状态迁移流程/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="aiping.lap">
@@ -248,7 +253,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">Apache Eagle 基本介绍</h1>
+          <h1 class="post-title" itemprop="name headline">HBase Region的状态迁移流程</h1>
         
 
         <div class="post-meta">
@@ -260,8 +265,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-11-22T06:23:35+08:00">
-                2017-11-21
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-10-24T13:33:34+08:00">
+                2015-10-23
               </time>
             
 
@@ -298,7 +303,25 @@
       
 
       
-        
+        <p><img src="http://hbase.apache.org/images/region_states.png" alt="HBase Region状态迁移"></p>
+<p>1、master控制把一个region从offline的状态迁移到opening 的状态，并且把该region分配到一个regionServer上。在到达rpc的重试最大次数(11次)之前，master会一直尝试发送打开region的请求。等到regionserver接收到request之后，就会开始打开region</p>
+<p>2、如果master超过请求重试次数，master会停止启动region，然后把该region迁移到closing的状态，然后停止该region(注意，这里即使某个regnionserver已经开始打开该region，也会强制再停止的)。</p>
+<p>3、等到regionserver打开region，它会一直notify master，直到master把该region的状态更改为open并且notifies所有的regionserver,到此为止，改region正式open</p>
+<p>4、如果regionserver无法打开region，它会notify master，master会把region迁移到closed的状态，然后在其它的regionserver上重试打开</p>
+<p>5、如果region无法打开，master会它迁移到failed_open的状态，直到hbase shell发出重新assign的命令，或者在该服务重启之前，对这个region将不再会有任何操作</p>
+<p>6、master会把region从open到close的状态.regionserver会一直保持region直到收到close的状态</p>
+<p>7、如果regionserver停止服务了，或者有NotServingRegionException异常的时候，master会负责把region迁移到offline的状态，然后把该region迁移到其它的reginserver</p>
+<p>8、如果regionserver正常服务，但是在master重试多次后仍然不可达，master会把该region迁移到filed_close的状态，直到hbase shell发出重新assign的命令，或者在该服务重启之前，对这个region将不再会有任何操作</p>
+<p>9、当regionserver得到关闭region的请求时候，它会关闭region，并且通知master，后者会把该region标记为closed的状态，并且会移动到其它的regionserver</p>
+<p>10、在移动到其它的regionserver之前，master会先把一个closed的region标记为offline的状态</p>
+<p>11、当一个regionserver准备split一个region，它会通知master。master会把将要切分的reigon从open状态移动到splitting状态，然后把切分出来的两个region初始化成spliting_new的状态</p>
+<p>12、通知了master以后，regionserver开始切分region.如果返回超时，regionserver会再次通知master来更新hbase:meta表。在master确定split结束之前，master不会更新region的状态。如果split切分成功后，正在被切分的region会从splitting状态切换到split状态，然后被切分的两个新region会从splitting_new切换到open状态</p>
+<p>13、如果切分失败，被切分的region从splitting状态切换回滚到open状态，然后两个新切出来的region被从splitting_new切换到offline的状态</p>
+<p>14、如果regionserver要合并两个region，会先通知master。master会把要合并的两个region从open切换到merging的状态，然后增加一个新的region到regionserver，这个新的region是merging_new的状态</p>
+<p>15、通知完master之后，regionserver开始合并region，一旦超时，regionserver会再次通知master来更新meta表。如果合并成功，两个正在合并的region会从merging迁移到merged状态，而新的region会从merging_new到open的状态</p>
+<p>16、如果合并失败，两个需要合并的region会从merging迁移到open的状态，然后准备要合并到的目的region会从merging_new到offline的状态</p>
+<p>17、对于一个region处于failed_open或者failed_close状态，master会尝试关闭这些节点.</p>
+
       
     </div>
     
@@ -315,7 +338,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/ApacheEagle/" rel="tag"># ApacheEagle</a>
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
           
         </div>
       
@@ -328,8 +351,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2017/10/12/Ranger对HSFS实现控制管理的流程分析/" rel="next" title="Ranger对HDFS实现管理和控制的流程分析">
-                <i class="fa fa-chevron-left"></i> Ranger对HDFS实现管理和控制的流程分析
+              <a href="/2015/10/19/如何自定义一个HBase命令行的命令/" rel="next" title="如何自定义一个HBase命令行的命令">
+                <i class="fa fa-chevron-left"></i> 如何自定义一个HBase命令行的命令
               </a>
             
           </div>
@@ -337,6 +360,10 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/27/HBase0-98以后的版本直接读取HFile文件/" rel="prev" title="HBase0.98以后的版本直接读取HFile文件">
+                HBase0.98以后的版本直接读取HFile文件 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>

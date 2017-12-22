@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="HBase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="综述因为HBase的所有数据聚合是在客户端完成的，所以Filter是HBase提供一个很重要的查询过滤神器，所以能够熟练的使用filter会让性能有质的飞跃。接下来分析一下HBase的Filter。
+几种常用的FilterSingleColumnValueFilter和SingleColomnuValueExcludeFilterSingleColumnValueFilter 和 SingleCo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase Filter的介绍">
+<meta property="og:url" content="http://yoursite.com/2014/09/21/HBase-Filter的介绍/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="综述因为HBase的所有数据聚合是在客户端完成的，所以Filter是HBase提供一个很重要的查询过滤神器，所以能够熟练的使用filter会让性能有质的飞跃。接下来分析一下HBase的Filter。
+几种常用的FilterSingleColumnValueFilter和SingleColomnuValueExcludeFilterSingleColumnValueFilter 和 SingleCo">
+<meta property="og:updated_time" content="2017-12-21T10:04:53.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HBase Filter的介绍">
+<meta name="twitter:description" content="综述因为HBase的所有数据聚合是在客户端完成的，所以Filter是HBase提供一个很重要的查询过滤神器，所以能够熟练的使用filter会让性能有质的飞跃。接下来分析一下HBase的Filter。
+几种常用的FilterSingleColumnValueFilter和SingleColomnuValueExcludeFilterSingleColumnValueFilter 和 SingleCo">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2014/09/21/HBase-Filter的介绍/"/>
+
+
+
+
+
+  <title>HBase Filter的介绍 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/09/21/HBase-Filter的介绍/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">HBase Filter的介绍</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-09-21T07:17:03+08:00">
+                2014-09-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h1><p>因为HBase的所有数据聚合是在客户端完成的，所以Filter是HBase提供一个很重要的查询过滤神器，所以能够熟练的使用filter会让性能有质的飞跃。接下来分析一下HBase的Filter。</p>
+<h1 id="几种常用的Filter"><a href="#几种常用的Filter" class="headerlink" title="几种常用的Filter"></a>几种常用的Filter</h1><h2 id="SingleColumnValueFilter和SingleColomnuValueExcludeFilter"><a href="#SingleColumnValueFilter和SingleColomnuValueExcludeFilter" class="headerlink" title="SingleColumnValueFilter和SingleColomnuValueExcludeFilter"></a>SingleColumnValueFilter和SingleColomnuValueExcludeFilter</h2><p>SingleColumnValueFilter 和 SingleColomnuValueExcludeFilter 这两个filter是比较简单的单个值的查询过滤器，构建了一个查询指定的行中指定的列值是否满足该条件的过滤器。这里可以进行的比较包括： LESS 、LESS_OR_EQUAL、EQUAL、NOT_EQUAL、GREATER_OR_EQUAL、GREATER、NO_OP 构建和使用的方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">SingleColumnValueFilter filter = <span class="keyword">new</span> SingleColumnValueFilter(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>), CompareOp.EQUAL, Bytes.toBytes(<span class="string">"checkValue"</span>));</div><div class="line"></div><div class="line">get.setFilter(filter);</div></pre></td></tr></table></figure>
+<p>上面的例子中构建了一个查询表中cf列中指定的qualifier中字段为checkValue的列。需要特别指出的是，过滤的条件，可以不是一个特定的值，也就是支持正则表达式，如下面的初始化filter：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">RegexStringComparator regexStringComparatorOrBuilder = <span class="keyword">new</span> RegexStringComparator(<span class="string">"abc."</span>);</div><div class="line"></div><div class="line">SingleColumnValueFilter filter = <span class="keyword">new</span> SingleColumnValueFilter(Bytes.toBytes(<span class="string">"cf"</span>), Bytes.toBytes(<span class="string">"qualifier"</span>), CompareOp.EQUAL, regexStringComparatorOrBuilder);</div></pre></td></tr></table></figure>
+<p>不管是正则还是直接的值，这类型的过滤都是需要过滤在列簇里面具体的某一列的value。</p>
+<h2 id="PageFilter"><a href="#PageFilter" class="headerlink" title="PageFilter"></a>PageFilter</h2><p>这是一个特殊的过滤器，它是过滤结果，指定了页面的行数，也就是返回对应行数的结果集，但是这里要说明，这里并不能保证返回结果的总行数小于与面的行数，这个仅仅能保证单独的一个RS返回的结果小于等于该行数，也就是如果这个表要查询的key值范围(对于scan来说)的分布在两个不同的RS上，那么结果返回的Result对象个数会超过过滤器的值。这个过滤器的作用是，防止单台机器上有很多的要查询结果，而导致这台机器的负载太高。接下来展示PageFilter的使用：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">PageFilter pageFilter = <span class="keyword">new</span> PageFilter(<span class="number">10</span>);</div></pre></td></tr></table></figure>
+<h3 id="PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter"><a href="#PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter" class="headerlink" title="PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter"></a>PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter</h3><p>PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter 这三个过滤器都是在对全表查询，然后找到行或者列中，满足一个或者多个过滤条件的过滤器。其中 PrefixFilter是查找所有rowkey满足规则结果集。ColumnPrefixFilter和MultipleColumnPrefixFilter分别是查询列中满足一个或者多个条件的列。综上所述，可以看到这两个过滤器是在查找表中满足某个规则的行或者列的时候用，但是这是一个全表的过滤，是比较耗时的。使用如下： </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">PrefixFilter pFilter = <span class="keyword">new</span> PrefixFilter(Bytes.toBytes(<span class="string">"a"</span>));</div><div class="line"></div><div class="line">ColumnPrefixFilter columnPrefixFilter= <span class="keyword">new</span> ColumnPrefixFilter(Bytes.toBytes(<span class="string">"a"</span>));</div><div class="line"></div><div class="line">MultipleColumnPrefixFilter multipleColumnPrefixFilter= <span class="keyword">new</span> MultipleColumnPrefixFilter(<span class="keyword">new</span> <span class="keyword">byte</span>[][] &#123;Bytes.toBytes(<span class="string">"a"</span>),Bytes.toBytes(<span class="string">"b"</span>)&#125;);</div></pre></td></tr></table></figure>
+<h2 id="KeyOnlyFilter、FirstKeyOnlyFilter"><a href="#KeyOnlyFilter、FirstKeyOnlyFilter" class="headerlink" title="KeyOnlyFilter、FirstKeyOnlyFilter"></a>KeyOnlyFilter、FirstKeyOnlyFilter</h2><p>在查询的时候，可能会遇到只需要查询key的需求，这时候，可以使用KeyOnlyFilter。如果对于每个rowkey，只需要第一个符合条件的key，这时候就可以用FirstKeyOnlyFilter。申明方法如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">KeyOnlyFilter keyOnlyFilter = <span class="keyword">new</span> KeyOnlyFilter();</div><div class="line">FirstKeyOnlyFilter firstKeyOnlyFilter = <span class="keyword">new</span> FirstKeyOnlyFilter();</div></pre></td></tr></table></figure>
+<h2 id="TimestampsFilter"><a href="#TimestampsFilter" class="headerlink" title="TimestampsFilter"></a>TimestampsFilter</h2><p>如果在某次查询中，需要查询的为指定的某个或者某几个时间戳的数据，可以使用TimestampsFilter。如果是使用scan查询，则可以直接调用scan对象的setTimeRange方法来实现。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">ListTimestamp = <span class="keyword">new</span> ArrayList();</div><div class="line"></div><div class="line">Timestamp.add(newLong(<span class="number">1</span>));</div><div class="line"></div><div class="line">Timestamp.add(newLong(<span class="number">2</span>));</div><div class="line"></div><div class="line">TimestampsFilter timestampsFilter = <span class="keyword">new</span> TimestampsFilter(Timestamp);</div></pre></td></tr></table></figure>
+<h2 id="RandomRowFilter"><a href="#RandomRowFilter" class="headerlink" title="RandomRowFilter"></a>RandomRowFilter</h2><p>这是一个很特殊的行过滤器，初始化的时候只需要指定一个float的值。在随后的查询中，会随机查询该百分比的数据，如果小于0，则不会查询，如果大于1，就查询所有的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">RandomRowFilter randomRowFilter = <span class="keyword">new</span> RandomRowFilter(<span class="number">0.5f</span>);</div></pre></td></tr></table></figure>
+<p>//这样会从所有的数据中随机查询50%的数据，看是否有满足条件的查询</p>
+<h2 id="DependentColumnFilter"><a href="#DependentColumnFilter" class="headerlink" title="DependentColumnFilter"></a>DependentColumnFilter</h2><p>DependentColumnFilter过滤器稍微复杂一点。它可以说是timeStamp Filter和ValueFilter的结合。因为DependentColumnFilter需要指定一个参考列，然后获取跟改参考列有相同时间戳的所有列，再在此基础上获取满足ValueFilter的列值。构造函数如下：用户可以根据自己喜好省略valueFilter或者通过设置dropDependentColumn为true省略timestamp Filter。不过需要注意的是：此过滤器不能跟Scan中的Batch操作结合使用。</p>
+<h2 id="ValueFilter、QualifierFilter"><a href="#ValueFilter、QualifierFilter" class="headerlink" title="ValueFilter、QualifierFilter"></a>ValueFilter、QualifierFilter</h2><p>这两个都比较类似，分别是查询value和qualifilter是否等于，大于，小于某个值的过滤器：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">ValueFilter valueFilter = <span class="keyword">new</span> ValueFilter(CompareFilter.CompareOp.EQUAL,<span class="keyword">new</span> BinaryComparator(Bytes.toBytes(<span class="string">"value"</span>)));</div><div class="line"></div><div class="line">QualifierFilterqualifierFilter = <span class="keyword">new</span> QualifierFilter (CompareFilter.CompareOp.EQUAL,<span class="keyword">new</span> BinaryComparator(Bytes.toBytes(<span class="string">"qualifier"</span>)));</div></pre></td></tr></table></figure>
+<h2 id="特殊的过滤器组合对象，FilterList"><a href="#特殊的过滤器组合对象，FilterList" class="headerlink" title="特殊的过滤器组合对象，FilterList"></a>特殊的过滤器组合对象，FilterList</h2><p>FilterList是一个过滤器的列表，前面所有的过滤器类型都可以放到这个列表中，然后可以选择过滤方式为全部满足或者单个满足(或者其它的)，这样使得过滤更加的强大。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">FilterList filterList = newFilterList(FilterList.Operator.MUST_PASS_ALL);</div><div class="line">filterList.addFilter(timestampsFilter);</div><div class="line">...</div></pre></td></tr></table></figure>
+<p>这里所有的过滤器，可以降低查询结果的数量，降低网络的传输消耗，但是本身并没有减少RPC的次数。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2014/09/14/HBase-Thrift的部署/" rel="next" title="HBase Thrift的部署">
+                <i class="fa fa-chevron-left"></i> HBase Thrift的部署
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/04/07/记录一次HBase的问题排查/" rel="prev" title="记录一次HBase的问题排查">
+                记录一次HBase的问题排查 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#综述"><span class="nav-number">1.</span> <span class="nav-text">综述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#几种常用的Filter"><span class="nav-number">2.</span> <span class="nav-text">几种常用的Filter</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#SingleColumnValueFilter和SingleColomnuValueExcludeFilter"><span class="nav-number">2.1.</span> <span class="nav-text">SingleColumnValueFilter和SingleColomnuValueExcludeFilter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#PageFilter"><span class="nav-number">2.2.</span> <span class="nav-text">PageFilter</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter"><span class="nav-number">2.2.1.</span> <span class="nav-text">PrefixFilter、ColumnPrefixFilter、MultipleColumnPrefixFilter</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#KeyOnlyFilter、FirstKeyOnlyFilter"><span class="nav-number">2.3.</span> <span class="nav-text">KeyOnlyFilter、FirstKeyOnlyFilter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TimestampsFilter"><span class="nav-number">2.4.</span> <span class="nav-text">TimestampsFilter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RandomRowFilter"><span class="nav-number">2.5.</span> <span class="nav-text">RandomRowFilter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DependentColumnFilter"><span class="nav-number">2.6.</span> <span class="nav-text">DependentColumnFilter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ValueFilter、QualifierFilter"><span class="nav-number">2.7.</span> <span class="nav-text">ValueFilter、QualifierFilter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#特殊的过滤器组合对象，FilterList"><span class="nav-number">2.8.</span> <span class="nav-text">特殊的过滤器组合对象，FilterList</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
