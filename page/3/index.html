@@ -231,6 +231,145 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/08/15/HBase读写性能相关-客户端的程序优化建议/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/08/15/HBase读写性能相关-客户端的程序优化建议/" itemprop="url">HBase读写性能相关-客户端的程序优化建议</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-08-14T21:35:16-08:00">
+                2014-08-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="对于rowkey的设计"><a href="#对于rowkey的设计" class="headerlink" title="对于rowkey的设计"></a>对于rowkey的设计</h1><p>a、表的设计，尽量要把一起访问的放到一个cf里面</p>
+<p>b、借助HBase单行操作的原子性。一个用户的所有信息存储成一行,这包括消息本身、Message Index、Search Index、以及相关Meta Data(Actions:addMessage、markAsRead,etc)</p>
+<p>c、存储时，数据按照Row key的字典 序(byte order)排序存储。设计key时，要充分排序存储这个特性，将经常一起读取的行存储放到一起。(位置相关性)</p>
+<p>d、推介RowKey：md5sum(userid)+userid。</p>
+<h2 id="关于表的scan操作"><a href="#关于表的scan操作" class="headerlink" title="关于表的scan操作"></a>关于表的scan操作</h2><p>a、每次遍历完Scan的返回结果集后，都不要忘了关闭ResultScanner对象，否则会引发问题。</p>
+<p>b、如果生产环境有mapred任务去scan hbase的时候，如果读取的是热点数据，可以在mapred scan类中加一个</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">scan.setCacheBlocks(<span class="keyword">true</span>)</div></pre></td></tr></table></figure>
+<p>c、几个重要的方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setBatch</span><span class="params">(<span class="keyword">int</span> batch)</span> ：<span class="comment">//为设置获取记录的列个数，默认无限制，也就是返回所有的列</span></span></div><div class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setCaching</span><span class="params">(<span class="keyword">int</span> caching)</span>：<span class="comment">//每次从服务器端读取的行数，默认为配置文件中设置的值,可以减少RPC的次数：</span></div><div class="line">HTable.<span class="title">setScannerCaching</span><span class="params">(<span class="keyword">int</span> scannerCaching)</span></div></pre></td></tr></table></figure>
+<p>注意：有三个地方可以进行配置(上面三个参数)：</p>
+<p>1）在HBase的conf配置文件中进行配置；</p>
+<p>2）通过调用HTable.setScannerCaching(int scannerCaching)进行配置；</p>
+<p>3）通过调用Scan.setCaching(int caching)进行配置。三者的优先级越来越高。</p>
+<p> RPCs=(Rows* Cols per Row) / Min(Cols per Row, Batch size) / Scanner caching</p>
+<p>d、默认情况下，HBase的自动刷新功能是处于激活状态的。则样每一个单个的Put都会自动调用一次RPC向server发送一次请求，为性能计，可以关闭自动刷新功能(setAutoFlush(false))，这样会客户端的write buffer已“满”或客户端强制flushComits()刷新再或者调用HTable的close()时才调用RPC一次把多个Put操作发送给服务器。</p>
+<h2 id="关于put操作"><a href="#关于put操作" class="headerlink" title="关于put操作"></a>关于put操作</h2><p>a、在Put操作保存数据时，可以考虑关闭WAL的功能——调用writeToWAL(false)，这意味着在写数据时不会讲数据先写到WAL日志文件，直接写入memstore，这可以提高一些性能。但是者会带来一些副作用，那就是当Region Server出问题时，没有写log的数据会丢失，这在保存重要数据时会带来很大的危险，只有在保存不南无重要的数据时才考虑这样做。</p>
+<p>或者设置setDeferredLogFlush为true，服务端将采用异步写hlog的方式，客户端写响应时间会降到1ms以下。如果regionserver挂掉会丢失1s的数据。同样有数据丢失风险，这种方式会小很多很多（rs被kill -9或者物理机器直接宕机），而且写入的数据马上可以被读取到，客户端也不需要采取特别的策略。</p>
+<p>b、setWriteBufferSize可以设置table的客户端缓存。</p>
+<p>c、通过batch 方式来put：HTable.put(List)</p>
+<h1 id="其它的一些技术"><a href="#其它的一些技术" class="headerlink" title="其它的一些技术"></a>其它的一些技术</h1><p> 使用filter <a href="http://mysun.iteye.com/blog/1584635" target="_blank" rel="external">http://mysun.iteye.com/blog/1584635</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/07/30/HBase读写性能相关-关于缓存/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1531,149 +1670,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/06/15/Python装饰器基本理解/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/06/15/Python装饰器基本理解/" itemprop="url">Python装饰器基本理解</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-06-14T15:41:01-08:00">
-                2014-06-14
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>﻿﻿﻿﻿装饰器的亮点作用：</p>
-<p>插入日志、性能测试、事务处理</p>
-<p>装饰器的作用:为已经存在的对象添加额外的功能</p>
-<p>类似与c++的回调函数</p>
-<p>修饰符等价于包装调用</p>
-<p>修饰函数必须返回一个“可调用对象”</p>
-<p>内置的装饰器有三个，分别是staticmethod、classmethod和property，作用分别是把类中定义的实例方法变成静态方法、类方法和类属性</p>
-<p>当有多个装饰器的时候，会从下往上调用，也就是调用离函数最近的一个装饰器</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"> <span class="number">3</span> <span class="keyword">import</span> time</div><div class="line"> <span class="number">4</span> </div><div class="line"> <span class="number">5</span> <span class="function"><span class="keyword">def</span> <span class="title">timesLong</span><span class="params">(func)</span>:</span></div><div class="line"> <span class="number">6</span>     <span class="function"><span class="keyword">def</span> <span class="title">call</span><span class="params">()</span>:</span></div><div class="line"> <span class="number">7</span>         start = time.asctime()</div><div class="line"> <span class="number">8</span>         <span class="keyword">print</span> <span class="string">"At "</span> + repr(start) + <span class="string">":It is start"</span></div><div class="line"> <span class="number">9</span>         func()</div><div class="line"><span class="number">10</span>         end = time.asctime()</div><div class="line"><span class="number">11</span>         <span class="keyword">print</span> <span class="string">"At"</span> + repr(end) + <span class="string">"it is end"</span></div><div class="line"><span class="number">12</span>         <span class="keyword">return</span> end</div><div class="line"><span class="number">13</span>     <span class="keyword">return</span> call</div><div class="line"><span class="number">14</span>     </div><div class="line"><span class="number">15</span> @timesLong</div><div class="line"><span class="number">16</span> <span class="function"><span class="keyword">def</span> <span class="title">function</span><span class="params">()</span>:</span></div><div class="line"><span class="number">17</span>     y = <span class="number">0</span></div><div class="line"><span class="number">18</span>     <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">10</span>):</div><div class="line"><span class="number">19</span>         y = y + i + <span class="number">1</span></div><div class="line"><span class="number">20</span>         <span class="keyword">print</span> y </div><div class="line"><span class="number">21</span>     <span class="keyword">return</span> y</div><div class="line"><span class="number">22</span>     </div><div class="line"><span class="number">23</span> <span class="keyword">print</span> function()</div></pre></td></tr></table></figure>
-<p>执行流程是：<br>​    1、调用print function<br>​    2、调用timeslong<br>​    3、调用timeslong.call<br>​    4、调用function<br>​    5、调用call的剩余部分<br>​    6、最后timeslong返回了call的返回结果，然后print了出来</p>
-<p>所以输出是：</p>
-<p>​    At ‘Tue May  6 19:32:55 2014’:It is start</p>
-<p>1</p>
-<p>3</p>
-<p>6</p>
-<p>10</p>
-<p>15</p>
-<p>21</p>
-<p>28</p>
-<p>36</p>
-<p>45</p>
-<p>55</p>
-<p>At’Tue May  6 19:32:55 2014’it is end</p>
-<p>Tue May  6 19:32:55 2014</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1724,7 +1720,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">43</span>
+                  <span class="site-state-item-count">44</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

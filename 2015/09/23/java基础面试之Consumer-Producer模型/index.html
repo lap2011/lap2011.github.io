@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="java," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="综述近来用到了很多生产者和消费者模型来做一些开发和面试，所以有感而发，记录一些知识。
+生产者-消费者模型是一个常用的异步线程的处理模型。简单点讲，主要分3个部分，生产者，消费者，锁。
+生产者： 创造一些资源，可以是任何资源，比如从文件中读出的某一行
+消费者：  合理的利用生产者生成的资源完成自己的需求
+锁：提供一个异步的控制器，保证在生产着没有生成资源的时候，消费着无法消费
+实例下面就以读取一个文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java基础面试之Consumer-Producer模型">
+<meta property="og:url" content="http://yoursite.com/2015/09/23/java基础面试之Consumer-Producer模型/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="综述近来用到了很多生产者和消费者模型来做一些开发和面试，所以有感而发，记录一些知识。
+生产者-消费者模型是一个常用的异步线程的处理模型。简单点讲，主要分3个部分，生产者，消费者，锁。
+生产者： 创造一些资源，可以是任何资源，比如从文件中读出的某一行
+消费者：  合理的利用生产者生成的资源完成自己的需求
+锁：提供一个异步的控制器，保证在生产着没有生成资源的时候，消费着无法消费
+实例下面就以读取一个文">
+<meta property="og:updated_time" content="2017-12-27T07:21:36.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="java基础面试之Consumer-Producer模型">
+<meta name="twitter:description" content="综述近来用到了很多生产者和消费者模型来做一些开发和面试，所以有感而发，记录一些知识。
+生产者-消费者模型是一个常用的异步线程的处理模型。简单点讲，主要分3个部分，生产者，消费者，锁。
+生产者： 创造一些资源，可以是任何资源，比如从文件中读出的某一行
+消费者：  合理的利用生产者生成的资源完成自己的需求
+锁：提供一个异步的控制器，保证在生产着没有生成资源的时候，消费着无法消费
+实例下面就以读取一个文">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2015/09/23/java基础面试之Consumer-Producer模型/"/>
+
+
+
+
+
+  <title>java基础面试之Consumer-Producer模型 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/09/23/java基础面试之Consumer-Producer模型/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">java基础面试之Consumer-Producer模型</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-09-22T19:22:35-08:00">
+                2015-09-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h1><p>近来用到了很多生产者和消费者模型来做一些开发和面试，所以有感而发，记录一些知识。</p>
+<p>生产者-消费者模型是一个常用的异步线程的处理模型。简单点讲，主要分3个部分，生产者，消费者，锁。</p>
+<p>生产者： 创造一些资源，可以是任何资源，比如从文件中读出的某一行</p>
+<p>消费者：  合理的利用生产者生成的资源完成自己的需求</p>
+<p>锁：提供一个异步的控制器，保证在生产着没有生成资源的时候，消费着无法消费</p>
+<h1 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h1><p>下面就以读取一个文件为例子来描述这个模型</p>
+<h2 id="producer"><a href="#producer" class="headerlink" title="producer"></a>producer</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by aiping.lap on 15/09/21.</div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aiping.lap</div><div class="line"> * <span class="doctag">@date</span> 2015/09/21</div><div class="line"> */</div><div class="line"><span class="keyword">import</span> java.io.BufferedReader;</div><div class="line"><span class="keyword">import</span> java.io.File;</div><div class="line"><span class="keyword">import</span> java.io.FileReader;</div><div class="line"><span class="keyword">import</span> java.io.IOException;</div><div class="line"><span class="keyword">import</span> java.util.ArrayList;</div><div class="line"><span class="keyword">import</span> java.util.List;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CreateRowKey</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</div><div class="line">    <span class="comment">//调用锁类，主要是把生成的资源扔到该锁中</span></div><div class="line">    <span class="keyword">private</span> GetRandmKey getRandmKey;</div><div class="line">    <span class="comment">//产生资源的文件，文件中的每行即一个资源</span></div><div class="line">    <span class="keyword">private</span> String rowKeyFile;</div><div class="line">    <span class="comment">//临时存储从文件中读出的行</span></div><div class="line">    <span class="keyword">private</span> List&lt;String&gt; keyList = <span class="keyword">new</span> ArrayList();</div><div class="line">    <span class="comment">//临时存储的最小值</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> MIN = <span class="number">5000</span>;</div><div class="line">    <span class="comment">//临时存储的最大值</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> MAX = <span class="number">10000</span>;</div><div class="line">    <span class="comment">//删除的值</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> getIndex = <span class="number">0</span>;</div><div class="line">    <span class="keyword">public</span> FileReader fReader = <span class="keyword">null</span>;</div><div class="line">    <span class="keyword">public</span> BufferedReader bf = <span class="keyword">null</span>;</div><div class="line">    <span class="keyword">public</span> <span class="keyword">boolean</span> isEnd = <span class="keyword">false</span>;</div><div class="line"></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">CreateRowKey</span><span class="params">(GetRandmKey GetRandmKey, String rowKeyFile)</span></span>&#123;</div><div class="line">        <span class="keyword">this</span>.getRandmKey = GetRandmKey;</div><div class="line">        <span class="keyword">this</span>.rowKeyFile = rowKeyFile;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//异步的线程类读取文件，如果内存中，存数的量小于总量的一半的时候，就去读取文件，直到临时存储区的条数到达最大值</span></div><div class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GetkeyFromFile</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</div><div class="line">        <span class="keyword">private</span> String rowKey;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">            System.out.println(<span class="string">"Start to get row from file to memory!"</span>);</div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                <span class="keyword">while</span> (keyList.size() &lt;= MAX) &#123;</div><div class="line">                    <span class="keyword">if</span> (fReader == <span class="keyword">null</span>)&#123;</div><div class="line">                        fReader = <span class="keyword">new</span> FileReader(<span class="keyword">new</span> File(rowKeyFile));</div><div class="line">                    &#125;</div><div class="line">                    <span class="keyword">if</span> (bf == <span class="keyword">null</span>)&#123;</div><div class="line">                        bf = <span class="keyword">new</span> BufferedReader(fReader);</div><div class="line">                    &#125;</div><div class="line">                    rowKey = bf.readLine();</div><div class="line">                    <span class="keyword">if</span> (rowKey == <span class="string">""</span> || rowKey == <span class="keyword">null</span>)&#123;</div><div class="line">                        System.out.println(<span class="string">"File is read end!"</span>);</div><div class="line">                        isEnd = <span class="keyword">true</span>;</div><div class="line">                    &#125; <span class="keyword">else</span> &#123;</div><div class="line">                        keyList.add(rowKey);</div><div class="line">                    &#125;</div><div class="line">                &#125;</div><div class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">                e.printStackTrace();</div><div class="line">                System.out.println(e);</div><div class="line">            &#125; <span class="keyword">finally</span> &#123;</div><div class="line">                <span class="keyword">try</span> &#123;</div><div class="line">                    bf.close();</div><div class="line">                    fReader.close();</div><div class="line">                &#125; <span class="keyword">catch</span> (IOException e) &#123;</div><div class="line">                    <span class="comment">// TODO Auto-generated catch block</span></div><div class="line">                    e.printStackTrace();</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">            System.out.println(<span class="string">"End to get row from file to memory!"</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span>&#123;</div><div class="line">        <span class="keyword">boolean</span> isRead = <span class="keyword">true</span>;</div><div class="line">        System.out.println(<span class="string">"Start to create key!"</span>);</div><div class="line">        <span class="keyword">while</span> (isRead)&#123;</div><div class="line"></div><div class="line">            <span class="comment">//如果文件已经读完且已经消费完，则退出</span></div><div class="line">            <span class="keyword">if</span> (isEnd &amp;&amp; keyList.isEmpty())&#123;</div><div class="line">                System.out.println(<span class="string">"Read to end!"</span>);</div><div class="line">                isRead = <span class="keyword">false</span>;</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//如果没有读完，则启动异步的线程去读取</span></div><div class="line">            <span class="keyword">if</span> (keyList.size() &lt; MIN &amp;&amp; !isEnd )&#123;</div><div class="line">                System.out.println(<span class="string">"Start to update memory!"</span>);</div><div class="line">                GetkeyFromFile getkeyFromFile = <span class="keyword">new</span> GetkeyFromFile();</div><div class="line">                getkeyFromFile.start();</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//如果列表中不为空，则从中获取相应的值</span></div><div class="line">            <span class="keyword">if</span> (!keyList.isEmpty() )&#123;</div><div class="line">                getRandmKey.createRowKey(keyList.get(getIndex));</div><div class="line">                keyList.remove(getIndex);</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                <span class="keyword">try</span> &#123;</div><div class="line">                    sleep(<span class="number">5000</span>);</div><div class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                    <span class="comment">// TODO Auto-generated catch block</span></div><div class="line">                    e.printStackTrace();</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="consumer类"><a href="#consumer类" class="headerlink" title="consumer类"></a>consumer类</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by aiping.lap on 15/09/21.</div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aiping.lap</div><div class="line"> * <span class="doctag">@date</span> 2015/09/21</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Consumer</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> GetRandmKey getRandmKey;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Consumer</span><span class="params">( GetRandmKey getRandmKey)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">this</span>.getRandmKey =   getRandmKey;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="comment">// 从锁类中读取相应的资源</span></div><div class="line">        <span class="keyword">while</span>  (<span class="keyword">true</span>)</div><div class="line">        &#123;</div><div class="line">            System.out.printf(<span class="string">"The consumer get the product %d #\n"</span>,getRandmKey.getRowKey());</div><div class="line">            <span class="keyword">try</span></div><div class="line">            &#123;</div><div class="line">                sleep((<span class="keyword">int</span>)(Math.random() * <span class="number">100</span> ));</div><div class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e)</div><div class="line">            &#123;</div><div class="line">                System.out.println(e);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="锁类"><a href="#锁类" class="headerlink" title="锁类"></a>锁类</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by aiping.lap on 15/09/21.</div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aiping.lap</div><div class="line"> * <span class="doctag">@date</span> 2015/09/21</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GetRandmKey</span> </span>&#123;</div><div class="line">    <span class="keyword">private</span> String rowkey;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">boolean</span> isReady = <span class="keyword">false</span>;</div><div class="line"></div><div class="line">    <span class="comment">//对象锁保证对于同一个资源，只能由一个消费者获取</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> String <span class="title">getRowKey</span><span class="params">()</span></span>&#123;</div><div class="line">        <span class="keyword">while</span> (isReady == <span class="keyword">false</span>) &#123;</div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                wait();</div><div class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                System.out.println(e);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        isReady = <span class="keyword">false</span>;</div><div class="line">        notifyAll();</div><div class="line">        <span class="keyword">return</span> rowkey;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//保证同时只有一个生产者可以产生资源</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">createRowKey</span><span class="params">(String rowkey)</span></span>&#123;</div><div class="line">        <span class="keyword">while</span> (isReady) &#123;</div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                wait();</div><div class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                System.out.println(e);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">this</span>.rowkey = rowkey;</div><div class="line">        isReady = <span class="keyword">true</span>;</div><div class="line">        notifyAll();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h2 id="main类"><a href="#main类" class="headerlink" title="main类"></a>main类</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="comment">//生成共享的锁</span></div><div class="line">    GetRandmKey getRandmKey = <span class="keyword">new</span> GetRandmKey();</div><div class="line">    <span class="comment">//创建生产者</span></div><div class="line">    CreateRowKey createRowKey = <span class="keyword">new</span> CreateRowKey(getRandmKey,<span class="string">"filename"</span>);</div><div class="line">    <span class="comment">//创建消费者</span></div><div class="line">    Consumer consumer = <span class="keyword">new</span> Consumer(getRandmKey);</div><div class="line">    createRowKey.start();</div><div class="line">    consumer.start();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从这个简单的模型中，可以看到一个最为朴素的异步思想，资源的生成者不关心是否有消费者，只需要生成相应的资源即可。而对于消费者，只需要从固定的地方取资源，不需要关心资源从哪里来。通过锁类完美的解决了数据一致性的问题。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java/" rel="tag"># java</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/04/07/记录一次HBase的问题排查/" rel="next" title="记录一次HBase的问题排查">
+                <i class="fa fa-chevron-left"></i> 记录一次HBase的问题排查
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/16/实现一个HBase单表balance的工具/" rel="prev" title="实现一个HBase单表balance的工具">
+                实现一个HBase单表balance的工具 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">44</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#综述"><span class="nav-number">1.</span> <span class="nav-text">综述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#实例"><span class="nav-number">2.</span> <span class="nav-text">实例</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#producer"><span class="nav-number">2.1.</span> <span class="nav-text">producer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#consumer类"><span class="nav-number">2.2.</span> <span class="nav-text">consumer类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#锁类"><span class="nav-number">2.3.</span> <span class="nav-text">锁类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#main类"><span class="nav-number">2.4.</span> <span class="nav-text">main类</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
