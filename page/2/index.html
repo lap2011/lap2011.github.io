@@ -231,6 +231,229 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/11/24/HBase从0-94升级到0-98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/11/24/HBase从0-94升级到0-98/" itemprop="url">HBase从0.94升级到0.98</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-11-23T11:56:29-08:00">
+                2014-11-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="一、HBase0-98和0-96两个版本的一些变化"><a href="#一、HBase0-98和0-96两个版本的一些变化" class="headerlink" title="一、HBase0.98和0.96两个版本的一些变化"></a>一、HBase0.98和0.96两个版本的一些变化</h1><p>HBase0.98:</p>
+<p>1、支持了reverse的scan模式(HBASE-4811)。</p>
+<p>​      用户可以正向的或者反向的扫描表，这个和正向扫描仅仅有一点点的性能差别，使用的方法如下：</p>
+<p>​      Scan scan = new Scan();</p>
+<p>​      scan.setReversed(true);</p>
+<p>2、Compaction升级成了Stripe Compaction(HBASE-7667)</p>
+<p>​    按照以往的经验,首先，过多Region会增大RS维护的开销，降低RS的读写性能。随着数据量的增大，在一定程度上增加Region个数，会提高系统的吞吐率。然而，RS上服务的Region个数增多，增加了RS下内存维护的开销，尤其每个Store下都配置有一个MemStore，从而会造成频率更高的Flush操作，影响系统的读写性能。因此，如果能够提出更轻量级的mini-Region，不仅能够降低服务多个Region的开销，而且能够提升读写数据的效率;其次，Region Compaction容易”放大”。例如，Region区间[1FFF，2FFF）,在该区间内仅有[1FFF，21FF)区间有大量的写操作(put、delete)，但是,在触及MajorCompaction条件时，却需要对所有的文件执行Major Compaction，从而引起大量的IO。最后，Region Split操作代价较大。</p>
+<p>​     为了减少region的数量，同时能降低compaction带来的影响，在新版本中加入了Stripe Compaction。其核心思想如下：</p>
+<p>​     1）对于Region下的rowkey区间进行二次切分，例如[1FFF,2FFF)，切分成[1FFF,24FF),[24FF,2FFF)两个区间，每个区间成为Stripe。</p>
+<p>​     2）Region下的数据文件分为Level-0和Level-1两层。其中Level-0主要用来存储临时的数据文件(例如使用bulkload或者执行mem flush操作之后的数据)， Level-1层的数据是按照Stripe的分区来区分。</p>
+<p>​     3）支持两种方式的配置：Mini-regions的个数设置、或者以Size-based为大小触发因子的自动切分机制。</p>
+<p>​     4）容错机制。如果在Stripes之间存在空洞。那么可以根据在Store当中的设置，将所有的处于Level-1层的文件回归到Level-0重新进行compaction。</p>
+<p>​     5）Get操作时，一个Row所涉及到文件有：MemStore、Level-0下所有文件、以及Level-1下对应Stripe区下的文件。根据Stack的意见，最终Level-0下的文件只是一个暂时的状态，大部分文件都位于Level-1 Stripe下，因此，这样随机读时，需要涉及到的文件更聚集。</p>
+<p>​     6）Scan操作时，需要定位startrow即可。在扫描过程中，会按照Stripe的row区间的排序，依次进行。</p>
+<p>​     7）Compaction，是Level-0上升到Level-1的过程，同时，在Level-1层次的数据，也会进行相关的合并。</p>
+<p>​     8）在Split操作时，定位Rowkey区间的中心点，可以根据Stripe记录的位置，进一步查找，因此，使用预置的Stripe会有利于Split操作的进行，可以实现多数HFile文件直接拷贝到子Region目录，从而加快了Split操作的效率。</p>
+<p>下面对于Cassandra以及LevelDB中使用的多层次Compaction算法做一个介绍。</p>
+<p>​    1)分层式压缩方式将数据分成条个层，最底层的叫L0，其上分别是L1，L2….，每一层的数据大小是其上的那一层数据最大大小的10倍，其中最底层L0的大小为5M (可以配置)</p>
+<p>​    2) 当level层次大于0时，同一层的各个文件之间的Rowkey区间不会重叠。所以在level n与level n+1的数据块进行合并时，可以明确的知道某个key值处在哪个数据块中，可以一个数据块一个数据块的合并，合并后生成新块就丢掉老块。不用一直到所有合并完成后才能删除老的块。</p>
+<p>​     3）整体执行流程是从L0-&gt;L1-&gt;L2，依次合并的过程，如下图所示。</p>
+<p>​     <a href="http://www.binospace.com/wp-content/uploads/2013/06/compaction1.png" target="_blank" rel="external">http://www.binospace.com/wp-content/uploads/2013/06/compaction1.png</a></p>
+<p>由上图，我们可以得知，越是level较低的块，它的数据就越新，在满足向下归约合并的过程中，就会按照文件的Rowkey的区间，进行合并，去除多余的版本，或者执行相关删除操作。因此，在读请求最极端的情况下，从Level0开始读数据，一直读到最下层Level n。这种Compaction的优势在于：</p>
+<p>1）大部分的读操作如果有LRU特性，都会落入较低的Level上。因此，数据越”热”，Level就越低。从而有利于未来HFile多种存储介质的定位问题。</p>
+<p>2）在合并的过程中，仅需在由上到下的部分文件参与，而不是要对所有文件执行Compaction操作。这样会加快Compaction执行的效率。</p>
+<p>劣势在于，如果层次太多，在递归合并的过程中，容易造成某个区间的Compaction风暴，影响该区间数据操作的吞吐。</p>
+<p>因此，HBase-Stripe Compaction的方案中，只有两层，Level 0和Level1，这种方法在保留分层压缩的优势的同时，降低了总文件个数，有利于RS执行Split、Merge等操作。</p>
+<p>3、支持对快照进行MR(HBASE-8369)</p>
+<p>​    现在快照作为hbase的元数据的一个分支文件，一个快照文件包含了表描述符、包含的region列表、reion的存储文件、region的相关WAL。利用HBase的快照进行MR，就是实现对RS的直接操作，类似与HDFS的直读(<a href="http://www.importnew.com/6151.html)。通过TableSnapshotInputFormat和TableSnapshotScanner" target="_blank" rel="external">http://www.importnew.com/6151.html)。通过TableSnapshotInputFormat和TableSnapshotScanner</a> 把表快照发送到客户端，然后客户端的操作就可以绕过HBase的Server层，直接通过java程序或者MR来流式的获取scan的结果(大概有5倍的性能提升)。可以参考<a href="http://www.slideshare.net/enissoz/mapreduce-over-snapshots" target="_blank" rel="external">http://www.slideshare.net/enissoz/mapreduce-over-snapshots</a></p>
+<p>4、基于Cell的ACL以及可视化(HBASE-6222))</p>
+<p>   类似与apache accumulo，其ACL的功能主要是为每个独立的cell提供强制访问控制。可视化的功能主要是利用了HBase本身的协处理器，然后结合ACL实现的。然后授予用户可以查看这个标签的权限，这些ACL的数据存储在HBase的一个新的系统表中。</p>
+<p>对于如果使用这个特性，可以参考：<a href="https://blogs.apache.org/hbase/entry/hbase_cell_security和" target="_blank" rel="external">https://blogs.apache.org/hbase/entry/hbase_cell_security和</a></p>
+<p>对于特性的详细描述，请参考：<a href="https://hbase.apache.org/book/security.html" target="_blank" rel="external">https://hbase.apache.org/book/security.html</a></p>
+<p>5、透明的服务器端的加密(HBASE-7544)</p>
+<p>​      这个特性主要提供了对wal和hfile的加密，主要是为REST接口提供的。</p>
+<p>6、其它的一些小的功能点：</p>
+<p>​       wal线程模式(HBASE-8755)、基于REST接口的流扫描(HBASE-9343)、解决了客户读访问Server的时候RPC数异常增长的BUG(HBASE-3787)</p>
+<p>HBase0.96</p>
+<p>   HBase0.96中改变大部分是向后兼容的，但是一部分是不向后兼容的，接下来分别指出：</p>
+<p>   不兼容的改变：</p>
+<p>​       删除了-ROOT-表(HBASE-3171) </p>
+<p>​       </p>
+<p>不再支持hadoop0.20(HBASE-6706) </p>
+<p>更改了zk上的节点的名称(HBASE-4451 )</p>
+<p>不支持HFileV1(HBASE-7660)</p>
+<p>删除了Avro(HBASE-6553)</p>
+<p>删除了客户端的行锁(HBASE-7315 HBASE-7263)</p>
+<p>其它的改变：</p>
+<p>   1、Bucket Cache-HBase的二级读cache( HBASE-7404)</p>
+<p>​     HBase上Regionserver的内存分为两个部分，一部分作为Memstore，主要用来写；另外一部分作为BlockCache，主要用于读。Block的cache命中率对HBase的读性能影响十分大。在之前的版本中默认的是LruBlockCache，直接使用JVM的HashMap来管理BlockCache，会有Heap碎片和Full GC的问题。</p>
+<p>在新版本中引入了Bucket Cache的概念。Bucket Cache可以放在内存中，也可以放在像SSD这样的适合高速随机读的外存储设备上，这样使得缓存的空间可以非常大，可以显著提高HBase读性能。Bucket Cache的本质是让HBase自己来管理内存资源而不是让Java的GC来管理，这个特点也是HBase自从诞生以来一直在激烈讨论的问题。</p>
+<p>​     可以参考<a href="http://zjushch.iteye.com/blog/1751387" target="_blank" rel="external">http://zjushch.iteye.com/blog/1751387</a></p>
+<p>   2、MSLAB(HBASE-8163)</p>
+<p>​     MSLAB提升支持 MemStore-Local Allocation Buffers，通过预先分配内存块的方式解决了因为内存碎片造成的Full GC问题，但是对于频繁更新操作的时候，MemStore被flush到文件系统时没有reference的chunk还是会触发很多的Young GC。所以提出了MemStoreChunkPool的概念，也就是由HBase来管理一个ChunkPool用来存放chunk，不再依赖JVM的GC。这个ticket的本质也是由HBase进程来管理内存分配和重分配，不再依赖于Java GC。</p>
+<p>​      可以参考：<a href="http://www.taobaotest.com/blogs/2310" target="_blank" rel="external">http://www.taobaotest.com/blogs/2310</a></p>
+<p>   3、支持在线的region merge(HBASE-8219):</p>
+<p>​      在线的region merge是移动快照，而离线的是真正的合并数据</p>
+<p>​     4、变化比较大的 Compaction</p>
+<p>​      HBase的Compaction是长期以来广受诟病的一个feature，很多人吐槽HBase也是因为这个特征。不过我们不能因为HBase有这样一个缺点就把它一棒子打死，更多的还是希望能够驯服它，能够使得它适应自己的应用场景。根据业务负载类型调整compaction的类型和参数，一般在业务高峰时候禁掉Major Compaction。在0.96中HBase社区为了提供更多的compaction的策略适用于不同的应用场景，采用了插件式的架构。同时改进了HBase在RegionServer端的存储管理，原来是直Region-&gt;Store-&gt;StoreFile，现在为了支持更加灵活多样的管理StoreFile和compact的策略，RS端采用了StoreEngine的结构。一个StoreEngine涉及到StoreFlusher, CompactionPolicy, Compactor, StoreFileManager。不指定的话默认是DefaultStoreEngine，四个组件分别是DefaultStoreFlusher, ExploringCompactionPolicy,DefaultCompactor, DefaultStoreFileManager。默认的Compaction算法从RatioBasedCompactionPolicy改为了ExploringCompactionPolicy。为什么要这么改，首先从compaction的优化目标来看：compaction is about trading some disk IO now for fewer seeks later，也就是compaction的优化目标是执行Compaction操作能合并越多的文件越好，如果合并同样多的文件产生的IO越小越好，这样select出来的列表才是最优的。</p>
+<p>主要不同在于：RatioBasedCompactionPolicy是简单的从头到尾遍历StoreFile列表，遇到一个符合Ratio条件的序列就选定执行compaction。对于典型的不断flush memstore形成 StoreFile的场景是合适的，但是对于bulk-loaded是不合适的，会陷入局部最优。而ExploringCompactionPolicy则是从头到尾遍历的同时记录下当前最优，然后从中选择一个全局最优列表。</p>
+<p>​          关于这两个算法的逻辑可以在代码中参考对应的applyCompactionPolicy()函数。其他Compaction Policy的研究和开发也非常活跃，例如Tier-based compaction (HBASE-6371,来自Facebook) 和stripe compaction(HBASE-7667)</p>
+<p>​        此外compaction还有很多修改，参考HBASE-7678 、HBASE-766 、HBASE-7110、HBASE-7603、</p>
+<p>HBASE-7842</p>
+<p>​          吐槽：HBase compaction为什么会问题这么多，我感觉缺少了一个整体的IO负载的反馈和调度机制。因为compaction是从HDFS读数据，然后再写到HDFS中，和其他HDFS上的负载一样在抢占IO资源。如果能有个IO资源管理和调度的机制，在HDFS负载轻的时候执行compaction，在负载重的时候不要执行。而且这个问题在Hadoop/HDFS里同样存在，Hadoop的资源管理目前只针对CPU/Memory的资源管理，没有对IO的资源管理，会导致有些Job受自己程序bug的影响可能会写大量的数据到HDFS，会严重影响其他正常Job的读写性能。</p>
+<p>​     5、Mean Time To Recovery/MTTR优化</p>
+<p>​       目前HBase对外提供服务，Region Server是单点。如果某台RS挂掉，那么直到该RS上的所有Region被重新分配到其他RS上之前，这些Region是的数据是无法访问的。</p>
+<p>​        对这个过程的改进主要包括：</p>
+<p>HBASE-5844 和 HBASE-5926：删除zookeeper上Region Server/Master对应的znode，这样就省的等到znode 30s超时才发现对应的RS/Master挂了。</p>
+<p>HBASE-7006： Distributed Log Replay，就是直接从HDFS上读取宕机的WAL日志，直接向新分配的RS进行Log Replay，而不是创建临时文件recovered.edits然后再进行Log Replay</p>
+<p>HBASE-7213/8631： HBase的META表中所有的Region所在的Region Server将会有两个WAL，一个是普通的，一个专门给META表对应的Region用。这样在进行recovery的时候可以先恢复META表。  </p>
+<p>​    6、PrefixTreeCompression(HBASE-4676 )</p>
+<p>​     由于HBase的KeyValue存储是按照Row/Family/Qualifier/TimeStamp/Value的形式存储的，Row/Family/Qualifier这些相当于前缀，如果每一行都按照原始数据进行存储会导致占据存储空间比较大。HBase 0.94版本就已经引入了DataBlock Encode的概念(HBASE-4218)，将重复的Row/Family/Qualifier按照顺序进行压缩存储，提高内存利用率，支持四种压缩方式FAST_DIFF\PREFIX\PREFIX_TRIE\DIFF。但是这个feature也仅仅是通过delta encoding/compression降低了内存占用率，对数据查询效率没有提升，甚至会带来压缩/解压缩对CPU资源占用的情况。</p>
+<p>​      PrefixTreeCompression是把重复的Row/Family/Qualifier按照Prefix Tree的形式进行压缩存储的，可以在解析时生成前缀树，并且树节点的儿子是排序的，所以从DataBlock中查询数据的效率可以超过二分查找。</p>
+<p>7、使用了Protocol Buffer(HBASE-5305):</p>
+<p>​    为了更好的跨版本的兼容性，引进了Protocol Buffer作为序列化/反序列化引擎使用到RPC中(此前Hadoop的RPC也全部用PB重写了)。因为随着HBase Server的不断升级，有些Client的版本可能还比较旧，所以需要RPC在新旧版本之间兼容。</p>
+<p>​       8、 HBase Table Snapshot(HBASE-6055 HBASE-7290):</p>
+<p>创建snaphost对HBase集群没有性能影响，只是生成了snaphost对应的metadata而不会去拷贝数据。用户可以通过创建snaphost实现backup和disaster recovery，例如用户在创建一个snaphost之后可能会误操作导致一些表出现了问题，这样我们可以选择回滚到创建snaphost的那个阶段而不会导致数据全都不可用。也可以定期创建snapshot然后拷贝到其他集群用于定时的offline processing</p>
+<p>​    9、HBASE-8015：在0.96中，ROOT表已经改名为hbase:namespace，META则是hbase:meta。而且hbase:namespace是存在zookeeper上的。这个namespace类似于RDBMS里的database的概念，可以更好的做权限管理和安全控制。HBase中table的META信息也是作为一种Region存放在Region Server上的，那么META表的Region和其他普通Region就会产生明显的资源竞争。为了改善META Region的性能，360的HBase中提出了专属MetaServer，在这个Region Server上只存放META Region</p>
+<p>10、HBASE-5229：同一个Region内的跨行事务。一次操作中涉及到同一个Region中的所有写操作在获取到的相关Row的所有行锁（按照RowKey的顺序依次取行锁，防止死锁）之后事务执行。</p>
+<p>11、HBASE-4811：Reverse Scan。过去被问到说如何反向查找HBase中的数据，常常被答道再建一张反向存储的表，而且LevelDB和Cassandra都支持反向扫描。HBase反向扫描比正向扫描性能下降30%，这个和LevelDB是差不多的。</p>
+<p>12、在不用安装cygwin的情况下支持在windows下安装</p>
+<p>13、Hoya — HBase on YARN。可以在一个YARN集群上部署多个不同版本、不同配置的HBase instance，可以参考 <a href="https://github.com/hortonworks/hoya" target="_blank" rel="external">https://github.com/hortonworks/hoya</a></p>
+<p>14、集成测试环境，从Netflix刚开源的Chaos Monkey中集成了一个测试环境，支持大规模的测试。</p>
+<p>15、灵活的数据类型支持，详细请看<a href="https://blogs.apache.org/hbase/entry/data_types_schema" target="_blank" rel="external">https://blogs.apache.org/hbase/entry/data_types_schema</a></p>
+<p>16、模块化，HBase已经拆分成了server、client等很多独立的模块。</p>
+<p>17、提升了HBase的监控功能hbase tracing，HBASE-9121                     </p>
+<p>​            <a href="https://blogs.apache.org/hbase/entry/migration_to_the_new_metrics" target="_blank" rel="external">https://blogs.apache.org/hbase/entry/migration_to_the_new_metrics</a></p>
+<p>18、新的balancer的算法，类似与Simulated annealing 或者 Greedy Hillclimbing，不仅仅是更具数量来进行负载均衡，还增加了对读写的判断。 </p>
+<p>​       19、增加了一些新的API的支持(HBase-8693、HBase8089、HBase8201)</p>
+<p>20、通过调用mlockall增加了服务的稳定性(HBase4391)</p>
+<h1 id="二、常用的一些API相关地址："><a href="#二、常用的一些API相关地址：" class="headerlink" title="二、常用的一些API相关地址："></a>二、常用的一些API相关地址：</h1><p>   1、详细HBase的基本API查询</p>
+<p>   2、HBase的社区的所有BUG已经新特性的集合</p>
+<p>   3、HBase Book</p>
+<h1 id="三、HBASE发展方向"><a href="#三、HBASE发展方向" class="headerlink" title="三、HBASE发展方向"></a>三、HBASE发展方向</h1><p>   总的来说，HBase正在往更加好的方向发展，但是不同的需求造就了HBase本身也有各种不同的需求：</p>
+<p>1、 Cloudera/Hortonworks/Yahoo/Facebook的人从系统和性能等多方面关注</p>
+<p>2、Salesfore/huawei的人貌似更关注企业级特性，毕竟他们面对的客户都是电信、金融、证券等高帅富行业</p>
+<p>3、来自国内的阿里巴巴/小米/360等公司更加关注系统性能、稳定性和运维相关的话题。国内互联网行业用HBase更加关注的是如何解决业务问题。</p>
+<p>4、越来越多的公司把它们的HBase集群构建在云上，例如Pinterest所有的HBase集群都是在AWS上，国外的start up环境太好了，有了AWS自己根本不用花费太多的资源在基础设施上。</p>
+<p>5、传统的HBase应用是online storage，实时数据读取服务。例如支付宝用HBase存放用户的历史交易信息服务用户查询，中国联通也使用HBase存储用户的上网历史记录信息用于用户的实时查询需求。现在HBase也向实时数据挖掘的应用场景中发展，例如wibidata公司开源的kiji (<a href="http://www.kiji.org/)能够在HBase上轻松构建实时推荐引擎、实时用户分层和实时欺诈监控。" target="_blank" rel="external">http://www.kiji.org/)能够在HBase上轻松构建实时推荐引擎、实时用户分层和实时欺诈监控。</a></p>
+<p>参考资料：</p>
+<p><a href="https://blogs.apache.org/hbase/entry/hbase_0_96_0_released" target="_blank" rel="external">https://blogs.apache.org/hbase/entry/hbase_0_96_0_released</a></p>
+<p><a href="http://zh.hortonworks.com/blog/announcing-apache-hbase-0-96/" target="_blank" rel="external">http://zh.hortonworks.com/blog/announcing-apache-hbase-0-96/</a></p>
+<p><a href="http://www.binospace.com/index.php/hbase-new-features-stripe-compaction/" target="_blank" rel="external">http://www.binospace.com/index.php/hbase-new-features-stripe-compaction/</a></p>
+<p><a href="http://zh.hortonworks.com/blog/hbase-0-98-0-released/" target="_blank" rel="external">http://zh.hortonworks.com/blog/hbase-0-98-0-released/</a></p>
+<p><a href="http://yanbohappy.sinaapp.com/?p=434" target="_blank" rel="external">http://yanbohappy.sinaapp.com/?p=434</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/10/30/HBase客户端开发建议/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1487,159 +1710,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/07/30/HBase读写性能相关-关于缓存/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/07/30/HBase读写性能相关-关于缓存/" itemprop="url">HBase读写性能相关-关于缓存</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-07-29T19:24:06-08:00">
-                2014-07-29
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="命中缓存的重要性"><a href="#命中缓存的重要性" class="headerlink" title="命中缓存的重要性"></a>命中缓存的重要性</h1><p>做一个简单的小实验，读取同样5条数据，命中catch和不命中catch的对比：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">[hadoop@bjlg-49p21-hadoop-client03 hbase]$ ./start.sh </div><div class="line">83bd782bcb74fca2000032170000503e4fe29093 57848 </div><div class="line">a0225452001ccb15000055ce0004c15d538f05d9 895 </div><div class="line">a0225452001ccb150000793e00001258538efb1c 606 </div><div class="line">b12ed4ae526364b50007d61e0024a45652ee6a4e 189248 </div><div class="line">92fbd4ae526c85c80008fb96000997fa514811d6 3387</div></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">[hadoop@bjlg-49p21-hadoop-client03 hbase]$ ./start.sh </div><div class="line">83bd782bcb74fca2000032170000503e4fe29093 4928 </div><div class="line">a0225452001ccb15000055ce0004c15d538f05d9 660 </div><div class="line">a0225452001ccb150000793e00001258538efb1c 762 </div><div class="line">b12ed4ae526364b50007d61e0024a45652ee6a4e 1227 </div><div class="line">92fbd4ae526c85c80008fb96000997fa514811d6 1218</div></pre></td></tr></table></figure>
-<h1 id="提高缓存命中率的理论"><a href="#提高缓存命中率的理论" class="headerlink" title="提高缓存命中率的理论"></a>提高缓存命中率的理论</h1><p>1、总的catch的大小，这个调整主要通过提高Regionserver的堆内存和提高hfile.block.cache.size的百分比来提高</p>
-<p>2、数据本身的合理设计，把可能会一起访问的数据设计到一起，把需要整行读取的数据设计到同一个CF里面。如果数据本身不存在热点，就会导致访问完全随机，就只能靠加机器来提高命中率了。</p>
-<p>3、block块的大小，由于每次存放到catch中的数据是一整个block，而不是某个key-value。所以一般来说，不同的数据，有着不同的效果。对于非重复有热点的数据来说，如果block块设置大的话，catch命中率会随着块的增大而增加；对于重复的无热点数据来说，刚好相反。(这里要插一句，block本身的大小很相影响随机读的效果，如果块大的话，索引就相对较小，随机读效果就差)</p>
-<h1 id="关于Hbase的catch本身的实现"><a href="#关于Hbase的catch本身的实现" class="headerlink" title="关于Hbase的catch本身的实现"></a>关于Hbase的catch本身的实现</h1><p>在Hbase的每个Regionserver中，一共维护了3个catch队列：</p>
-<p>Single：如果一个Block第一次被访问，则放在这一优先级队列中；</p>
-<p>Multi：如果一个Block被多次访问，则从Single队列移到Multi队列中；</p>
-<p>InMemory：如果一个Block是inMemory的，则放到这个队列中，例如-ROOT-表和.META.表。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">hbase(main):002:0&gt; describe &apos;.META.&apos; </div><div class="line">DESCRIPTION                                                       ENABLED                           </div><div class="line"> &#123;NAME =&gt; &apos;.META.&apos;, IS_META =&gt; &apos;true&apos;, FAMILIES =&gt; [&#123;NAME =&gt; &apos;inf true                              </div><div class="line"> o&apos;, DATA_BLOCK_ENCODING =&gt; &apos;NONE&apos;, BLOOMFILTER =&gt; &apos;NONE&apos;, REPLIC                                   </div><div class="line"> ATION_SCOPE =&gt; &apos;0&apos;, COMPRESSION =&gt; &apos;NONE&apos;, VERSIONS =&gt; &apos;10&apos;, TTL                                   </div><div class="line">  =&gt; &apos;2147483647&apos;, MIN_VERSIONS =&gt; &apos;0&apos;, KEEP_DELETED_CELLS =&gt; &apos;fa                                   </div><div class="line"> lse&apos;, BLOCKSIZE =&gt; &apos;8192&apos;, ENCODE_ON_DISK =&gt; &apos;true&apos;, IN_MEMORY =                                   </div><div class="line"> &gt; &apos;true&apos;, BLOCKCACHE =&gt; &apos;true&apos;&#125;]&#125;                                                                  </div><div class="line">1 row(s) in 0.0550 seconds </div><div class="line">hbase(main):003:0&gt; describe &apos;t3&apos; </div><div class="line">DESCRIPTION                                                       ENABLED                           </div><div class="line"> &#123;NAME =&gt; &apos;t3&apos;, FAMILIES =&gt; [&#123;NAME =&gt; &apos;f3&apos;, DATA_BLOCK_ENCODING = true                              </div><div class="line"> &gt; &apos;NONE&apos;, BLOOMFILTER =&gt; &apos;NONE&apos;, REPLICATION_SCOPE =&gt; &apos;0&apos;, VERSI                                   </div><div class="line"> ONS =&gt; &apos;3&apos;, COMPRESSION =&gt; &apos;NONE&apos;, MIN_VERSIONS =&gt; &apos;0&apos;, TTL =&gt; &apos;                                   </div><div class="line"> 2147483647&apos;, KEEP_DELETED_CELLS =&gt; &apos;false&apos;, BLOCKSIZE =&gt; &apos;65536&apos;                                   </div><div class="line"> , IN_MEMORY =&gt; &apos;false&apos;, ENCODE_ON_DISK =&gt; &apos;true&apos;, BLOCKCACHE =&gt;                                    </div><div class="line"> &apos;true&apos;&#125;, &#123;NAME =&gt; &apos;f4&apos;, DATA_BLOCK_ENCODING =&gt; &apos;NONE&apos;, BLOOMFILT                                   </div><div class="line"> ER =&gt; &apos;NONE&apos;, REPLICATION_SCOPE =&gt; &apos;0&apos;, VERSIONS =&gt; &apos;3&apos;, COMPRES                                   </div><div class="line"> SION =&gt; &apos;NONE&apos;, MIN_VERSIONS =&gt; &apos;0&apos;, TTL =&gt; &apos;2147483647&apos;, KEEP_D                                   </div><div class="line"> ELETED_CELLS =&gt; &apos;false&apos;, BLOCKSIZE =&gt; &apos;65536&apos;, IN_MEMORY =&gt; &apos;fal                                   </div><div class="line"> se&apos;, ENCODE_ON_DISK =&gt; &apos;true&apos;, BLOCKCACHE =&gt; &apos;true&apos;&#125;]&#125;                                             </div><div class="line">1 row(s) in 0.0470 seconds</div></pre></td></tr></table></figure>
-<p>这三个队列Single、Multi、InMemory分别占用了总大小的0.25、0.50和0.25。队列如何生成的呢？对于第一次访问到集群的数据，如果不是被标记为IN_MEMORY，会将它写入single队列，否则写入memory队列。当再次访问该数据并且在single中读到了该数据时，single会升级为multi。通过将缓存分级的好处是避免Cache之间相互影响，尤其是对HBase来说像Meta表这样的Cache应该保证高优先级。</p>
-<h1 id="统计命中率的方法"><a href="#统计命中率的方法" class="headerlink" title="统计命中率的方法"></a>统计命中率的方法</h1><p>目前在ganglia中没有提供特别有效的命中率的详细统计，主要通过一下方式获取,接下来以获取访问命中率的例子来进行分析。提供一个脚本通过日志来获取7天内的历史命中率</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line">#!/bin/bash </div><div class="line">baseDir=$(cd $(dirname $0); pwd) </div><div class="line">hbaseLogDir=&quot;/opt/hbase_logs/&quot; </div><div class="line">checkServerList=$(cat /opt/hbase/conf/regionservers) </div><div class="line">checkUser=&quot;hadoop&quot; </div><div class="line">checkStr=&quot;org.apache.hadoop.hbase.io.hfile.LruBlockCache&quot; </div><div class="line">logPrefix=&quot;hbase-hadoop-regionserver-&quot; </div><div class="line">resultDir=$&#123;baseDir&#125;/result </div><div class="line">max=7 </div><div class="line">if [ ! -d $resultDir ];then </div><div class="line">    mkdir $resultDir </div><div class="line">fi </div><div class="line">for checkServer in $&#123;checkServerList&#125; </div><div class="line">    do </div><div class="line">        for ((i=0 ; i &lt; $max ; i++)) </div><div class="line">           do </div><div class="line">               logFile= </div><div class="line">                if [ $i -ne 0 ];then </div><div class="line">                    day=.$(date +%Y-%m-%d --date &quot;$i days ago&quot;) </div><div class="line">                fi </div><div class="line">                hostname=$(ssh $&#123;checkUser&#125;@$&#123;checkServer&#125; &quot;hostname&quot;) </div><div class="line">                logFile=$&#123;hbaseLogDir&#125;$&#123;logPrefix&#125;$&#123;hostname&#125;.log$&#123;day&#125; </div><div class="line">                echo $logFile </div><div class="line">                ssh $&#123;checkUser&#125;@$&#123;checkServer&#125; &quot;grep $&#123;checkStr&#125; -r $&#123;logFile&#125;&quot; &gt;&gt; $&#123;resultDir&#125;/$&#123;checkServer&#125; </div><div class="line">            done </div><div class="line">        #echo $result &gt;&gt;$&#123;resultDir&#125;/$&#123;checkServer&#125; </div><div class="line">    done</div></pre></td></tr></table></figure>
-<p>通过awk呈现历史的命中率：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">2014-07-15 00:18:36,290 DEBUG org.apache.hadoop.hbase.io.hfile.LruBlockCache: LRU Stats: total1.86 GB, free=367.23 MB, max=2.22 GB, blocks=29427, accesses=109550765, hits=84075136, hitRatio=76.74%, cachingAccesses=88885825, cachingHits=83592639, cachingHitsRatio=94.04%, evictions=1248, evicted=4889752, evictedPerRun=3918.070556640625</div></pre></td></tr></table></figure>
-<p>上面展示了一个LRU日志的内容，接下来简单解析一下LRU日志的各个参数的含义：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">total 当前catch正在使用的内存大小</div><div class="line">free 系统可用的catch的大小</div><div class="line">max  总的可以用于catch的内存大小</div><div class="line">blocks   当前系统的catch中存储的block的个数</div><div class="line">accesses  catch被访问的总的次数</div><div class="line">hits    catch被访问，而且命中的次数</div><div class="line">hitRatio   当前的catch的总的命中率</div><div class="line">catchAccesses 总共请求查找块的次数</div><div class="line">catchingHits 请求查找块的命中次数</div><div class="line">catchHistsRatio 查找块的位置的命中率</div><div class="line">evictions  清除catch发成的次数</div><div class="line">evicted    被清除的block的总数</div><div class="line">evictedPerRun  平均每次清除的个数</div></pre></td></tr></table></figure>
-<p>我们需要的是hitRatio的数据，这部分数据显示的是总的请求的命中率</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">cat $file| grep &quot;cachingHitsRatio&quot; |awk -F &quot;,&quot; &apos;&#123;print $1 $8&#125;&apos;</div></pre></td></tr></table></figure>
-<p>通过这个命令，可以看到系统每隔5分钟会进行，平均的命中率是75%</p>
-<p>通过perl脚本获取到单个节点的平均命中率：</p>
-<figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#!/usr/bin/perl </span></div><div class="line"><span class="keyword">my</span> $file = $ARGV[<span class="number">0</span>]; </div><div class="line"><span class="keyword">my</span> $ratioBefore; </div><div class="line"><span class="keyword">my</span> $ratioLast; </div><div class="line"><span class="keyword">my</span> $count = <span class="number">0</span>; </div><div class="line"><span class="keyword">if</span> ( -e $file )&#123; </div><div class="line">    <span class="keyword">open</span>(FILE,<span class="string">"&lt;"</span>,$file)||<span class="keyword">die</span> <span class="string">"can not open $file\n"</span>; </div><div class="line">    <span class="keyword">while</span>()&#123; </div><div class="line">        <span class="keyword">if</span> ( $_ =~ <span class="regexp">m/hitRatio=(\d+.\d+)%/</span>)&#123; </div><div class="line">            $ratioBefore += $1; </div><div class="line">            $count += <span class="number">1</span>; </div><div class="line">        &#125;   </div><div class="line">    &#125;   </div><div class="line">&#125;</div><div class="line"><span class="keyword">print</span> $ratioBefore/$count;</div></pre></td></tr></table></figure>
-<h1 id="提高catch的命中率"><a href="#提高catch的命中率" class="headerlink" title="提高catch的命中率"></a>提高catch的命中率</h1><p>1、在系统堆内存总量不边的情况下，修改了以下的参数：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase.regionserver.global.memstore.upperLimit  0.35</div></pre></td></tr></table></figure>
-<p>在Region服务器中所有的memstore所占Java虚拟机比例的最大值  </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase.regionserver.global.memstore.lowerLimit  0.30</div></pre></td></tr></table></figure>
-<p>在Region服务器中所有的memstore所占Java虚拟机比例的最小值 </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hfile.block.cache.size  0.40</div></pre></td></tr></table></figure>
-<p>HFile/StoreFile缓存所占java虚拟机堆的大小的百分比 </p>
-<p> 修改了这部分参数意义上是减少了写缓存的数量，提高了读缓存的数量。</p>
-<p>2、使用使用LRU和BucketCatche结合的方式时候</p>
-<p>3、修改表的属性，包括DATA_BLOCK_ENCODING、BLOCKSIZE对命中率有一定的影响</p>
-<p>4、合理的设置rowkey，建议用md5等方式，保证分布足够均匀</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1690,7 +1760,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-count">43</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

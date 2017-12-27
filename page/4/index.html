@@ -231,6 +231,196 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/06/14/通过MR读取Kafka的数据/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/06/14/通过MR读取Kafka的数据/" itemprop="url">通过MR读取Kafka的数据</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-06-13T15:13:27-08:00">
+                2014-06-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="为什么要用MR读取Kafka"><a href="#为什么要用MR读取Kafka" class="headerlink" title="为什么要用MR读取Kafka"></a>为什么要用MR读取Kafka</h1><p>通过Mapreduce读取Kafka，有几个原因：</p>
+<p>1、防止数据量大的读取，导致单台机器承载能力不够</p>
+<p>2、利用MR的优势，更方便的处理数据</p>
+<p>3、可以根据数据的类型，把数据直接存储到HDFS的不同路径上</p>
+<h1 id="实现思路"><a href="#实现思路" class="headerlink" title="实现思路"></a>实现思路</h1><p>1、数据来源是kafka的consumer，所以不能用类似于TextInputFormat等自带的传统的数据切分的方法。<br>2、数据的Map过程需要对数据进行处理，为了减少对数据处理的次数，在Map的时候就需要把后面拼接路径的有效信息提取到<br>3、不需要有Reduce，只需要有直接的OutputStream就可以直接把不同路径的数据分发到不同的HDFS上<br>4、需要基本的ZK管理类，来直接读写偏移的信息</p>
+<h1 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h1><h2 id="提交任务主类"><a href="#提交任务主类" class="headerlink" title="提交任务主类"></a>提交任务主类</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div></pre></td><td class="code"><pre><div class="line">writeNewOffsetFromConfig(conf,TOPIC,GROUP_ID,OFFSETSTART,<span class="keyword">true</span>);</div><div class="line">Job job = <span class="keyword">new</span> Job(conf, <span class="string">"Kafka.Consumer"</span>);</div><div class="line">job.setJarByClass(getClass());</div><div class="line">job.setMapperClass(KafkaMapper.class);</div><div class="line"></div><div class="line"><span class="comment">// input</span></div><div class="line">job.setInputFormatClass(KafkaInputFormat.class);</div><div class="line"></div><div class="line"><span class="comment">// output</span></div><div class="line">job.setOutputKeyClass(Text.class);</div><div class="line">job.setOutputValueClass(Text.class);</div><div class="line">job.setOutputFormatClass(KafkaOutputFormat.class);</div><div class="line">job.setNumReduceTasks(<span class="number">0</span>);</div><div class="line"></div><div class="line">KafkaOutputFormat.setOutputPath(job, <span class="keyword">new</span> Path(HDFS_PATH + <span class="string">"/"</span> + TOPIC));</div><div class="line"><span class="comment">//上面这部分的代码，展示了整个的流程：writeNewOffsetFromConfig是实现了一个从配置读取偏移，不使用上次默认偏移的方法。</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">writeNewOffsetFromConfig</span><span class="params">(Configuration conf,String topic,String groupId,String offsetStr,<span class="keyword">boolean</span> needBackUp)</span> <span class="keyword">throws</span> IOException </span>&#123;</div><div class="line">    ZkUtils zk = <span class="keyword">new</span> ZkUtils(conf);</div><div class="line">    String errorStr = <span class="string">""</span>;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (needBackUp)&#123;</div><div class="line">        backupLastOffset(zk, conf, topic, groupId); <span class="comment">//这个是备份之前的配置，主要通过topic来读取相应的brocker、partiotion、lastOffset的信息，然后存储到ZK。</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">if</span> (offsetStr == <span class="keyword">null</span> || offsetStr == <span class="string">""</span>)&#123; <span class="comment">//如果配置中未指定默认的起始地址，则接着上次的偏移开始读</span></div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        String [] splitStrs = offsetStr.split(<span class="string">","</span>);</div><div class="line">        logger.info(<span class="string">"Get Start message:"</span> + offsetStr);</div><div class="line">        <span class="keyword">if</span> (splitStrs.length &lt; <span class="number">1</span>)&#123;</div><div class="line">            logger.info(<span class="string">"INFO, when start message get splitStr: "</span>+offsetStr+<span class="string">" length :"</span> + splitStrs.length);</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="keyword">for</span> ( String splitStr : splitStrs)&#123;</div><div class="line">            String [] offsetDetailInfos = splitStr.split(<span class="string">":"</span>);</div><div class="line">            <span class="keyword">if</span> (ffsetDetailInfos.length != <span class="number">2</span>)&#123;</div><div class="line">                errorStr = <span class="string">"Error: when change offset from config, get error system config (OFFSETSTART):"</span> + offsetStr;</div><div class="line">                logger.error(errorStr);</div><div class="line">            &#125;  <span class="keyword">else</span> &#123;</div><div class="line">                <span class="keyword">try</span> &#123;</div><div class="line">                    String partition = offsetDetailInfos[<span class="number">0</span>];</div><div class="line">                    <span class="keyword">long</span> offset = Long.valueOf(offsetDetailInfos[<span class="number">1</span>]);</div><div class="line">                    logger.info(<span class="string">"Info: update group:"</span> + groupId + <span class="string">" topic:"</span></div><div class="line">                        + topic + <span class="string">" parti:"</span> + partition + <span class="string">" offset:"</span>+ offset);</div><div class="line">                    zk.setLastCommit(groupId, topic, partition, offset,<span class="keyword">false</span>); <span class="comment">//把当前的偏移设置为从配置中读取到的默认偏移</span></div><div class="line">                &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">                    errorStr = <span class="string">"When set offset which is read from config OFFSETSTART:"</span> + offsetStr + <span class="string">". Get Error:"</span> + e.toString();</div><div class="line">                    logger.error(errorStr);</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">catch</span> (Exception e)&#123;</div><div class="line">        String lastOffset = zk.getLastOffset(groupId, topic);</div><div class="line">        <span class="keyword">if</span> (lastOffset != <span class="keyword">null</span>)&#123;</div><div class="line">            writeNewOffsetFromConfig(conf, topic, groupId, lastOffset,<span class="keyword">false</span>);</div><div class="line">        &#125;</div><div class="line">        errorStr = <span class="string">"Error: when change offset from config, get exception:"</span> + e.toString();</div><div class="line">        logger.error(errorStr);</div><div class="line">    &#125; <span class="keyword">finally</span> &#123;</div><div class="line">        zk.close();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>其它的MR的方法，接下来会依次介绍，可以看到，这里主要实现了InputFormat、 Mapper、OutputFormat的方法来实现从Kafka消费数据，然后根据数据的类型写到不同的HDFS上。</p>
+<h2 id="关于InputSplit"><a href="#关于InputSplit" class="headerlink" title="关于InputSplit"></a>关于InputSplit</h2><p>﻿﻿在 MapReduce过程中，Map之前要进行的是Inputsplit，通过数据的切分，然后才能把数据分发到不同的节点上进行计算。</p>
+<p>InputSplit整个过程包含了个重要的方法getSplits和getRecorder方法。</p>
+<p>getSplits主要返回了一个InputSplit的对象，这个对象在逻辑上对整个数据进行了切片(注意，没有进行实际的物理切分)</p>
+<p>切分的过程中，会涉及到分片大小的问题：</p>
+<p>在默认的切分中，会通过下面的方式计算分片的大小：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">goalSize = totalSize / mapred.map.tasks <span class="comment">// mapred.map.tasks默认的配置为2</span></div><div class="line">minSize = max &#123;mapred.min.split.size, minSplitSize&#125;  <span class="comment">//mapred.min.split.size的默认配置为1</span></div><div class="line">splitSize = max (minSize, min(goalSize, dfs.block.size))  <span class="comment">//dfs.block.size默认为64M</span></div></pre></td></tr></table></figure>
+<p>通过最后一个计算公式，可以看到，一般正常配置的情况下分片最大不会超过dfs.block.size(minSize一般小于分块的大小)</p>
+<p>接下来分析我使用的分片方式</p>
+<h3 id="1、定义kafka-consumer的数据进行了分片结构："><a href="#1、定义kafka-consumer的数据进行了分片结构：" class="headerlink" title="1、定义kafka consumer的数据进行了分片结构："></a>1、定义kafka consumer的数据进行了分片结构：</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> String brokerId;  <span class="comment">//数据所在的broker的Id</span></div><div class="line"><span class="keyword">private</span> String broker;  <span class="comment">// 数据所在的broker</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">int</span> partition; <span class="comment">//具体的每个brocker的某个partition</span></div><div class="line"><span class="keyword">private</span> String topic; <span class="comment">//读取的topic</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">long</span> lastCommit; <span class="comment">//记录上一次的偏移量</span></div></pre></td></tr></table></figure>
+<h3 id="2、构建逻辑分片"><a href="#2、构建逻辑分片" class="headerlink" title="2、构建逻辑分片"></a>2、构建逻辑分片</h3><p>​     要想使用上面的数据结构来构建splits，需要从Kafka的consumer组中，查找指定的topic的各个数据。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">List splits = <span class="keyword">new</span> ArrayList();</div><div class="line">List partitions = zk.getPartitions(topic);  <span class="comment">//获取指定的topic的分区情况</span></div><div class="line"></div><div class="line"><span class="keyword">for</span> (String partition : partitions) &#123;</div><div class="line">    String[] sp = partition.split(<span class="string">"-"</span>); <span class="comment">//在消费队列中，存储的格式为brocker-partition的，通过切分获取相应的brocker和partition</span></div><div class="line">    <span class="keyword">long</span> last = zk.getLastCommit(group, topic, partition); <span class="comment">//获取对应的brocker-partition的最后便宜量</span></div><div class="line">    InputSplit split = <span class="keyword">new</span> KafkaSplit(sp[<span class="number">0</span>], zk.getBroker(sp[<span class="number">0</span>]),topic, Integer.valueOf(sp[<span class="number">1</span>]), last); <span class="comment">//构建split分片对象</span></div><div class="line">    splits.add(split); <span class="comment">//在总的分片列表中加入刚创建的分片对象</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>最后返回splits，这样就获取到了所有的逻辑分片,这样的分片，可以保证，每个Map读取对应的brocker的数据(因为Map的数量是由split的个数决定的)。</p>
+<h3 id="3、完成Reader"><a href="#3、完成Reader" class="headerlink" title="3、完成Reader"></a>3、完成Reader</h3><p>﻿﻿﻿﻿完成数据的逻辑分片后，需要对具体的某个分片，获取相应的数据，接下来就涉及到了InputSplit的另一个重要的方法。</p>
+<p>RecordReader方法的使命是通过逻辑分片，读取相应的数据，然后传递给Map。</p>
+<p>为什么用了使命呢，因为这部分是比较棘手的一部分。</p>
+<p>这部分是返回一个RecordReader的对象，需要重写以下几个方法：</p>
+<h4 id="1、initialize"><a href="#1、initialize" class="headerlink" title="1、initialize"></a>1、initialize</h4><p>初始化RecordReader对象，这个过程中，我会新开一个线程去从Kafka读取数据：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">kafka.api.FetchRequest request = <span class="keyword">new</span> FetchRequest(topic, partition, offset, fetchSize);</div><div class="line">messages = consumer.fetch(request);这里需要判断一下返回结构是否正确</div><div class="line"><span class="keyword">int</span> code = messages.getErrorCode();</div><div class="line"><span class="keyword">if</span> (code == <span class="number">0</span>) &#123;    </div><div class="line">  hasData = <span class="keyword">true</span>;  <span class="comment">//设置是否还有数据    </span></div><div class="line">  offset += messages.validBytes(); <span class="comment">// 把offset设置为当前的offset加上读出的数据的长度，为下次读取的偏移</span></div><div class="line">&#125; <span class="keyword">else</span> <span class="keyword">if</span> (hasData &amp;&amp; code == ErrorMapping.OffsetOutOfRangeCode()) &#123;    </div><div class="line">  <span class="comment">//表示已经没有数据了        </span></div><div class="line">  stop = <span class="keyword">true</span>; <span class="comment">//停止读取数据</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>但是这里访问kafka的时候，可能会有并发的问题，所以我加入了ArrayBlockingQueue队列来存储所有的message。在初始化阶段，还需要把偏移的start和end获取到：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">startOffset = SimpleConsumer kafka.consumer.KafkaContext.consumer.getOffsetsBefore(topic, partition, -<span class="number">2L</span>, <span class="number">1</span>)[<span class="number">0</span>];</div><div class="line">lastOffset = SimpleConsumer kafka.consumer.KafkaContext.consumer.getOffsetsBefore(topic, partition, -<span class="number">1L</span>, <span class="number">1</span>)[<span class="number">0</span>];</div></pre></td></tr></table></figure>
+<h4 id="2、nextKeyValue"><a href="#2、nextKeyValue" class="headerlink" title="2、nextKeyValue"></a>2、nextKeyValue</h4><p>这个方法是最为重要的一个方法，主要是把获取到的逻辑分片，返回一个key value的数据对，传递给Map。</p>
+<p>作为最重要的处理方法，在我们这里其实很简单，就是读取当前的message，把offset作为key，获取到的message作为value返回。</p>
+<p>通过 Iterator iterator.hasNext判断是否还有新的message，如果有的话，调用Iterator iterator.message获取到当前的消息，然后设置key和value返回。</p>
+<h4 id="3、getProgress"><a href="#3、getProgress" class="headerlink" title="3、getProgress"></a>3、getProgress</h4><p>这个函数主要是通过初始化的时候获取到的起始偏移来返回当前的进度，</p>
+<h4 id="4、close"><a href="#4、close" class="headerlink" title="4、close"></a>4、close</h4><p>在关闭当前的读取之后，需要把读取完之后的offset写回，</p>
+<p>和split的时候获取的方法想对应，这里调用的是：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">zk.setLastCommit(group, ksplit.getTopic(), partition, pos, <span class="keyword">true</span>);</div></pre></td></tr></table></figure>
+<p>写回的偏移保证下次的split的时候能从新的偏移开始读数据。</p>
+<p>通过createRecordReader(旧版的API里面为RecorderReader)返回上面的一个recorder对象，就可以提供在Map的时候处理的KV。</p>
+<h2 id="实现Map类"><a href="#实现Map类" class="headerlink" title="实现Map类"></a>实现Map类</h2><p>﻿其实Map类很简单，</p>
+<p>分到的key为上一次的offset</p>
+<p>分到的 value 为上一次读取到的message</p>
+<p>为什么是上一次呢，因为在上次读取完之后，已经修改了offset，对于每个map，下一次要处理的数据，不再是同一个。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"> Text out = <span class="keyword">new</span> Text();</div><div class="line">out.set(value.getBytes(), <span class="number">0</span>, value.getLength());</div></pre></td></tr></table></figure>
+<p>上面的两次可以获取到具体的message，然后可以进行处理，这里的处理不再细说。</p>
+<h2 id="实现output"><a href="#实现output" class="headerlink" title="实现output"></a>实现output</h2><p>﻿﻿首先我们的OutPut类继承了FileOutputFormat方法，这样就可以实现不同的数据存储到不同路径的需求。    </p>
+<p>然后需要重写方法getRecordWriter，这个方法需要返回一个RecordWriter的数据，这个数据中指定了不同的数据存储到不同的节点上。</p>
+<p>这里需要补充一个问题，因为我们的HDFS上需要存储数据的基本路径可能是固定的，比如/user/XXX的数据存放在相应的目录下。我们可以在主类中执行最基本的路径：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">OutputFormat.setOutputPath(job, <span class="keyword">new</span> Path(HDFS_PATH + <span class="string">"/"</span> + TOPIC));</div></pre></td></tr></table></figure>
+<p>然后可以通过一下方法在output的时候获取到相应的路径：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Path outputPath = <span class="keyword">super</span>.getOutputPath(conf);</div></pre></td></tr></table></figure>
+<p>基本路径取定后，我们需要实现一个RecordWriter类，这个类中可以定义构造函数，指定要写入的job名称和基础路径。<br>而RecordWriter需要重写以下的方法：</p>
+<p>在write中是将指定的数据写入到指定的HDFS上，基本路径在之前已经获取到，然后需要指定写入的文件名，我们可以简单的使用key.toString()作为文件名称。</p>
+<p>然后通过Path file = new Path(workPath,key.toString() );拼接出来新的路径。</p>
+<p>接下来创建一个HDFS的输出流：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">FSDataOutputStream fileOut = file.getFileSystem(conf).create(file, <span class="keyword">true</span>);</div></pre></td></tr></table></figure>
+<p>调用out.write方法，把刚才获取到的value值写到流中。</p>
+<p> 这里的write实现了数据的写入。</p>
+<p>在close的时候需要做的是，把所有打开的RecordWriter都关闭。</p>
+<p>我在实现的时候使用了private HashMap&gt; recordWriters 类存储所有的对象，然后轮寻所有hashmap,</p>
+<p>依次调用close方法关闭相应的输出流，最后应该清空hashMap,这样可以最快的释放内存。</p>
+<h2 id="ZK偏移量的管理"><a href="#ZK偏移量的管理" class="headerlink" title="ZK偏移量的管理"></a>ZK偏移量的管理</h2><p>﻿zk的使用，可以使用ZkClient或者使用org.apache.zookeeper.ZooKeeper，实现，本文使用的是前者。</p>
+<p>zk的创建：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ZkClient client = <span class="keyword">new</span> ZkClient(zk, stimeout, ctimeout, <span class="keyword">new</span> StringSerializer() );</div></pre></td></tr></table></figure>
+<p>zk获取目录的列表：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.getChildren(path);</div></pre></td></tr></table></figure>
+<p>zk获取节点的值：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.readData(znode, <span class="keyword">true</span>);</div></pre></td></tr></table></figure>
+<p>zk删除节点：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.delete(path);</div></pre></td></tr></table></figure>
+<p>zk创建路径：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.createPersistent(path, <span class="keyword">true</span>);</div></pre></td></tr></table></figure>
+<p>zk写值</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.writeData(path, value);</div></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/03/23/c-实现算法插入排序/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1294,126 +1484,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2013/12/18/perl实现算法soundex/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2013/12/18/perl实现算法soundex/" itemprop="url">perl实现算法soundex</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2013-12-17T22:24:26-08:00">
-                2013-12-17
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">use</span> strict;</div><div class="line"></div><div class="line"><span class="keyword">my</span> %allChange = (</div><div class="line">    <span class="string">"b"</span> =&gt; <span class="string">"1"</span>,</div><div class="line">    <span class="string">"f"</span> =&gt; <span class="string">"1"</span>,</div><div class="line">    <span class="string">"p"</span> =&gt; <span class="string">"1"</span>,</div><div class="line">    <span class="string">"v"</span> =&gt; <span class="string">"1"</span>,</div><div class="line">    <span class="string">"c"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"g"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"j"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"k"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"q"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"s"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"x"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"z"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"t"</span> =&gt; <span class="string">"3"</span>,</div><div class="line">    <span class="string">"d"</span> =&gt; <span class="string">"3"</span>,</div><div class="line">    <span class="string">"l"</span> =&gt; <span class="string">"4"</span>,</div><div class="line">    <span class="string">"n"</span> =&gt; <span class="string">"5"</span>,</div><div class="line">    <span class="string">"m"</span> =&gt; <span class="string">"5"</span>,</div><div class="line">    <span class="string">"r"</span> =&gt; <span class="string">"6"</span></div><div class="line">);</div><div class="line"></div><div class="line"><span class="keyword">my</span> @skipChar = (<span class="string">"y"</span>,<span class="string">"w"</span>,<span class="string">"u"</span>,<span class="string">"o"</span>,<span class="string">"i"</span>,<span class="string">"h"</span>,<span class="string">"e"</span>,<span class="string">"a"</span>);</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">sub</span> <span class="title">stem_soundex</span></span>&#123;</div><div class="line">    <span class="keyword">my</span> $str = <span class="keyword">shift</span>;</div><div class="line">    <span class="keyword">my</span> @allChar = <span class="keyword">split</span>(<span class="string">""</span>,$str);</div><div class="line">    <span class="keyword">my</span> $lastChar;</div><div class="line">    <span class="keyword">my</span> @result = ();</div><div class="line">    <span class="keyword">foreach</span> <span class="keyword">my</span> $currentChar (@allChar) &#123;</div><div class="line">        <span class="keyword">if</span> ($allChange&#123;<span class="string">"$currentChar"</span>&#125;) &#123;</div><div class="line">            <span class="keyword">next</span> <span class="keyword">if</span> (<span class="string">"$currentChar"</span> eq <span class="string">"$lastChar"</span>);</div><div class="line">            $lastChar = $allChange&#123;<span class="string">"$currentChar"</span>&#125;;</div><div class="line">            <span class="keyword">push</span>(@result,$allChange&#123;<span class="string">"$currentChar"</span>&#125;);</div><div class="line">        &#125; <span class="keyword">elsif</span> (<span class="keyword">grep</span> &#123; <span class="string">"$_"</span> eq <span class="string">"$currentChar"</span>&#125; @skipChar) &#123;</div><div class="line">            <span class="keyword">next</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">push</span>(@result,$currentChar);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">while</span> (<span class="keyword">scalar</span>(@result) != <span class="number">4</span>) &#123;</div><div class="line">        <span class="keyword">if</span> (<span class="keyword">scalar</span>(@result) &lt; <span class="number">4</span> ) &#123;</div><div class="line">            <span class="keyword">push</span>(@result,<span class="string">"0"</span>);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">shift</span>(@result);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">print</span> <span class="string">"@result\n"</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">my</span> @check = (<span class="string">"Knuth"</span>,<span class="string">"Kant"</span>);</div><div class="line"><span class="keyword">foreach</span>  (@check) &#123;</div><div class="line">    stem_soundex(<span class="string">"$_"</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1464,7 +1534,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-count">43</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

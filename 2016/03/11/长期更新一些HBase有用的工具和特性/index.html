@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="算法," />
+  <meta name="keywords" content="HBase," />
 
 
 
@@ -79,16 +79,31 @@
 
 
 
-<meta name="description" content="1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162#includeusing namespace std;void showResult(int *sortList, int number)&amp;#123;    int i">
+<meta name="description" content="新的特性整理1、HBase存储图片，文档等字节流的内容
+https://issues.apache.org/jira/browse/HBASE-11339 
+2、compact的速度控制 
+https://issues.apache.org/jira/browse/HBASE-8329 
+3、关于scan强制控制超时的一个问题，相当与给scan本身加了一个心跳
+https://issues.apa">
 <meta property="og:type" content="article">
-<meta property="og:title" content="c++实现算法快排">
-<meta property="og:url" content="http://yoursite.com/2014/03/19/c-实现算法快排/index.html">
+<meta property="og:title" content="长期更新一些HBase有用的工具和特性">
+<meta property="og:url" content="http://yoursite.com/2016/03/11/长期更新一些HBase有用的工具和特性/index.html">
 <meta property="og:site_name" content="Aiping.LAP">
-<meta property="og:description" content="1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162#includeusing namespace std;void showResult(int *sortList, int number)&amp;#123;    int i">
-<meta property="og:updated_time" content="2017-12-22T08:29:32.000Z">
+<meta property="og:description" content="新的特性整理1、HBase存储图片，文档等字节流的内容
+https://issues.apache.org/jira/browse/HBASE-11339 
+2、compact的速度控制 
+https://issues.apache.org/jira/browse/HBASE-8329 
+3、关于scan强制控制超时的一个问题，相当与给scan本身加了一个心跳
+https://issues.apa">
+<meta property="og:updated_time" content="2017-12-27T06:54:31.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="c++实现算法快排">
-<meta name="twitter:description" content="1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162#includeusing namespace std;void showResult(int *sortList, int number)&amp;#123;    int i">
+<meta name="twitter:title" content="长期更新一些HBase有用的工具和特性">
+<meta name="twitter:description" content="新的特性整理1、HBase存储图片，文档等字节流的内容
+https://issues.apache.org/jira/browse/HBASE-11339 
+2、compact的速度控制 
+https://issues.apache.org/jira/browse/HBASE-8329 
+3、关于scan强制控制超时的一个问题，相当与给scan本身加了一个心跳
+https://issues.apa">
 
 
 
@@ -118,13 +133,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2014/03/19/c-实现算法快排/"/>
+  <link rel="canonical" href="http://yoursite.com/2016/03/11/长期更新一些HBase有用的工具和特性/"/>
 
 
 
 
 
-  <title>c++实现算法快排 | Aiping.LAP</title>
+  <title>长期更新一些HBase有用的工具和特性 | Aiping.LAP</title>
   
 
 
@@ -231,7 +246,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/03/19/c-实现算法快排/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2016/03/11/长期更新一些HBase有用的工具和特性/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="aiping.lap">
@@ -248,7 +263,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">c++实现算法快排</h1>
+          <h1 class="post-title" itemprop="name headline">长期更新一些HBase有用的工具和特性</h1>
         
 
         <div class="post-meta">
@@ -260,8 +275,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-03-19T05:05:46+08:00">
-                2014-03-18
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2016-03-10T21:15:52-08:00">
+                2016-03-10
               </time>
             
 
@@ -303,7 +318,40 @@
       
 
       
-        <figure class="highlight c++"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span></span></div><div class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">showResult</span><span class="params">(<span class="keyword">int</span> *sortList, <span class="keyword">int</span> number)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> i = <span class="number">0</span>;</div><div class="line">    <span class="keyword">for</span> (; i &lt;= number; i++)</div><div class="line">    &#123;</div><div class="line">        <span class="built_in">cout</span>&lt;&lt;sortList[i]&lt;&lt;<span class="string">" "</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="built_in">cout</span>&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">improveQsort</span><span class="params">(<span class="keyword">int</span> *sortList, <span class="keyword">int</span> firstNum, <span class="keyword">int</span> lastNum)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> tmpNum;</div><div class="line">    tmpNum = sortList[firstNum];</div><div class="line">    <span class="keyword">while</span> ( firstNum &lt; lastNum )</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">while</span> ( firstNum &lt; lastNum &amp;&amp; sortList[lastNum] &gt; tmpNum )</div><div class="line">        &#123;</div><div class="line">            lastNum--;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">if</span> ( firstNum &lt; lastNum )</div><div class="line">        &#123;</div><div class="line">            sortList[firstNum++] = sortList[lastNum];</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">while</span> ( firstNum &lt; lastNum &amp;&amp; sortList[firstNum] &lt;= tmpNum )</div><div class="line">        &#123;</div><div class="line">            firstNum++;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">if</span> ( firstNum &lt; lastNum )</div><div class="line">        &#123;</div><div class="line">            sortList[lastNum--] = sortList[firstNum];</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    sortList[firstNum] = tmpNum;</div><div class="line">    <span class="keyword">return</span> firstNum;</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">quickSort</span><span class="params">(<span class="keyword">int</span> *sortList, <span class="keyword">int</span> firstNum, <span class="keyword">int</span> lastNum)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> current = <span class="number">0</span>;</div><div class="line">    <span class="keyword">if</span> ( firstNum &lt; lastNum )&#123;</div><div class="line">        current = improveQsort(sortList, firstNum, lastNum);</div><div class="line">        quickSort(sortList, firstNum, current<span class="number">-1</span>);</div><div class="line">        quickSort(sortList,current+<span class="number">1</span>,lastNum);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span> <span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> sortList[<span class="number">10</span>] = &#123;<span class="number">5</span>, <span class="number">3</span>, <span class="number">7</span>, <span class="number">4</span>, <span class="number">1</span>, <span class="number">9</span>, <span class="number">8</span>, <span class="number">6</span>, <span class="number">2</span>, <span class="number">3</span>&#125;;</div><div class="line">    <span class="keyword">int</span> number = <span class="number">10</span>;</div><div class="line">    quickSort(sortList,<span class="number">0</span>,number<span class="number">-1</span>);</div><div class="line">    showResult(sortList,number<span class="number">-1</span>);</div><div class="line">    <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+        <h1 id="新的特性整理"><a href="#新的特性整理" class="headerlink" title="新的特性整理"></a>新的特性整理</h1><p>1、HBase存储图片，文档等字节流的内容</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-11339" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-11339</a> </p>
+<p>2、compact的速度控制 </p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-8329" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-8329</a> </p>
+<p>3、关于scan强制控制超时的一个问题，相当与给scan本身加了一个心跳</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-13090" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-13090</a></p>
+<p>4、在执行HBase的BULK Load的时候，如果导入失败，但是如果写了WAL也认为是成功，这是个BUG</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-15425" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15425</a></p>
+<p>5、终于要出手解决监控的问题了，汇总监控，以前的监控受限于rs的个数</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-15742" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15742</a></p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-14470" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-14470</a></p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-15728" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15728</a></p>
+<p>6、为set batch的一些代码传输了所有的错误堆栈信息</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-15711" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15711</a></p>
+<p>7、增加admin动作的一些权限控制</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-15388" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15388</a></p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-15128" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15128</a></p>
+<p>8、表权限的控制</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-14809" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-14809</a></p>
+<p>9、通过创建多备份，实现读写分离，加快读的速度，有点针对kudu</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-10070" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-10070</a></p>
+<p>10、可以不停服务的更新配置</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-12147" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-12147</a></p>
+<p>11、单列簇的flush</p>
+<p> <a href="https://issues.apache.org/jira/browse/HBASE-10201" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-10201</a></p>
+<p>12、单个列簇的时间范围scan</p>
+<p><a href="https://issues.apache.org/jira/browse/HBASE-14355" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-14355</a></p>
+<p>13、一个比较老的特性，就是表的实时增量备份，但是一直不稳定，不建议线上用</p>
+<p><a href="https://hbase.apache.org/0.94/replication.html" target="_blank" rel="external">https://hbase.apache.org/0.94/replication.html</a></p>
+<h1 id="一些其它的整理："><a href="#一些其它的整理：" class="headerlink" title="一些其它的整理："></a>一些其它的整理：</h1><p>HBase的一个检测表运行状态的工具 </p>
+<p><a href="http://blog.csdn.net/yueyedeai/article/details/17646393" target="_blank" rel="external">http://blog.csdn.net/yueyedeai/article/details/17646393</a></p>
+<p>一个不错的博客</p>
+<p><a href="https://zh.hortonworks.com/blog/apache-hbase-region-splitting-and-merging/" target="_blank" rel="external">https://zh.hortonworks.com/blog/apache-hbase-region-splitting-and-merging/</a></p>
+
       
     </div>
     
@@ -320,7 +368,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/算法/" rel="tag"># 算法</a>
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
           
         </div>
       
@@ -333,8 +381,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2014/03/17/c-实现算法链表/" rel="next" title="c++实现算法链表">
-                <i class="fa fa-chevron-left"></i> c++实现算法链表
+              <a href="/2015/12/27/java基础面试之volatile关键字/" rel="next" title="java基础面试之volatile关键字">
+                <i class="fa fa-chevron-left"></i> java基础面试之volatile关键字
               </a>
             
           </div>
@@ -343,8 +391,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2014/03/21/c-实现算法冒泡排序/" rel="prev" title="c++实现算法冒泡排序">
-                c++实现算法冒泡排序 <i class="fa fa-chevron-right"></i>
+              <a href="/2016/03/23/Hadoop开启LZO后的压测/" rel="prev" title="Hadoop开启LZO后的压测">
+                Hadoop开启LZO后的压测 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -395,8 +443,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -449,6 +506,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#新的特性整理"><span class="nav-number">1.</span> <span class="nav-text">新的特性整理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#一些其它的整理："><span class="nav-number">2.</span> <span class="nav-text">一些其它的整理：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       

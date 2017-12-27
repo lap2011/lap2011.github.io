@@ -231,6 +231,126 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2013/12/18/perl实现算法soundex/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2013/12/18/perl实现算法soundex/" itemprop="url">perl实现算法soundex</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2013-12-17T22:24:26-08:00">
+                2013-12-17
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">use</span> strict;</div><div class="line"></div><div class="line"><span class="keyword">my</span> %allChange = (</div><div class="line">    <span class="string">"b"</span> =&gt; <span class="string">"1"</span>,</div><div class="line">    <span class="string">"f"</span> =&gt; <span class="string">"1"</span>,</div><div class="line">    <span class="string">"p"</span> =&gt; <span class="string">"1"</span>,</div><div class="line">    <span class="string">"v"</span> =&gt; <span class="string">"1"</span>,</div><div class="line">    <span class="string">"c"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"g"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"j"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"k"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"q"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"s"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"x"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"z"</span> =&gt; <span class="string">"2"</span>,</div><div class="line">    <span class="string">"t"</span> =&gt; <span class="string">"3"</span>,</div><div class="line">    <span class="string">"d"</span> =&gt; <span class="string">"3"</span>,</div><div class="line">    <span class="string">"l"</span> =&gt; <span class="string">"4"</span>,</div><div class="line">    <span class="string">"n"</span> =&gt; <span class="string">"5"</span>,</div><div class="line">    <span class="string">"m"</span> =&gt; <span class="string">"5"</span>,</div><div class="line">    <span class="string">"r"</span> =&gt; <span class="string">"6"</span></div><div class="line">);</div><div class="line"></div><div class="line"><span class="keyword">my</span> @skipChar = (<span class="string">"y"</span>,<span class="string">"w"</span>,<span class="string">"u"</span>,<span class="string">"o"</span>,<span class="string">"i"</span>,<span class="string">"h"</span>,<span class="string">"e"</span>,<span class="string">"a"</span>);</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">sub</span> <span class="title">stem_soundex</span></span>&#123;</div><div class="line">    <span class="keyword">my</span> $str = <span class="keyword">shift</span>;</div><div class="line">    <span class="keyword">my</span> @allChar = <span class="keyword">split</span>(<span class="string">""</span>,$str);</div><div class="line">    <span class="keyword">my</span> $lastChar;</div><div class="line">    <span class="keyword">my</span> @result = ();</div><div class="line">    <span class="keyword">foreach</span> <span class="keyword">my</span> $currentChar (@allChar) &#123;</div><div class="line">        <span class="keyword">if</span> ($allChange&#123;<span class="string">"$currentChar"</span>&#125;) &#123;</div><div class="line">            <span class="keyword">next</span> <span class="keyword">if</span> (<span class="string">"$currentChar"</span> eq <span class="string">"$lastChar"</span>);</div><div class="line">            $lastChar = $allChange&#123;<span class="string">"$currentChar"</span>&#125;;</div><div class="line">            <span class="keyword">push</span>(@result,$allChange&#123;<span class="string">"$currentChar"</span>&#125;);</div><div class="line">        &#125; <span class="keyword">elsif</span> (<span class="keyword">grep</span> &#123; <span class="string">"$_"</span> eq <span class="string">"$currentChar"</span>&#125; @skipChar) &#123;</div><div class="line">            <span class="keyword">next</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">push</span>(@result,$currentChar);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">while</span> (<span class="keyword">scalar</span>(@result) != <span class="number">4</span>) &#123;</div><div class="line">        <span class="keyword">if</span> (<span class="keyword">scalar</span>(@result) &lt; <span class="number">4</span> ) &#123;</div><div class="line">            <span class="keyword">push</span>(@result,<span class="string">"0"</span>);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">shift</span>(@result);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">print</span> <span class="string">"@result\n"</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">my</span> @check = (<span class="string">"Knuth"</span>,<span class="string">"Kant"</span>);</div><div class="line"><span class="keyword">foreach</span>  (@check) &#123;</div><div class="line">    stem_soundex(<span class="string">"$_"</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2012/11/28/shell-perl的一些小技巧/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -534,7 +654,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-count">43</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
