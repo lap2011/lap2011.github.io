@@ -231,6 +231,129 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/10/30/HBase客户端开发建议/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/10/30/HBase客户端开发建议/" itemprop="url">HBase客户端开发建议</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-10-29T11:07:52-08:00">
+                2014-10-29
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>​     1、HTable不是线程安全的。建议使用同一个HBaseConfiguration实例来创建HTable实例。这样可以共享ZooKeeper和socket实例。对于需要多线程大量写入HBase的，提供了HTablePool来支持多线程写入hbase，多线程同时从HTablePool中取出HTable并写入是安全的。</p>
+<p>​       2、如果为了加快写的速度，设置了客户端的写缓存池，并且关闭了HTable对象的AutoFlush，那么在完成所有的操作后，最好调用HTable对象的close和flushCommits的操作，这样才能保证写到缓存池中的数据全部传送到服务器端。</p>
+<p>​       3、当flush的时候，现有的memstore会生成快照，然后清空。在执行快照的时候，Hbase会继续接收修改操作，保存在memstore外面，直到快照完成，所以在flush的时候，应该避免大量的写入，可能会导致数据不同步。</p>
+<p>未完待续…</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/10/21/在Django项目中REST接口/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1517,209 +1640,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/07/28/HBase读写性能相关-基本优化/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/07/28/HBase读写性能相关-基本优化/" itemprop="url">HBase读写性能相关-基本优化</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-07-27T21:52:42-08:00">
-                2014-07-27
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="split触发时机"><a href="#split触发时机" class="headerlink" title="split触发时机"></a>split触发时机</h1><p>a、compact之后会调用CompactSplitThread.requestSplit(HRegion)</p>
-<p>b、flush之前会检测区域中HStoreFile数目是否超hbase.hstore.blockingStoreFiles，如果超过且没有等待超时会调用CompactSplitThread.requestSplit(HRegion)</p>
-<p>c、flush之后会调用HRegion.checkSplit()检测是否需要split，如果需要则调用  </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">CompactSplitThread.requestSplit(HRegion)</div></pre></td></tr></table></figure>
-<p>d、手动的split</p>
-<h1 id="compact发生的时间"><a href="#compact发生的时间" class="headerlink" title="compact发生的时间"></a>compact发生的时间</h1><p>a、Memstoreflush时；</p>
-<p>b、HRegionServer定期做Compaction Checker时；</p>
-<p>c、HBaseAdmin客户端发起的请求；</p>
-<p>d、CompactTool发起。</p>
-<h1 id="影响写速度的因素"><a href="#影响写速度的因素" class="headerlink" title="影响写速度的因素"></a>影响写速度的因素</h1><p>1、rowKey是否足够合理</p>
-<p>因为hbase是按rowKey连续存储的，因此如应用写入数据时rowKey是连续的，那么就会造成写的压力会集中在单台region server上，这样造成了负载不均衡。因此应用在设计rowKey时，要尽可能的保证写入是分散的，当然，这可能会对有连续读需求的场景产生一定的冲击。</p>
-<p>2、写阻塞等待</p>
-<p>造成这个现象的原因是各个region的memstore使用的大小加起来超过了总的阈值，于是阻塞并开始进行flush，这个过程会需要消耗掉一些时间，通常来说造成这个的原因是单台RegionServer上region数太多了，因此其实单台RegionServer上最好不要放置过多的region，一种调节方法是调大split的fileSize，这样可以适当的减少region数，但需要关注调整后读性能的变化。一般会报错：Flush thread woke up with memory above low water。或者在memstore的大小超过其阈值的时候，也会进行flush，错误日志：delaying flush up to。</p>
-<p>3、compact带来的影响</p>
-<p>通常是store file太多compact造成的，错误日志： has too many store files; delaying flush up to</p>
-<p> 4、 split造成的</p>
-<p>split会造成读写短暂的失败，如写的数据比较大的话，可能会有频繁的split出现，sptlit期间会让region下线，然后block住该region的写请求。</p>
-<h1 id="随机写的测试工具YCSB"><a href="#随机写的测试工具YCSB" class="headerlink" title="随机写的测试工具YCSB"></a>随机写的测试工具YCSB</h1><p> ycsb是一个非常方便的针对分布式文件系统的测试工具,它的特点是：1 可以任意设置读写比例、线程数量，打印结果比较详细；2 它是hbase等nosql官方jira上面的测试标准，与人交流时ycsb的测试数据最能说明问题。</p>
-<p>下载0.1.3版本，编译hbase的测试类，把hbase的配置文件拷贝到db/hbase/conf下，依次执行ant &amp;&amp; ant dbcompile-hbase</p>
-<p>执行随机写的测试：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">java -cp build/ycsb.jar:db/hbase/lib/* com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.db.HBaseClient -P workloads/workloada -p columnfamily=family -p table=hello -p recordcount=100000000 -p threadcount=4  -s 2&gt;&amp;1 &gt;result</div></pre></td></tr></table></figure>
-<p> 执行随机读的测试：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">java -cp build/ycsb.jar:db/hbase/lib/* com.yahoo.ycsb.Client -t -db com.yahoo.ycsb.db.HBaseClient -P workloads/workloada -p columnfamily=info -p table=hee -p operationcount=100000 -s -threads 10 -target 100 &gt; transactions.dat</div></pre></td></tr></table></figure>
-<p> workload[a-f]依次代表的百分比为：</p>
-<p>结果分析(以插入1000000条数据的结果做分析)：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">3 [OVERALL], RunTime(ms), 2459212.0  //总的运行时间</div><div class="line"></div><div class="line">4 [OVERALL], Throughput(ops/sec), 406.63432026193755  //每秒内插入的数据 </div><div class="line"></div><div class="line">5 [INSERT], Operations, 1000000 //插入的总数量</div><div class="line"></div><div class="line">6 [INSERT], AverageLatency(ms), 9.27774  //每条数据的插入时间</div><div class="line"></div><div class="line">7 [INSERT], MinLatency(ms), 0 //最短插入间隔</div><div class="line"></div><div class="line">8 [INSERT], MaxLatency(ms), 265720 //最长的插入间隔</div><div class="line"></div><div class="line">9 [INSERT], 95thPercentileLatency(ms), 0 </div><div class="line"></div><div class="line">10 [INSERT], 99thPercentileLatency(ms), 0 </div><div class="line"></div><div class="line">11 [INSERT], Return=0, 1000000 //插入1000000万条的返回值</div><div class="line"></div><div class="line">12 [INSERT], 0, 994510 //有994510条数据在0-1s内插入</div></pre></td></tr></table></figure>
-<h1 id="表的信息影响随机读写性能的测试"><a href="#表的信息影响随机读写性能的测试" class="headerlink" title="表的信息影响随机读写性能的测试"></a>表的信息影响随机读写性能的测试</h1><p>1、DEFERRED_LOG_FLUSH的设置：</p>
-<p>设置数据表的DEFERRED_LOG_FLUSH属性为true，服务端将采用异步写hlog的方式，客户端写响应时间会降到1ms以下。如果regionserver挂掉会丢失1s的数据。同样有数据丢失风险，这种方式会小很多很多（rs被kill -9或者物理机器直接宕机），而且写入的数据马上可以被读取到，客户端也不需要采取特别的策略。</p>
-<p>2、BLOOMFILTER 的设置：</p>
-<p>对于某个region的随机读，HBase会遍历读memstore及storefile（按照一定的顺序），将结果合并返回给客户端。如果你设置了bloomfilter，那么在遍历读storefile时，就可以利用bloomfilter，忽略某些storefile</p>
-<p>有两种类型的bloomfilter类型：</p>
-<p> a)ROW, 根据KeyValue中的row来过滤storefile </p>
-<p>举例：假设有2个storefile文件sf1和sf2， </p>
-<p>sf1包含kv1（r1 cf:q1 v）、kv2（r2 cf:q1 v） </p>
-<p>sf2包含kv3（r3 cf:q1 v）、kv4（r4 cf:q1 v） </p>
-<p>如果设置了CF属性中的bloomfilter为ROW，那么get(r1)时就会过滤sf2，get(r3)就会过滤sf1 </p>
-<p>b)ROWCOL,根据KeyValue中的row+qualifier来过滤storefile </p>
-<p>举例：假设有2个storefile文件sf1和sf2， </p>
-<p>sf1包含kv1（r1 cf:q1 v）、kv2（r2 cf:q1 v） </p>
-<p>sf2包含kv3（r1 cf:q2 v）、kv4（r2 cf:q2 v） </p>
-<p>如果设置了CF属性中的bloomfilter为ROW，无论get(r1,q1)还是get(r1,q2)，都会读取sf1+sf2； 而如果设置了CF属性中的bloomfilter为ROWCOL，那么get(r1,q1)就会过滤sf2，get(r1,q2)就会过滤sf1 </p>
-<p>3、DATA_BLOCK_ENCODING的设置：</p>
-<p> Data Block Encoding是0.94的重要特性，可以很大程度上改善lrucache的使用率，从而提高get scan性能。从测试结果来看设置DATA_BLOCK_ENCODING =&gt; ‘DIFF’可以获得最有性价比的性能提升。可以选择的类型包括：</p>
-<p>PREFIX(这是一个比较公用的压缩算法，其压缩过程也比较简单快速，通用于存在相同的Row前缀的情景);</p>
-<p>DIFF(相比于PREFIX，同样是需要应用在存在相同的Row前缀的情景，但其只写一份family内容，写入timestamp的差值，比较长度是否一样等特性，使其压缩幅度会更大，当然压缩的CPU开销也会稍大);    </p>
-<p>FAST_DIFF(和DIFF类似，但是对于存在相同Value内容的场景,那肯定是使用它了)</p>
-<p>更加详细的内容请参考   <a href="http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/" target="_blank" rel="external">http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/</a></p>
-<p>4、BLOCKSIZE的设置(HBase-3864)：</p>
-<p>在配置中有一个hbase.mapreduce.hfileoutputformat.blocksize，这个参数和表描述中的一样，主要是用来初始化MR的。配置中的采纳数主要是从HFileOutputFormat写hfile的时候，会强制改成这个值。但是表中的配置会覆盖这个配置，所以这个配置一般没有用。</p>
-<p>5、COMPRESSION的设置：</p>
-<p>设置压缩格式，可以间接的提高查询效率，但是会影响写入的效率。</p>
-<p>接下来测试开启该配置和不开启的区别：</p>
-<p>我们用4线程，写入100w条记录做实验，查看平均的插入时间</p>
-<table>
-<thead>
-<tr>
-<th>表”描述”</th>
-<th>写入时间</th>
-<th>读取时间</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>默认</code></td>
-<td>668214ms</td>
-<td>4768452ms</td>
-</tr>
-<tr>
-<td><code>BLOOMFILTER =&gt; &#39;ROW&#39;</code></td>
-<td>683444ms</td>
-<td>3175800ms</td>
-</tr>
-<tr>
-<td><code>DATA_BLOCK_ENCODING =&gt; &#39;DIFF&#39;</code></td>
-<td>633093ms</td>
-<td>3452708ms</td>
-</tr>
-<tr>
-<td><code>BLOCKSIZE =&gt; &#39;16384&#39;</code></td>
-<td>670335ms</td>
-<td>3472540ms</td>
-</tr>
-</tbody>
-</table>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1770,7 +1690,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">41</span>
+                  <span class="site-state-item-count">42</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

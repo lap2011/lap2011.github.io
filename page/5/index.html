@@ -231,6 +231,151 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2012/11/28/shell-perl的一些小技巧/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2012/11/28/shell-perl的一些小技巧/" itemprop="url">shell+perl的一些小技巧</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2012-11-27T15:45:46-08:00">
+                2012-11-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>1、perl依次读取散列的每一行</p>
+<figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">while</span>(<span class="keyword">my</span> ($key,$value) = <span class="keyword">each</span>(%hash))&#123;</div><div class="line">	<span class="keyword">print</span> <span class="string">"$key,$value\n"</span></div><div class="line">&#125;</div><div class="line"><span class="keyword">foreach</span> <span class="keyword">my</span> $k (<span class="keyword">sort</span> <span class="keyword">keys</span> %hash)&#123; </div><div class="line">	<span class="keyword">print</span> $hash&#123;<span class="string">'$k'</span>&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>2、shell统计一个shell输出中某个字母的个数</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">command|awk &apos;BEGIN &#123;num=0&#125; &#123;i=1;while(i&lt;NF) &#123;if($i == &quot;word&quot;) num++;i++&#125;&#125; END&#123;print &quot;num=&quot;num&#125;&apos;</div></pre></td></tr></table></figure>
+<p>3、perl获取数组和散列的大小</p>
+<p>对于数组@mylist 可以通过$mylist直接获取到数组的长度</p>
+<p>对于散列%mylist 可以先通过$mylist= keys %mylist,得到的$mylist就是散列的长度</p>
+<p>4、shell每隔一段时间做一件事</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">watch -n time `command`</div><div class="line">watch -n 10 `ping baidu.com` 每隔10s给百度发送一个 ping包</div></pre></td></tr></table></figure>
+<p>5、shell输出错误重定向</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">command 2&gt;&amp;1,在 linux输出中，分别有stdin、stdout、stderr ,分别由0，1，2代表，这个表示把错误当成标准   输出</div></pre></td></tr></table></figure>
+<p>6、shell文件重命名</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">比如有一个test.sh重命名成test.pl，可以使用  mv test.&#123;sh,pl&#125;</div></pre></td></tr></table></figure>
+<p>7、shell给变量a命名为c，同时给b命名为${a}d的方式 <strong>b=${a:=c}d</strong></p>
+<p>8、shell指定输出的日期格式  <strong>date +%z….   (详细参数，请man date)</strong></p>
+<p>9、shell实现四则运算 <strong> $(($num1 $op $num2))</strong></p>
+<p>10、perl的多行注释方式 <strong>=cut</strong></p>
+<p>11、perl中获取数组的长度，<strong>scalar(@array)  或者#$array+1</strong></p>
+<p>12、perl在打开一个文件以后，<strong>$.</strong>表示行号，而<strong>$_</strong>表示内容</p>
+<p>13、shell获取ip地址</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ifconfig eth0 |awk &apos;&#123;if ($0 ~ /inet addr/) &#123; gsub (/.\*inet addr:/,&quot;&quot;); gsub (/  Bcast.*/,&quot;&quot;); print&#125;&#125;&apos;</div></pre></td></tr></table></figure>
+<p>14、perl中列出目录的方式，先通过opendir打开一个文件的句柄到FD，然后readdir FD就可以论寻读出其中的列表<br>15、perl的一些内置变量：</p>
+<figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div></pre></td><td class="code"><pre><div class="line">$n 　　:包含上次模式匹配的第n个子串</div><div class="line">$&amp; 　　:前一次成功模式匹配的字符串</div><div class="line">$`　　 :前次匹配成功的子串之前的内容</div><div class="line">$’ 　　:前次匹配成功的子串之后的内容</div><div class="line">$+　　:前一次使用括号的模式匹配的字符串.</div><div class="line">$|　　:如果设置为零,在每次调用函数<span class="keyword">write</span>或<span class="keyword">print</span>后，自动调用函数fflush,将所写内容写回文件</div><div class="line">$%　　:当前输出页号</div><div class="line">$=　　:当前每页长度</div><div class="line">$-　　:当前页剩余的行数</div><div class="line">$~　　:当前报表输出格式的名称.默认值是文件句柄名.</div><div class="line">$^　　:当前报表输出表头格式的名称.默认值是带后缀”_TOP”的文件句柄名.</div><div class="line">$_和$ARG　　:默认输入和模式匹配内容.如果不指定接收输入的变量或执行模式匹配的字符串</div><div class="line">$.和$NR　　:前一次读的文件句柄的当前行号</div><div class="line">$/和$RS　　:输入记录分隔符,默认是新行字符.如用<span class="keyword">undef</span>这个变量,将读到文件结尾</div><div class="line">$,的$OFS　　:输出域分隔符.</div><div class="line">$\和$ORS　　:输出记录分隔符</div><div class="line">$: 　　 :断行字符,默认是”\n-”三个字符</div><div class="line">$!　　:这个变量的数字值是errno的值,字符串值是对应的系统错误字符串</div><div class="line">$@　　:命令<span class="keyword">eval</span>的错误消息.如果为空,则表示上一次<span class="keyword">eval</span>命令执行成功</div><div class="line">$$　　:运行当前Perl脚本程序的进程号</div><div class="line">$&lt;　　:当前进程的实际用户号</div><div class="line">$&gt;　　:当前进程的有效用户号</div><div class="line">$(　　:当前进程的实际组用户号</div><div class="line">$)　　:当前进程的有效组用户号</div><div class="line">$[　　:数组的数组第一个元素的下标,默认是<span class="number">0</span></div><div class="line">$]　　:Perl的版本号</div><div class="line">$ARGV　　:当使用”&lt; &gt;”读文件时,保存当前文件名</div><div class="line">@ARGV　　:保存命令行参数</div><div class="line">@INC　　:保存查找Perl程序的目录</div><div class="line">@_　　:在子程序内,这个数组变量包含传递给子程序的参数</div><div class="line">%INC　　:散列表%INC包含所有用<span class="keyword">do</span>或<span class="keyword">require</span>语句包含的文件.关键字是文件名,值是这个文件的路径</div><div class="line">%ENV　　:包含当前环境变量</div><div class="line">ARGV　　:遍历数组变量@ARGV中的所有文件名的特殊文件句柄</div><div class="line">STDERR　　:标准错误输出句柄</div><div class="line">STDIN　　:标准输入句柄</div><div class="line">STDOUT　　:标准输出句柄</div><div class="line">$- 　　当前页可打印的行数,属于Perl格式系统的一部分</div><div class="line">$! 　　根据上下文内容返回错误号或者错误串</div><div class="line">$” 　　列表分隔符</div><div class="line">$# 　　打印数字时默认的数字输出格式</div><div class="line">$$ 　　Perl解释器的进程ID</div><div class="line">$% 　　当前输出通道的当前页号</div><div class="line">$&amp; 　　与上个格式匹配的字符串</div><div class="line">$( 　　当前进程的组ID</div><div class="line">$) 　　当前进程的有效组ID</div><div class="line">$* 　　设置<span class="number">1</span>表示处理多行格式.现在多以/<span class="keyword">s</span>和/<span class="keyword">m</span>修饰符取代之.</div><div class="line">$, 　　当前输出字段分隔符</div><div class="line">$. 　　上次阅读的文件的当前输入行号</div><div class="line">$/ 　　当前输入记录分隔符,默认情况是新行</div><div class="line">$: 　　字符设置,此后的字符串将被分开,以填充连续的字段.</div><div class="line">$; 　　在仿真多维数组时使用的分隔符.</div><div class="line">$? 　　返回上一个外部命令的状态</div><div class="line">$@ 　　Perl解释器从<span class="keyword">eval</span>语句返回的错误消息</div><div class="line">$[ 　　数组中第一个元素的索引号</div><div class="line">$ 　　当前输出记录的分隔符</div><div class="line">$] 　　Perl解释器的子版本号</div><div class="line">$^ 　　当前通道最上面的页面输出格式名字</div><div class="line">$^A 　　打印前用于保存格式化数据的变量</div><div class="line">$^D 　　调试标志的值</div><div class="line">$^E 　　在非UNIX环境中的操作系统扩展错误信息</div><div class="line">$^F 　　最大的文件捆述符数值</div><div class="line">$^H 　　由编译器激活的语法检查状态</div><div class="line">$^I 　　内置控制编辑器的值</div><div class="line">$^L 　　发送到输出通道的走纸换页符</div><div class="line">$^M 　　备用内存池的大小</div><div class="line">$^O 　　操作系统名</div><div class="line">$^P 　　指定当前调试值的内部变量</div><div class="line">$^R 　　正则表达式块的上次求值结果</div><div class="line">$^S 　　当前解释器状态</div><div class="line">$^T 　　从新世纪开始算起,脚步本以秒计算的开始运行的时间</div><div class="line">$^W 　　警告开关的当前值</div><div class="line">$^X 　　Perl二进制可执行代码的名字</div></pre></td></tr></table></figure>
+<p>16、使用perl获取当前的时间</p>
+<figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">my</span> $starttime=<span class="keyword">time</span>();                                                                                                     </div><div class="line"><span class="keyword">my</span> ($nowsec,$nowmin,$nowhour,$nowday,$nowmonth,$nowyear,$nowwday,$nowyday) =<span class="keyword">localtime</span>($starttime); $year||=($nowyear+<span class="number">1900</span>);</div></pre></td></tr></table></figure>
+<p>17、perl中两个特别的函数BEGIN和END，可以指定在脚本开始和结束的时候分别执行的动作。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2012/11/28/关于DDNS/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -389,7 +534,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">41</span>
+                  <span class="site-state-item-count">42</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

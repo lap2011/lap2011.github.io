@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="java," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="作为一个java开发者，面试别人，被别人面试的过程中，经常会有一些常用的面试题，今天我们讲一讲java关键字volatile。
+总结 volatile可以保证被修饰变量的读可见性，不能保证被修饰变量的原子性，所以不是线程安全的。
+ 再白话一点，对于volatile修饰的变量，在多线程的场景下，不同线程在同一时刻读取到的变量值一定是一致的，但是在同一时刻修改该变量的时候不能保证结果的原子性。
+原理基">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java基础面试之volatile关键字">
+<meta property="og:url" content="http://yoursite.com/2015/12/27/java基础面试之volatile关键字/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="作为一个java开发者，面试别人，被别人面试的过程中，经常会有一些常用的面试题，今天我们讲一讲java关键字volatile。
+总结 volatile可以保证被修饰变量的读可见性，不能保证被修饰变量的原子性，所以不是线程安全的。
+ 再白话一点，对于volatile修饰的变量，在多线程的场景下，不同线程在同一时刻读取到的变量值一定是一致的，但是在同一时刻修改该变量的时候不能保证结果的原子性。
+原理基">
+<meta property="og:updated_time" content="2017-12-27T02:52:33.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="java基础面试之volatile关键字">
+<meta name="twitter:description" content="作为一个java开发者，面试别人，被别人面试的过程中，经常会有一些常用的面试题，今天我们讲一讲java关键字volatile。
+总结 volatile可以保证被修饰变量的读可见性，不能保证被修饰变量的原子性，所以不是线程安全的。
+ 再白话一点，对于volatile修饰的变量，在多线程的场景下，不同线程在同一时刻读取到的变量值一定是一致的，但是在同一时刻修改该变量的时候不能保证结果的原子性。
+原理基">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2015/12/27/java基础面试之volatile关键字/"/>
+
+
+
+
+
+  <title>java基础面试之volatile关键字 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/12/27/java基础面试之volatile关键字/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">java基础面试之volatile关键字</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-12-26T22:48:51-08:00">
+                2015-12-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>作为一个java开发者，面试别人，被别人面试的过程中，经常会有一些常用的面试题，今天我们讲一讲java关键字volatile。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p> volatile可以保证被修饰变量的读可见性，不能保证被修饰变量的原子性，所以不是线程安全的。</p>
+<p> 再白话一点，对于volatile修饰的变量，在多线程的场景下，不同线程在同一时刻读取到的变量值一定是一致的，但是在同一时刻修改该变量的时候不能保证结果的原子性。</p>
+<h1 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h1><h2 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h2><p>现在的java内存模型中，线程在读取变量的值的时候，首先会通过该变量的引用找到堆上内存中变量的值，如果这个变量没有被申明为volatile，那么当前线程会把对内的变量的值拷贝到本地的内存(一般来说是各种寄存器)中。</p>
+<p>上面描述的内存模型中，如果一个线程在修改完一个值的时候，另一个线程中使用的变量依旧是它写入到本地内存中的拷贝，最终导致读的不一致性。</p>
+<p>volatile可以用来解决读不一致的问题，使用volatile修饰的变量在每次被线程访问时，都强迫从堆内存(或者静态常量区)中重读该成员变量的值。而且，当成员变量发生变化时，强迫线程将变化值回写到堆内存(或者静态常量区)中。这样在任何时刻，两个不同的线程总是看到某个成员变量的同一个值。 </p>
+<p>volatile为什么不可以保证被修饰变量的原子性呢，其实道理很简单，volatile只保证了读的过程中数据都从堆内存(或者静态常量区)中读，但是当并发同时读到该数据后，却不能保证写是原子的，所以不能保证被修饰变量的原子性，详细可见<strong>示例</strong>。</p>
+<h2 id="延伸阅读"><a href="#延伸阅读" class="headerlink" title="延伸阅读"></a>延伸阅读</h2><h3 id="指令重排序的问题"><a href="#指令重排序的问题" class="headerlink" title="指令重排序的问题"></a>指令重排序的问题</h3><p>volatile关键字还有一个非常重要的作用，即局部阻止指令重排序。对于java内存重排序的问题，可以参考<a href="http://www.infoq.com/cn/articles/java-memory-model-2/" target="_blank" rel="external">http://www.infoq.com/cn/articles/java-memory-model-2/</a></p>
+<p>对于单线程的程序，遵循as-if-serial的原则，不管怎么重排序，执行结果不会被改变。</p>
+<p>但是在多线程的场景中，就会发生异常，如上文关于重排序的描述中的例子，那么怎么解决问题呢，可以使用volatile关键字。使用volatile关键字修饰的变量编译前后的顺序相对不变，怎么理解呢，简单来说如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writer</span><span class="params">()</span> </span>&#123;</div><div class="line">    a = <span class="number">1</span>;                   <span class="comment">//1</span></div><div class="line">    flag = <span class="keyword">true</span>;             <span class="comment">//2</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">reader</span><span class="params">()</span> </span>&#123;</div><div class="line">    <span class="keyword">if</span> (flag) &#123;                <span class="comment">//3</span></div><div class="line">        <span class="keyword">int</span> i =  a * a;        <span class="comment">//4</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>按照上文中的例子，如果writer和reader是分别在不同的线程中，可能因为指令重排序的问题，导致在reader中的变量i一直是0或者一直是1，因为在writer方法中，a和flag变量的编译顺序是随机的，会根据不同的jdk版本或者编译器而导致顺序不同，但是如果把flag变量使用volatile修饰，那么就可以保证结果一致为1，因为能永远保证编译后a变量先于flag初始化(<strong>注意，这个规则在下面介绍</strong>)。</p>
+<h3 id="内存屏障的问题"><a href="#内存屏障的问题" class="headerlink" title="内存屏障的问题"></a>内存屏障的问题</h3><p>重排序是有一些规则的，这些规则就涉及到了内存屏障的问题，首先来描述一下volatile对于指令重排序的规则：</p>
+<p>1、当第一个操作为普通的读或写时，如果第二个操作为volatile写，则编译器不能重排序这两个操作(比如上面的例子)<br>2、当第一个操作是volatile读时，不管第二个操作是什么，都不能重排序。这个规则确保volatile读之后的操作不会被编译器重排序到volatile读之前<br>3、当第一个操作是volatile写，第二个操作是volatile读时，不能重排序<br>4、当第二个操作是volatile写时，不管第一个操作是什么，都不能重排序(也符合上面的例子)</p>
+<p>那么编译器是如何保证如上的规则呢，实际依靠的是内存屏障的方法：</p>
+<p>在介绍规则之前，先请大家移步<a href="http://gee.cs.oswego.edu/dl/jmm/cookbook.html" target="_blank" rel="external">http://gee.cs.oswego.edu/dl/jmm/cookbook.html</a> 查看相关的屏障类型</p>
+<p>1、在每个volatile写操作的前面插入一个StoreStore屏障<br>2、在每个volatile写操作的后面插入一个SotreLoad屏障<br>3、在每个volatile读操作的后面插入一个LoadLoad屏障<br>4、在每个volatile读操作的后面插入一个LoadStore屏障</p>
+<h1 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h1><p>执行环境：jdk1.8</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> kw;</div><div class="line"></div><div class="line"><span class="keyword">import</span> java.util.concurrent.TimeUnit;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by aiping.lap on 15/12/26.</div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aiping.lap</div><div class="line"> * <span class="doctag">@date</span> 2015/12/26</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VolatileTest</span> </span>&#123;</div><div class="line">    <span class="keyword">public</span> <span class="keyword">volatile</span> <span class="keyword">static</span> <span class="keyword">int</span> i = <span class="number">0</span>;</div><div class="line"></div><div class="line">  <span class="comment">//构造一个+1的方法</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">()</span></span>&#123;</div><div class="line">        i ++;</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            TimeUnit.MILLISECONDS.sleep(<span class="number">1L</span>);</div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>;i ++) &#123;</div><div class="line">            <span class="keyword">new</span> Thread() &#123;</div><div class="line">                <span class="meta">@Override</span></div><div class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">                    add();</div><div class="line">                &#125;</div><div class="line">            &#125;.start();</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        System.out.println(i);</div><div class="line"></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">999</div><div class="line"></div><div class="line">Process finished with exit code 0</div></pre></td></tr></table></figure>
+<p>以上程序多运行几次，会偶尔有出现不是1000的情况。</p>
+<h1 id="总结："><a href="#总结：" class="headerlink" title="总结："></a>总结：</h1><p>先来一个简单的总结：</p>
+<p>1、volatile起初是在synchronized性能低下的时候提出的。如今synchronized的效率已经大幅提升，所以volatile存在的意义不大。</p>
+<p>2、如今非volatile的共享变量，在访问不是超级频繁的情况下，已经和volatile修饰的变量有同样的效果了，现在大部分的变量在本地修改完成后，也会立马同步到堆(或者静态的变量区)，所以如果不是大并发量，根本不会出现问题了</p>
+<p>3、volatile不能保证原子性，这点一点要搞清楚，用它修饰的变量不能保证线程安全</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java/" rel="tag"># java</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/27/HBase0-98以后的版本直接读取HFile文件/" rel="next" title="HBase0.98以后的版本直接读取HFile文件">
+                <i class="fa fa-chevron-left"></i> HBase0.98以后的版本直接读取HFile文件
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/03/23/Hadoop开启LZO后的压测/" rel="prev" title="Hadoop开启LZO后的压测">
+                Hadoop开启LZO后的压测 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">1.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#原理"><span class="nav-number">2.</span> <span class="nav-text">原理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#基本原理"><span class="nav-number">2.1.</span> <span class="nav-text">基本原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#延伸阅读"><span class="nav-number">2.2.</span> <span class="nav-text">延伸阅读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#指令重排序的问题"><span class="nav-number">2.2.1.</span> <span class="nav-text">指令重排序的问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存屏障的问题"><span class="nav-number">2.2.2.</span> <span class="nav-text">内存屏障的问题</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#示例"><span class="nav-number">3.</span> <span class="nav-text">示例</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结："><span class="nav-number">4.</span> <span class="nav-text">总结：</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
