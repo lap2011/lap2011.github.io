@@ -781,6 +781,154 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/12/29/java基础面试之synchronized关键字/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2015/12/29/java基础面试之synchronized关键字/" itemprop="url">java基础面试之synchronized关键字</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-12-28T09:27:31-08:00">
+                2015-12-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>作为一个java开发者，面试别人，被别人面试的过程中，经常会有一些常用的面试题，今天我们讲一讲java关键字synchronized。</p>
+<h1 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h1><p>synchronized是一个经常被拿来面试的关键字，很多人因为没有彻底理解它的使用方法，导致很容易进入面试者的陷阱，所以很有必要深入理解一下这个关键字的原理，防止当面试者更换询问方法后就答不上来了。</p>
+<p><strong>这个关键字是面试同步的必问关键字，所以不要存有侥幸心理</strong></p>
+<h1 id="基本常识"><a href="#基本常识" class="headerlink" title="基本常识"></a>基本常识</h1><p>喜欢看代码的人，直接从代码入手，依次来解释</p>
+<h2 id="没有添加synchronized的多线程调用"><a href="#没有添加synchronized的多线程调用" class="headerlink" title="没有添加synchronized的多线程调用"></a>没有添加synchronized的多线程调用</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * 一个普通的不带任何同步的测试类</div><div class="line"> * <span class="doctag">@author</span> aipinglap</div><div class="line"> * <span class="doctag">@date</span> 15/12/28</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SynchronizedTest</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">method1</span><span class="params">()</span> </span>&#123;</div><div class="line">        System.out.println(<span class="string">"Method 1 start"</span>);</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            System.out.println(<span class="string">"Method 1 execute"</span>);</div><div class="line">            Thread.sleep(<span class="number">3000</span>);</div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">        System.out.println(<span class="string">"Method 1 end"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">method2</span><span class="params">()</span> </span>&#123;</div><div class="line">        System.out.println(<span class="string">"Method 2 start"</span>);</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            System.out.println(<span class="string">"Method 2 execute"</span>);</div><div class="line">            Thread.sleep(<span class="number">1000</span>);</div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">        System.out.println(<span class="string">"Method 2 end"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line">       <span class="comment">//注意，这里要用同一个对象</span></div><div class="line">        <span class="keyword">final</span> SynchronizedTest test = <span class="keyword">new</span> SynchronizedTest();</div><div class="line"></div><div class="line">        <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">            <span class="meta">@Override</span></div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">                test.method1();</div><div class="line">            &#125;</div><div class="line">        &#125;).start();</div><div class="line"></div><div class="line">        <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">            <span class="meta">@Override</span></div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">                test.method2();</div><div class="line">            &#125;</div><div class="line">        &#125;).start();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>一般情况的运行结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">Method 1 start</div><div class="line">Method 1 execute</div><div class="line">Method 2 start</div><div class="line">Method 2 execute</div><div class="line">Method 2 end</div><div class="line">Method 1 end</div><div class="line"></div><div class="line">Process finished with exit code 0</div></pre></td></tr></table></figure>
+<p>因为上面的示例是一个很简单的多线程示例，不用做太多的解释。</p>
+<h2 id="synchronized锁方法的多线程调用结果"><a href="#synchronized锁方法的多线程调用结果" class="headerlink" title="synchronized锁方法的多线程调用结果"></a>synchronized锁方法的多线程调用结果</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aipinglap</div><div class="line"> * <span class="doctag">@date</span> 15/12/28</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SynchronizedTest1</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">method1</span><span class="params">()</span></span>&#123;</div><div class="line">        System.out.println(<span class="string">"Method 1 start"</span>);</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            System.out.println(<span class="string">"Method 1 execute"</span>);</div><div class="line">            Thread.sleep(<span class="number">3000</span>);</div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">        System.out.println(<span class="string">"Method 1 end"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">method2</span><span class="params">()</span></span>&#123;</div><div class="line">        System.out.println(<span class="string">"Method 2 start"</span>);</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            <span class="comment">//在这里等价于在method2上面加synchronized</span></div><div class="line">            <span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</div><div class="line">                System.out.println(<span class="string">"Method 2 execute"</span>);</div><div class="line">                Thread.sleep(<span class="number">1000</span>);</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">        System.out.println(<span class="string">"Method 2 end"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line">       <span class="comment">//注意一定要是同一个对象，如果这里是不同的对象使用了多线程的调用</span></div><div class="line">        SynchronizedTest1 test = <span class="keyword">new</span> SynchronizedTest1();</div><div class="line"></div><div class="line">        <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">            <span class="meta">@Override</span></div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">                test.method1();</div><div class="line">            &#125;</div><div class="line">        &#125;).start();</div><div class="line"></div><div class="line">        <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">            <span class="meta">@Override</span></div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">                test.method2();</div><div class="line">            &#125;</div><div class="line">        &#125;).start();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>执行结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">Method 1 start</div><div class="line">Method 1 execute</div><div class="line">Method 2 start</div><div class="line">Method 1 end</div><div class="line">Method 2 execute</div><div class="line">Method 2 end</div><div class="line"></div><div class="line">Process finished with exit code 0</div></pre></td></tr></table></figure>
+<p>分析：</p>
+<p>method1和method2都使用了synchronized修饰，在test这个对象在两个线程中分别调用上面的两个同步方法的时候，谁先抢到锁，谁就能先执行，而且另一个线程只能等别的线程结束后，再执行。上面的例子中，调用method1的线程先抢到了锁，所以它会先执行，而另一个线程启动后，必须等待method1执行完成，释放了锁之后才能执行。</p>
+<p>注意，无论锁方法还是锁tihs对象，其实都可以理解为是锁test这个对象，是一样的效果，在后面会解释。</p>
+<h2 id="不同对象的synchronized锁问题"><a href="#不同对象的synchronized锁问题" class="headerlink" title="不同对象的synchronized锁问题"></a>不同对象的synchronized锁问题</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aipinglap</div><div class="line"> * <span class="doctag">@date</span> 15/12/28</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SynchronizedTest3</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">method1</span><span class="params">()</span> </span>&#123;</div><div class="line">        System.out.println(<span class="string">"Method 1 start"</span>);</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            System.out.println(<span class="string">"Method 1 execute"</span>);</div><div class="line">            Thread.sleep(<span class="number">3000</span>);</div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">        System.out.println(<span class="string">"Method 1 end"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">method2</span><span class="params">()</span> </span>&#123;</div><div class="line">        System.out.println(<span class="string">"Method 2 start"</span>);</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            System.out.println(<span class="string">"Method 2 execute"</span>);</div><div class="line">            Thread.sleep(<span class="number">1000</span>);</div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">        System.out.println(<span class="string">"Method 2 end"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line">      <span class="comment">//分别是两个对象</span></div><div class="line">        <span class="keyword">final</span> SynchronizedTest3 test = <span class="keyword">new</span> SynchronizedTest3();</div><div class="line">        <span class="keyword">final</span> SynchronizedTest3 test2 = <span class="keyword">new</span> SynchronizedTest3();</div><div class="line"></div><div class="line">        <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">            <span class="meta">@Override</span></div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">                test.method1();</div><div class="line">            &#125;</div><div class="line">        &#125;).start();</div><div class="line"></div><div class="line">        <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">            <span class="meta">@Override</span></div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">                test2.method2();</div><div class="line">            &#125;</div><div class="line">        &#125;).start();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>运行结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">Method 1 start</div><div class="line">Method 1 execute</div><div class="line">Method 2 start</div><div class="line">Method 2 execute</div><div class="line">Method 2 end</div><div class="line">Method 1 end</div><div class="line"></div><div class="line">Process finished with exit code 0</div></pre></td></tr></table></figure>
+<p>可见不同的对象，锁是不同的，所以说synchronized修饰方法和对象的时候，是每个对象有一个独立的锁。</p>
+<h2 id="修饰静态方法或者锁类"><a href="#修饰静态方法或者锁类" class="headerlink" title="修饰静态方法或者锁类"></a>修饰静态方法或者锁类</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aipinglap</div><div class="line"> * <span class="doctag">@date</span> 15/12/28</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SynchroizedTest4</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">method1</span><span class="params">()</span> </span>&#123;</div><div class="line">        System.out.println(<span class="string">"Method 1 start"</span>);</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            System.out.println(<span class="string">"Method 1 execute"</span>);</div><div class="line">            Thread.sleep(<span class="number">3000</span>);</div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">        System.out.println(<span class="string">"Method 1 end"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">method2</span><span class="params">()</span> </span>&#123;</div><div class="line">        System.out.println(<span class="string">"Method 2 start"</span>);</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            System.out.println(<span class="string">"get:"</span>+<span class="keyword">this</span>.toString());</div><div class="line">            <span class="comment">//如果method2是静态的，那么这个修饰方法和上面的是等价的</span></div><div class="line">            <span class="keyword">synchronized</span> (SynchroizedTest4.class) &#123;</div><div class="line">                System.out.println(<span class="string">"Method 2 execute"</span>);</div><div class="line">                Thread.sleep(<span class="number">1000</span>);</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">        System.out.println(<span class="string">"Method 2 end"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line">        <span class="keyword">final</span> SynchroizedTest4 test = <span class="keyword">new</span> SynchroizedTest4();</div><div class="line"></div><div class="line">        <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">            <span class="meta">@Override</span></div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">                SynchroizedTest4.method1();</div><div class="line">            &#125;</div><div class="line">        &#125;).start();</div><div class="line"></div><div class="line">        <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">            <span class="meta">@Override</span></div><div class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">                test.method2();</div><div class="line">            &#125;</div><div class="line">        &#125;).start();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>执行结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">Method 1 start</div><div class="line">Method 1 execute</div><div class="line">Method 2 start</div><div class="line">get:thread.SynchroizedTest4@58b21d23</div><div class="line">Method 1 end</div><div class="line">Method 2 execute</div><div class="line">Method 2 end</div><div class="line"></div><div class="line">Process finished with exit code 0</div></pre></td></tr></table></figure>
+<p>如果把上面的main方法稍微修改如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line">    <span class="keyword">final</span> SynchroizedTest4 test = <span class="keyword">new</span> SynchroizedTest4();</div><div class="line">    <span class="keyword">final</span> SynchroizedTest4 test2 = <span class="keyword">new</span> SynchroizedTest4();</div><div class="line"></div><div class="line">    <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">            test2.method2();</div><div class="line">        &#125;</div><div class="line">    &#125;).start();</div><div class="line"></div><div class="line">    <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">            test.method2();</div><div class="line">        &#125;</div><div class="line">    &#125;).start();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>执行结果如下：Method 2 start</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">Method 2 start</div><div class="line">get:thread.SynchroizedTest4@58b21d23</div><div class="line">Method 2 execute</div><div class="line">Method 2 start</div><div class="line">get:thread.SynchroizedTest4@31b13ce2</div><div class="line">Method 2 end</div><div class="line">Method 2 execute</div><div class="line">Method 2 end</div><div class="line"></div><div class="line">Process finished with exit code 0</div></pre></td></tr></table></figure>
+<p>这里解释一下，当synchronized修饰XX.class和修饰类中的静态方法的时候，效果是一样的，都是在对这个类的class元信息加锁，所以出现了对于静态方法的锁，即使是同一个对象，如果不同的线程之间只要不是调用同一个方法，那么依旧可以并发执行，只有调用到同一个方法的时候，才会被锁。</p>
+<h1 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h1><p>Java中的每一个对象都可以作为锁，而在Synchronized实现同步的几种方式中分别为：</p>
+<p>普通同步方法：锁是当前实例对象<br>同步方法块：锁是Synchronized括号里配置的对象，所以当使用synchronized(this)的时候就和上面是一个效果，只不过锁的粒度比较细一点，不是整个方法，而是代码段了<br>静态同步方法：锁是当前类的Class对象</p>
+<p>任何一个java的对象在生成的时候，数据结构中都有一个Monitor与之关联，当使用了同步方法或者同步对象后，<br>Monitor被当前程序持有，然后处于锁定状态，直到释放Monitor，别的地方才可以持有这个Monitor。当然对于可重入和偏向等特性是锁的一些高级特性，在本文中不做分析了。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/12/27/java基础面试之volatile关键字/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1443,136 +1591,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/09/23/java基础面试之Consumer-Producer模型/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2015/09/23/java基础面试之Consumer-Producer模型/" itemprop="url">java基础面试之Consumer-Producer模型</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-09-22T19:22:35-08:00">
-                2015-09-22
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h1><p>近来用到了很多生产者和消费者模型来做一些开发和面试，所以有感而发，记录一些知识。</p>
-<p>生产者-消费者模型是一个常用的异步线程的处理模型。简单点讲，主要分3个部分，生产者，消费者，锁。</p>
-<p>生产者： 创造一些资源，可以是任何资源，比如从文件中读出的某一行</p>
-<p>消费者：  合理的利用生产者生成的资源完成自己的需求</p>
-<p>锁：提供一个异步的控制器，保证在生产着没有生成资源的时候，消费着无法消费</p>
-<h1 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h1><p>下面就以读取一个文件为例子来描述这个模型</p>
-<h2 id="producer"><a href="#producer" class="headerlink" title="producer"></a>producer</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by aiping.lap on 15/09/21.</div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aiping.lap</div><div class="line"> * <span class="doctag">@date</span> 2015/09/21</div><div class="line"> */</div><div class="line"><span class="keyword">import</span> java.io.BufferedReader;</div><div class="line"><span class="keyword">import</span> java.io.File;</div><div class="line"><span class="keyword">import</span> java.io.FileReader;</div><div class="line"><span class="keyword">import</span> java.io.IOException;</div><div class="line"><span class="keyword">import</span> java.util.ArrayList;</div><div class="line"><span class="keyword">import</span> java.util.List;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">CreateRowKey</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</div><div class="line">    <span class="comment">//调用锁类，主要是把生成的资源扔到该锁中</span></div><div class="line">    <span class="keyword">private</span> GetRandmKey getRandmKey;</div><div class="line">    <span class="comment">//产生资源的文件，文件中的每行即一个资源</span></div><div class="line">    <span class="keyword">private</span> String rowKeyFile;</div><div class="line">    <span class="comment">//临时存储从文件中读出的行</span></div><div class="line">    <span class="keyword">private</span> List&lt;String&gt; keyList = <span class="keyword">new</span> ArrayList();</div><div class="line">    <span class="comment">//临时存储的最小值</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> MIN = <span class="number">5000</span>;</div><div class="line">    <span class="comment">//临时存储的最大值</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> MAX = <span class="number">10000</span>;</div><div class="line">    <span class="comment">//删除的值</span></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> getIndex = <span class="number">0</span>;</div><div class="line">    <span class="keyword">public</span> FileReader fReader = <span class="keyword">null</span>;</div><div class="line">    <span class="keyword">public</span> BufferedReader bf = <span class="keyword">null</span>;</div><div class="line">    <span class="keyword">public</span> <span class="keyword">boolean</span> isEnd = <span class="keyword">false</span>;</div><div class="line"></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">CreateRowKey</span><span class="params">(GetRandmKey GetRandmKey, String rowKeyFile)</span></span>&#123;</div><div class="line">        <span class="keyword">this</span>.getRandmKey = GetRandmKey;</div><div class="line">        <span class="keyword">this</span>.rowKeyFile = rowKeyFile;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//异步的线程类读取文件，如果内存中，存数的量小于总量的一半的时候，就去读取文件，直到临时存储区的条数到达最大值</span></div><div class="line">    <span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GetkeyFromFile</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</div><div class="line">        <span class="keyword">private</span> String rowKey;</div><div class="line"></div><div class="line">        <span class="meta">@Override</span></div><div class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</div><div class="line">            System.out.println(<span class="string">"Start to get row from file to memory!"</span>);</div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                <span class="keyword">while</span> (keyList.size() &lt;= MAX) &#123;</div><div class="line">                    <span class="keyword">if</span> (fReader == <span class="keyword">null</span>)&#123;</div><div class="line">                        fReader = <span class="keyword">new</span> FileReader(<span class="keyword">new</span> File(rowKeyFile));</div><div class="line">                    &#125;</div><div class="line">                    <span class="keyword">if</span> (bf == <span class="keyword">null</span>)&#123;</div><div class="line">                        bf = <span class="keyword">new</span> BufferedReader(fReader);</div><div class="line">                    &#125;</div><div class="line">                    rowKey = bf.readLine();</div><div class="line">                    <span class="keyword">if</span> (rowKey == <span class="string">""</span> || rowKey == <span class="keyword">null</span>)&#123;</div><div class="line">                        System.out.println(<span class="string">"File is read end!"</span>);</div><div class="line">                        isEnd = <span class="keyword">true</span>;</div><div class="line">                    &#125; <span class="keyword">else</span> &#123;</div><div class="line">                        keyList.add(rowKey);</div><div class="line">                    &#125;</div><div class="line">                &#125;</div><div class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">                e.printStackTrace();</div><div class="line">                System.out.println(e);</div><div class="line">            &#125; <span class="keyword">finally</span> &#123;</div><div class="line">                <span class="keyword">try</span> &#123;</div><div class="line">                    bf.close();</div><div class="line">                    fReader.close();</div><div class="line">                &#125; <span class="keyword">catch</span> (IOException e) &#123;</div><div class="line">                    <span class="comment">// TODO Auto-generated catch block</span></div><div class="line">                    e.printStackTrace();</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">            System.out.println(<span class="string">"End to get row from file to memory!"</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span>&#123;</div><div class="line">        <span class="keyword">boolean</span> isRead = <span class="keyword">true</span>;</div><div class="line">        System.out.println(<span class="string">"Start to create key!"</span>);</div><div class="line">        <span class="keyword">while</span> (isRead)&#123;</div><div class="line"></div><div class="line">            <span class="comment">//如果文件已经读完且已经消费完，则退出</span></div><div class="line">            <span class="keyword">if</span> (isEnd &amp;&amp; keyList.isEmpty())&#123;</div><div class="line">                System.out.println(<span class="string">"Read to end!"</span>);</div><div class="line">                isRead = <span class="keyword">false</span>;</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//如果没有读完，则启动异步的线程去读取</span></div><div class="line">            <span class="keyword">if</span> (keyList.size() &lt; MIN &amp;&amp; !isEnd )&#123;</div><div class="line">                System.out.println(<span class="string">"Start to update memory!"</span>);</div><div class="line">                GetkeyFromFile getkeyFromFile = <span class="keyword">new</span> GetkeyFromFile();</div><div class="line">                getkeyFromFile.start();</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//如果列表中不为空，则从中获取相应的值</span></div><div class="line">            <span class="keyword">if</span> (!keyList.isEmpty() )&#123;</div><div class="line">                getRandmKey.createRowKey(keyList.get(getIndex));</div><div class="line">                keyList.remove(getIndex);</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                <span class="keyword">try</span> &#123;</div><div class="line">                    sleep(<span class="number">5000</span>);</div><div class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                    <span class="comment">// TODO Auto-generated catch block</span></div><div class="line">                    e.printStackTrace();</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h2 id="consumer类"><a href="#consumer类" class="headerlink" title="consumer类"></a>consumer类</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by aiping.lap on 15/09/21.</div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aiping.lap</div><div class="line"> * <span class="doctag">@date</span> 2015/09/21</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Consumer</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> GetRandmKey getRandmKey;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Consumer</span><span class="params">( GetRandmKey getRandmKey)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">this</span>.getRandmKey =   getRandmKey;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="comment">// 从锁类中读取相应的资源</span></div><div class="line">        <span class="keyword">while</span>  (<span class="keyword">true</span>)</div><div class="line">        &#123;</div><div class="line">            System.out.printf(<span class="string">"The consumer get the product %d #\n"</span>,getRandmKey.getRowKey());</div><div class="line">            <span class="keyword">try</span></div><div class="line">            &#123;</div><div class="line">                sleep((<span class="keyword">int</span>)(Math.random() * <span class="number">100</span> ));</div><div class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e)</div><div class="line">            &#123;</div><div class="line">                System.out.println(e);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h2 id="锁类"><a href="#锁类" class="headerlink" title="锁类"></a>锁类</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * Created by aiping.lap on 15/09/21.</div><div class="line"> *</div><div class="line"> * <span class="doctag">@author</span> aiping.lap</div><div class="line"> * <span class="doctag">@date</span> 2015/09/21</div><div class="line"> */</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GetRandmKey</span> </span>&#123;</div><div class="line">    <span class="keyword">private</span> String rowkey;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">boolean</span> isReady = <span class="keyword">false</span>;</div><div class="line"></div><div class="line">    <span class="comment">//对象锁保证对于同一个资源，只能由一个消费者获取</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> String <span class="title">getRowKey</span><span class="params">()</span></span>&#123;</div><div class="line">        <span class="keyword">while</span> (isReady == <span class="keyword">false</span>) &#123;</div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                wait();</div><div class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                System.out.println(e);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        isReady = <span class="keyword">false</span>;</div><div class="line">        notifyAll();</div><div class="line">        <span class="keyword">return</span> rowkey;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//保证同时只有一个生产者可以产生资源</span></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">createRowKey</span><span class="params">(String rowkey)</span></span>&#123;</div><div class="line">        <span class="keyword">while</span> (isReady) &#123;</div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                wait();</div><div class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line">                System.out.println(e);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">this</span>.rowkey = rowkey;</div><div class="line">        isReady = <span class="keyword">true</span>;</div><div class="line">        notifyAll();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<h2 id="main类"><a href="#main类" class="headerlink" title="main类"></a>main类</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="comment">//生成共享的锁</span></div><div class="line">    GetRandmKey getRandmKey = <span class="keyword">new</span> GetRandmKey();</div><div class="line">    <span class="comment">//创建生产者</span></div><div class="line">    CreateRowKey createRowKey = <span class="keyword">new</span> CreateRowKey(getRandmKey,<span class="string">"filename"</span>);</div><div class="line">    <span class="comment">//创建消费者</span></div><div class="line">    Consumer consumer = <span class="keyword">new</span> Consumer(getRandmKey);</div><div class="line">    createRowKey.start();</div><div class="line">    consumer.start();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>从这个简单的模型中，可以看到一个最为朴素的异步思想，资源的生成者不关心是否有消费者，只需要生成相应的资源即可。而对于消费者，只需要从固定的地方取资源，不需要关心资源从哪里来。通过锁类完美的解决了数据一致性的问题。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1623,7 +1641,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">44</span>
+                  <span class="site-state-item-count">45</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

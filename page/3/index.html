@@ -231,6 +231,182 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/08/17/HBase读写性能相关-请求不均匀的问题优化/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2014/08/17/HBase读写性能相关-请求不均匀的问题优化/" itemprop="url">HBase读写性能相关-请求不均匀的问题优化</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-08-16T21:39:13-08:00">
+                2014-08-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="影响到随机读的速度的主要因素"><a href="#影响到随机读的速度的主要因素" class="headerlink" title="影响到随机读的速度的主要因素"></a>影响到随机读的速度的主要因素</h1><p>1、请求次数的分布均衡、</p>
+<p>2、StoreFile数量、</p>
+<p>3、表属性的设置</p>
+<p>4、Cache大小以及命中率</p>
+<p>今天主要讨论的是请求不均匀的问题</p>
+<h1 id="Hbase的负载均衡的判断"><a href="#Hbase的负载均衡的判断" class="headerlink" title="Hbase的负载均衡的判断"></a>Hbase的负载均衡的判断</h1><p>各region server的region数是否均衡</p>
+<p>读写请求是否均衡分布。</p>
+<h1 id="保证Hbase集群LB的方法"><a href="#保证Hbase集群LB的方法" class="headerlink" title="保证Hbase集群LB的方法"></a>保证Hbase集群LB的方法</h1><p>对于region的个数，Hbase的balance策略会保证</p>
+<p>对于table的region分布均衡，读请求仍然不均衡分布的情况，说明应用的请求有热点的状况，如这种状况造成了读速度的不OK，可以手工将region进行拆分，并分配到不同的region server上，这是hbase很简单的一种应对热点的解决方法。</p>
+<h1 id="统计方法"><a href="#统计方法" class="headerlink" title="统计方法"></a>统计方法</h1><p>先用execel把相应表的RS列和TPS列单独取出来放到一个文件中，用如下统计脚本进行统计</p>
+<figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#!/usr/bin/perl -w </span></div><div class="line"><span class="keyword">use</span> Data::Dumper; </div><div class="line"><span class="keyword">open</span>(FILE,<span class="string">"&lt;"</span>,$ARGV[<span class="number">0</span>]) <span class="keyword">or</span> <span class="keyword">die</span> <span class="string">"can not open file"</span>; </div><div class="line"><span class="keyword">my</span> %allStatus = (); </div><div class="line"><span class="keyword">while</span> ()&#123; </div><div class="line">    <span class="keyword">if</span> ($_ =~ <span class="regexp">m/(\S+)\s+(\d+)/</span>)&#123; </div><div class="line">	     $allStatus&#123;$1&#125; += $2; </div><div class="line">	&#125;   </div><div class="line">&#125; </div><div class="line"><span class="keyword">foreach</span> <span class="keyword">my</span> $key (<span class="keyword">keys</span>%allStatus)&#123; </div><div class="line">    <span class="keyword">print</span> <span class="string">"$key "</span>.$allStatus&#123;$key&#125;.<span class="string">"\n"</span>; </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>选择了TPS比较高，又经常访问的表CleanOfflineUserProfileTempV1，进行了查询。结果如下(这里省略)</p>
+<p>可以明显看到分成了4个量级别的请求数目，不同的之间TPS相差了50W的请求量，可见不同的regionserver之间的请求差别很大。</p>
+<h1 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h1><p> 通过实验对比因为访问不均衡导致的时间差别。</p>
+<p> 1、先随机的写入100w条的数据           </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">time ./hbase org.apache.hadoop.hbase.PerformanceEvaluation  randomWrite 1</div></pre></td></tr></table></figure>
+<p>2、查看regionserver的分布状态</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">TestTable,,1405596957945.af6be5a5763589d054d77ab533af721f. hadoop141:60030</div><div class="line">TestTable,0000262285,1405597137509.f376305528ef3570901120a457d80a2f. hadoop141:60030</div><div class="line">TestTable,0000393515,1405597137509.4a9738e4f29128709a0b2cd63ed8d39d. hadoop141:60030</div><div class="line">TestTable,0000524451,1405597162495.47c7234c3d48a1b75a521eaaedae72b4. hadoop141:60030</div><div class="line">TestTable,0000654788,1405597162495.53c2647b5f707032dc3839cdea26965e. hadoop141:60030</div><div class="line">TestTable,0000785234,1405596978669.810195f07f006d900913898abf4385e1. hadoop141:60030</div></pre></td></tr></table></figure>
+<p>3、接下来进行实验的重点部分</p>
+<p>需要用到的命令</p>
+<p>a、测试100w条的随机读</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">time ./hbase org.apache.hadoop.hbase.PerformanceEvaluation  randomRead 1</div></pre></td></tr></table></figure>
+<p>b、关闭balancer</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase shell &gt; balance_switch flase</div></pre></td></tr></table></figure>
+<p>c、手动move region</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&quot;move &apos;96b1f2b1569aec38030d2c0c95eb9dc5&apos;,&apos;dw-perf-11,60020,1328178878605&apos;</div></pre></td></tr></table></figure>
+<p>其中第一个参数为要复制的region的startKey，第二个参数分别是要迁移到的机器，端口号，要插入的起始地址</p>
+<p>调整后的测试结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">TestTable,,1405596957945.af6be5a5763589d054d77ab533af721f. hadoop131:60030</div><div class="line">TestTable,0000262285,1405597137509.f376305528ef3570901120a457d80a2f. hadoop132:60030</div><div class="line">TestTable,0000393515,1405597137509.4a9738e4f29128709a0b2cd63ed8d39d. hadoop142:60030</div><div class="line">TestTable,0000524451,1405597162495.47c7234c3d48a1b75a521eaaedae72b4. hadoop141:60030</div><div class="line">TestTable,0000654788,1405597162495.53c2647b5f707032dc3839cdea26965e. hadoop141:60030</div><div class="line">TestTable,0000785234,1405596978669.810195f07f006d900913898abf4385e1. hadoop132:60030</div></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center"></th>
+<th style="text-align:center">调整后</th>
+<th style="text-align:center">调整前</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">内部执行时间</td>
+<td style="text-align:center">1156830ms</td>
+<td style="text-align:center">1741539ms</td>
+</tr>
+<tr>
+<td style="text-align:center">在用户态的耗时</td>
+<td style="text-align:center">3m38.686s</td>
+<td style="text-align:center">3m34.142s</td>
+</tr>
+<tr>
+<td style="text-align:center">程序本身的耗时</td>
+<td style="text-align:center">19m20.268s</td>
+<td style="text-align:center">29m5.021s</td>
+</tr>
+</tbody>
+</table>
+<p>可见，在这个实验中，对于不同的分布，对请求的结果差会有30%到40%的性能差。</p>
+<h1 id="修复方法"><a href="#修复方法" class="headerlink" title="修复方法"></a>修复方法</h1><p>​      手动的把表进行split，表被拆分到小表后，会使访问更加均匀，也可以用其它方法。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/08/15/HBase读写性能相关-客户端的程序优化建议/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1548,128 +1724,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/06/18/Map到Reduce的主流程/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="aiping.lap">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Aiping.LAP">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2014/06/18/Map到Reduce的主流程/" itemprop="url">Map到Reduce的主流程</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-06-17T15:09:40-08:00">
-                2014-06-17
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h1 id="一、Map"><a href="#一、Map" class="headerlink" title="﻿﻿一、Map"></a>﻿﻿一、Map</h1><p>1、spilit 和map是多对一或者一对一，split主要就是通过inutFormat程序对数据切片后的分块。<br>2、spill  这个过程就是在map过程中，把map的循环队列中的数据从内存写道硬盘的过程，写的时候会排序<br>3、merge Map端的Merge主要是，在完成了所有的map计算后，把所有的spill的块和当前内存中的块合并，然后作为reduce的输入，注意，如果设置了combined的函数，在这个阶段也会进行combine<br>4、combine  也叫pre-reduce，就是把所有的spill和内存中的map进行排序。</p>
-<h1 id="二、Map结果怎么传送给Reduce"><a href="#二、Map结果怎么传送给Reduce" class="headerlink" title="二、Map结果怎么传送给Reduce"></a>二、Map结果怎么传送给Reduce</h1><p>1、shuffle整个从map端传送数据到reduce端的过程<br>2、partitioner 通过map输出的key/value个数和reduce的数量来决定哪个数据由哪个reduce来处理</p>
-<h1 id="三、reduce"><a href="#三、reduce" class="headerlink" title="三、reduce"></a>三、reduce</h1><p>1、mergeReduce阶段的Merge就是通过shuffle从不同的map端下载的数据进行合并，注意，这部分数据不会直接写入磁盘，而是先在内存中，到一定数量再写入。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1720,7 +1774,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">44</span>
+                  <span class="site-state-item-count">45</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
