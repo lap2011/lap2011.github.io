@@ -302,65 +302,22 @@
       
         
           
-            <h1 id="影响到随机读的速度的主要因素"><a href="#影响到随机读的速度的主要因素" class="headerlink" title="影响到随机读的速度的主要因素"></a>影响到随机读的速度的主要因素</h1><p>1、请求次数的分布均衡、</p>
-<p>2、StoreFile数量、</p>
-<p>3、表属性的设置</p>
-<p>4、Cache大小以及命中率</p>
-<p>今天主要讨论的是请求不均匀的问题</p>
-<h1 id="Hbase的负载均衡的判断"><a href="#Hbase的负载均衡的判断" class="headerlink" title="Hbase的负载均衡的判断"></a>Hbase的负载均衡的判断</h1><p>各region server的region数是否均衡</p>
-<p>读写请求是否均衡分布。</p>
-<h1 id="保证Hbase集群LB的方法"><a href="#保证Hbase集群LB的方法" class="headerlink" title="保证Hbase集群LB的方法"></a>保证Hbase集群LB的方法</h1><p>对于region的个数，Hbase的balance策略会保证</p>
-<p>对于table的region分布均衡，读请求仍然不均衡分布的情况，说明应用的请求有热点的状况，如这种状况造成了读速度的不OK，可以手工将region进行拆分，并分配到不同的region server上，这是hbase很简单的一种应对热点的解决方法。</p>
-<h1 id="统计方法"><a href="#统计方法" class="headerlink" title="统计方法"></a>统计方法</h1><p>先用execel把相应表的RS列和TPS列单独取出来放到一个文件中，用如下统计脚本进行统计</p>
-<figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#!/usr/bin/perl -w </span></div><div class="line"><span class="keyword">use</span> Data::Dumper; </div><div class="line"><span class="keyword">open</span>(FILE,<span class="string">"&lt;"</span>,$ARGV[<span class="number">0</span>]) <span class="keyword">or</span> <span class="keyword">die</span> <span class="string">"can not open file"</span>; </div><div class="line"><span class="keyword">my</span> %allStatus = (); </div><div class="line"><span class="keyword">while</span> ()&#123; </div><div class="line">    <span class="keyword">if</span> ($_ =~ <span class="regexp">m/(\S+)\s+(\d+)/</span>)&#123; </div><div class="line">	     $allStatus&#123;$1&#125; += $2; </div><div class="line">	&#125;   </div><div class="line">&#125; </div><div class="line"><span class="keyword">foreach</span> <span class="keyword">my</span> $key (<span class="keyword">keys</span>%allStatus)&#123; </div><div class="line">    <span class="keyword">print</span> <span class="string">"$key "</span>.$allStatus&#123;$key&#125;.<span class="string">"\n"</span>; </div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>选择了TPS比较高，又经常访问的表CleanOfflineUserProfileTempV1，进行了查询。结果如下(这里省略)</p>
-<p>可以明显看到分成了4个量级别的请求数目，不同的之间TPS相差了50W的请求量，可见不同的regionserver之间的请求差别很大。</p>
-<h1 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h1><p> 通过实验对比因为访问不均衡导致的时间差别。</p>
-<p> 1、先随机的写入100w条的数据           </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">time ./hbase org.apache.hadoop.hbase.PerformanceEvaluation  randomWrite 1</div></pre></td></tr></table></figure>
-<p>2、查看regionserver的分布状态</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">TestTable,,1405596957945.af6be5a5763589d054d77ab533af721f. hadoop141:60030</div><div class="line">TestTable,0000262285,1405597137509.f376305528ef3570901120a457d80a2f. hadoop141:60030</div><div class="line">TestTable,0000393515,1405597137509.4a9738e4f29128709a0b2cd63ed8d39d. hadoop141:60030</div><div class="line">TestTable,0000524451,1405597162495.47c7234c3d48a1b75a521eaaedae72b4. hadoop141:60030</div><div class="line">TestTable,0000654788,1405597162495.53c2647b5f707032dc3839cdea26965e. hadoop141:60030</div><div class="line">TestTable,0000785234,1405596978669.810195f07f006d900913898abf4385e1. hadoop141:60030</div></pre></td></tr></table></figure>
-<p>3、接下来进行实验的重点部分</p>
-<p>需要用到的命令</p>
-<p>a、测试100w条的随机读</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">time ./hbase org.apache.hadoop.hbase.PerformanceEvaluation  randomRead 1</div></pre></td></tr></table></figure>
-<p>b、关闭balancer</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase shell &gt; balance_switch flase</div></pre></td></tr></table></figure>
-<p>c、手动move region</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">&quot;move &apos;96b1f2b1569aec38030d2c0c95eb9dc5&apos;,&apos;dw-perf-11,60020,1328178878605&apos;</div></pre></td></tr></table></figure>
-<p>其中第一个参数为要复制的region的startKey，第二个参数分别是要迁移到的机器，端口号，要插入的起始地址</p>
-<p>调整后的测试结果：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">TestTable,,1405596957945.af6be5a5763589d054d77ab533af721f. hadoop131:60030</div><div class="line">TestTable,0000262285,1405597137509.f376305528ef3570901120a457d80a2f. hadoop132:60030</div><div class="line">TestTable,0000393515,1405597137509.4a9738e4f29128709a0b2cd63ed8d39d. hadoop142:60030</div><div class="line">TestTable,0000524451,1405597162495.47c7234c3d48a1b75a521eaaedae72b4. hadoop141:60030</div><div class="line">TestTable,0000654788,1405597162495.53c2647b5f707032dc3839cdea26965e. hadoop141:60030</div><div class="line">TestTable,0000785234,1405596978669.810195f07f006d900913898abf4385e1. hadoop132:60030</div></pre></td></tr></table></figure>
-<table>
-<thead>
-<tr>
-<th style="text-align:center"></th>
-<th style="text-align:center">调整后</th>
-<th style="text-align:center">调整前</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">内部执行时间</td>
-<td style="text-align:center">1156830ms</td>
-<td style="text-align:center">1741539ms</td>
-</tr>
-<tr>
-<td style="text-align:center">在用户态的耗时</td>
-<td style="text-align:center">3m38.686s</td>
-<td style="text-align:center">3m34.142s</td>
-</tr>
-<tr>
-<td style="text-align:center">程序本身的耗时</td>
-<td style="text-align:center">19m20.268s</td>
-<td style="text-align:center">29m5.021s</td>
-</tr>
-</tbody>
-</table>
-<p>可见，在这个实验中，对于不同的分布，对请求的结果差会有30%到40%的性能差。</p>
-<h1 id="修复方法"><a href="#修复方法" class="headerlink" title="修复方法"></a>修复方法</h1><p>​      手动的把表进行split，表被拆分到小表后，会使访问更加均匀，也可以用其它方法。</p>
-
-          
+          影响到随机读的速度的主要因素1、请求次数的分布均衡、
+2、StoreFile数量、
+3、表属性的设置
+4、Cache大小以及命中率
+今天主要讨论的是请求不均匀的问题
+Hbase的负载均衡的判断各region server的region数是否均衡
+读写请求是否均衡分布。
+保证Hbase集群LB的方法对
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/08/17/HBase读写性能相关-请求不均匀的问题优化/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -478,28 +435,16 @@
       
         
           
-            <h1 id="对于rowkey的设计"><a href="#对于rowkey的设计" class="headerlink" title="对于rowkey的设计"></a>对于rowkey的设计</h1><p>a、表的设计，尽量要把一起访问的放到一个cf里面</p>
-<p>b、借助HBase单行操作的原子性。一个用户的所有信息存储成一行,这包括消息本身、Message Index、Search Index、以及相关Meta Data(Actions:addMessage、markAsRead,etc)</p>
-<p>c、存储时，数据按照Row key的字典 序(byte order)排序存储。设计key时，要充分排序存储这个特性，将经常一起读取的行存储放到一起。(位置相关性)</p>
-<p>d、推介RowKey：md5sum(userid)+userid。</p>
-<h2 id="关于表的scan操作"><a href="#关于表的scan操作" class="headerlink" title="关于表的scan操作"></a>关于表的scan操作</h2><p>a、每次遍历完Scan的返回结果集后，都不要忘了关闭ResultScanner对象，否则会引发问题。</p>
-<p>b、如果生产环境有mapred任务去scan hbase的时候，如果读取的是热点数据，可以在mapred scan类中加一个</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">scan.setCacheBlocks(<span class="keyword">true</span>)</div></pre></td></tr></table></figure>
-<p>c、几个重要的方法</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setBatch</span><span class="params">(<span class="keyword">int</span> batch)</span> ：<span class="comment">//为设置获取记录的列个数，默认无限制，也就是返回所有的列</span></span></div><div class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setCaching</span><span class="params">(<span class="keyword">int</span> caching)</span>：<span class="comment">//每次从服务器端读取的行数，默认为配置文件中设置的值,可以减少RPC的次数：</span></div><div class="line">HTable.<span class="title">setScannerCaching</span><span class="params">(<span class="keyword">int</span> scannerCaching)</span></div></pre></td></tr></table></figure>
-<p>注意：有三个地方可以进行配置(上面三个参数)：</p>
-<p>1）在HBase的conf配置文件中进行配置；</p>
-<p>2）通过调用HTable.setScannerCaching(int scannerCaching)进行配置；</p>
-<p>3）通过调用Scan.setCaching(int caching)进行配置。三者的优先级越来越高。</p>
-<p> RPCs=(Rows* Cols per Row) / Min(Cols per Row, Batch size) / Scanner caching</p>
-<p>d、默认情况下，HBase的自动刷新功能是处于激活状态的。则样每一个单个的Put都会自动调用一次RPC向server发送一次请求，为性能计，可以关闭自动刷新功能(setAutoFlush(false))，这样会客户端的write buffer已“满”或客户端强制flushComits()刷新再或者调用HTable的close()时才调用RPC一次把多个Put操作发送给服务器。</p>
-<h2 id="关于put操作"><a href="#关于put操作" class="headerlink" title="关于put操作"></a>关于put操作</h2><p>a、在Put操作保存数据时，可以考虑关闭WAL的功能——调用writeToWAL(false)，这意味着在写数据时不会讲数据先写到WAL日志文件，直接写入memstore，这可以提高一些性能。但是者会带来一些副作用，那就是当Region Server出问题时，没有写log的数据会丢失，这在保存重要数据时会带来很大的危险，只有在保存不南无重要的数据时才考虑这样做。</p>
-<p>或者设置setDeferredLogFlush为true，服务端将采用异步写hlog的方式，客户端写响应时间会降到1ms以下。如果regionserver挂掉会丢失1s的数据。同样有数据丢失风险，这种方式会小很多很多（rs被kill -9或者物理机器直接宕机），而且写入的数据马上可以被读取到，客户端也不需要采取特别的策略。</p>
-<p>b、setWriteBufferSize可以设置table的客户端缓存。</p>
-<p>c、通过batch 方式来put：HTable.put(List)</p>
-<h1 id="其它的一些技术"><a href="#其它的一些技术" class="headerlink" title="其它的一些技术"></a>其它的一些技术</h1><p> 使用filter <a href="http://mysun.iteye.com/blog/1584635" target="_blank" rel="external">http://mysun.iteye.com/blog/1584635</a></p>
-
-          
+          对于rowkey的设计a、表的设计，尽量要把一起访问的放到一个cf里面
+b、借助HBase单行操作的原子性。一个用户的所有信息存储成一行,这包括消息本身、Message Index、Search Index、以及相关Meta Data(Actions:addMessage、markAsRead,et
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/08/15/HBase读写性能相关-客户端的程序优化建议/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -617,42 +562,16 @@
       
         
           
-            <h1 id="命中缓存的重要性"><a href="#命中缓存的重要性" class="headerlink" title="命中缓存的重要性"></a>命中缓存的重要性</h1><p>做一个简单的小实验，读取同样5条数据，命中catch和不命中catch的对比：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">[hadoop@bjlg-49p21-hadoop-client03 hbase]$ ./start.sh </div><div class="line">83bd782bcb74fca2000032170000503e4fe29093 57848 </div><div class="line">a0225452001ccb15000055ce0004c15d538f05d9 895 </div><div class="line">a0225452001ccb150000793e00001258538efb1c 606 </div><div class="line">b12ed4ae526364b50007d61e0024a45652ee6a4e 189248 </div><div class="line">92fbd4ae526c85c80008fb96000997fa514811d6 3387</div></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">[hadoop@bjlg-49p21-hadoop-client03 hbase]$ ./start.sh </div><div class="line">83bd782bcb74fca2000032170000503e4fe29093 4928 </div><div class="line">a0225452001ccb15000055ce0004c15d538f05d9 660 </div><div class="line">a0225452001ccb150000793e00001258538efb1c 762 </div><div class="line">b12ed4ae526364b50007d61e0024a45652ee6a4e 1227 </div><div class="line">92fbd4ae526c85c80008fb96000997fa514811d6 1218</div></pre></td></tr></table></figure>
-<h1 id="提高缓存命中率的理论"><a href="#提高缓存命中率的理论" class="headerlink" title="提高缓存命中率的理论"></a>提高缓存命中率的理论</h1><p>1、总的catch的大小，这个调整主要通过提高Regionserver的堆内存和提高hfile.block.cache.size的百分比来提高</p>
-<p>2、数据本身的合理设计，把可能会一起访问的数据设计到一起，把需要整行读取的数据设计到同一个CF里面。如果数据本身不存在热点，就会导致访问完全随机，就只能靠加机器来提高命中率了。</p>
-<p>3、block块的大小，由于每次存放到catch中的数据是一整个block，而不是某个key-value。所以一般来说，不同的数据，有着不同的效果。对于非重复有热点的数据来说，如果block块设置大的话，catch命中率会随着块的增大而增加；对于重复的无热点数据来说，刚好相反。(这里要插一句，block本身的大小很相影响随机读的效果，如果块大的话，索引就相对较小，随机读效果就差)</p>
-<h1 id="关于Hbase的catch本身的实现"><a href="#关于Hbase的catch本身的实现" class="headerlink" title="关于Hbase的catch本身的实现"></a>关于Hbase的catch本身的实现</h1><p>在Hbase的每个Regionserver中，一共维护了3个catch队列：</p>
-<p>Single：如果一个Block第一次被访问，则放在这一优先级队列中；</p>
-<p>Multi：如果一个Block被多次访问，则从Single队列移到Multi队列中；</p>
-<p>InMemory：如果一个Block是inMemory的，则放到这个队列中，例如-ROOT-表和.META.表。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line">hbase(main):002:0&gt; describe &apos;.META.&apos; </div><div class="line">DESCRIPTION                                                       ENABLED                           </div><div class="line"> &#123;NAME =&gt; &apos;.META.&apos;, IS_META =&gt; &apos;true&apos;, FAMILIES =&gt; [&#123;NAME =&gt; &apos;inf true                              </div><div class="line"> o&apos;, DATA_BLOCK_ENCODING =&gt; &apos;NONE&apos;, BLOOMFILTER =&gt; &apos;NONE&apos;, REPLIC                                   </div><div class="line"> ATION_SCOPE =&gt; &apos;0&apos;, COMPRESSION =&gt; &apos;NONE&apos;, VERSIONS =&gt; &apos;10&apos;, TTL                                   </div><div class="line">  =&gt; &apos;2147483647&apos;, MIN_VERSIONS =&gt; &apos;0&apos;, KEEP_DELETED_CELLS =&gt; &apos;fa                                   </div><div class="line"> lse&apos;, BLOCKSIZE =&gt; &apos;8192&apos;, ENCODE_ON_DISK =&gt; &apos;true&apos;, IN_MEMORY =                                   </div><div class="line"> &gt; &apos;true&apos;, BLOCKCACHE =&gt; &apos;true&apos;&#125;]&#125;                                                                  </div><div class="line">1 row(s) in 0.0550 seconds </div><div class="line">hbase(main):003:0&gt; describe &apos;t3&apos; </div><div class="line">DESCRIPTION                                                       ENABLED                           </div><div class="line"> &#123;NAME =&gt; &apos;t3&apos;, FAMILIES =&gt; [&#123;NAME =&gt; &apos;f3&apos;, DATA_BLOCK_ENCODING = true                              </div><div class="line"> &gt; &apos;NONE&apos;, BLOOMFILTER =&gt; &apos;NONE&apos;, REPLICATION_SCOPE =&gt; &apos;0&apos;, VERSI                                   </div><div class="line"> ONS =&gt; &apos;3&apos;, COMPRESSION =&gt; &apos;NONE&apos;, MIN_VERSIONS =&gt; &apos;0&apos;, TTL =&gt; &apos;                                   </div><div class="line"> 2147483647&apos;, KEEP_DELETED_CELLS =&gt; &apos;false&apos;, BLOCKSIZE =&gt; &apos;65536&apos;                                   </div><div class="line"> , IN_MEMORY =&gt; &apos;false&apos;, ENCODE_ON_DISK =&gt; &apos;true&apos;, BLOCKCACHE =&gt;                                    </div><div class="line"> &apos;true&apos;&#125;, &#123;NAME =&gt; &apos;f4&apos;, DATA_BLOCK_ENCODING =&gt; &apos;NONE&apos;, BLOOMFILT                                   </div><div class="line"> ER =&gt; &apos;NONE&apos;, REPLICATION_SCOPE =&gt; &apos;0&apos;, VERSIONS =&gt; &apos;3&apos;, COMPRES                                   </div><div class="line"> SION =&gt; &apos;NONE&apos;, MIN_VERSIONS =&gt; &apos;0&apos;, TTL =&gt; &apos;2147483647&apos;, KEEP_D                                   </div><div class="line"> ELETED_CELLS =&gt; &apos;false&apos;, BLOCKSIZE =&gt; &apos;65536&apos;, IN_MEMORY =&gt; &apos;fal                                   </div><div class="line"> se&apos;, ENCODE_ON_DISK =&gt; &apos;true&apos;, BLOCKCACHE =&gt; &apos;true&apos;&#125;]&#125;                                             </div><div class="line">1 row(s) in 0.0470 seconds</div></pre></td></tr></table></figure>
-<p>这三个队列Single、Multi、InMemory分别占用了总大小的0.25、0.50和0.25。队列如何生成的呢？对于第一次访问到集群的数据，如果不是被标记为IN_MEMORY，会将它写入single队列，否则写入memory队列。当再次访问该数据并且在single中读到了该数据时，single会升级为multi。通过将缓存分级的好处是避免Cache之间相互影响，尤其是对HBase来说像Meta表这样的Cache应该保证高优先级。</p>
-<h1 id="统计命中率的方法"><a href="#统计命中率的方法" class="headerlink" title="统计命中率的方法"></a>统计命中率的方法</h1><p>目前在ganglia中没有提供特别有效的命中率的详细统计，主要通过一下方式获取,接下来以获取访问命中率的例子来进行分析。提供一个脚本通过日志来获取7天内的历史命中率</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line">#!/bin/bash </div><div class="line">baseDir=$(cd $(dirname $0); pwd) </div><div class="line">hbaseLogDir=&quot;/opt/hbase_logs/&quot; </div><div class="line">checkServerList=$(cat /opt/hbase/conf/regionservers) </div><div class="line">checkUser=&quot;hadoop&quot; </div><div class="line">checkStr=&quot;org.apache.hadoop.hbase.io.hfile.LruBlockCache&quot; </div><div class="line">logPrefix=&quot;hbase-hadoop-regionserver-&quot; </div><div class="line">resultDir=$&#123;baseDir&#125;/result </div><div class="line">max=7 </div><div class="line">if [ ! -d $resultDir ];then </div><div class="line">    mkdir $resultDir </div><div class="line">fi </div><div class="line">for checkServer in $&#123;checkServerList&#125; </div><div class="line">    do </div><div class="line">        for ((i=0 ; i &lt; $max ; i++)) </div><div class="line">           do </div><div class="line">               logFile= </div><div class="line">                if [ $i -ne 0 ];then </div><div class="line">                    day=.$(date +%Y-%m-%d --date &quot;$i days ago&quot;) </div><div class="line">                fi </div><div class="line">                hostname=$(ssh $&#123;checkUser&#125;@$&#123;checkServer&#125; &quot;hostname&quot;) </div><div class="line">                logFile=$&#123;hbaseLogDir&#125;$&#123;logPrefix&#125;$&#123;hostname&#125;.log$&#123;day&#125; </div><div class="line">                echo $logFile </div><div class="line">                ssh $&#123;checkUser&#125;@$&#123;checkServer&#125; &quot;grep $&#123;checkStr&#125; -r $&#123;logFile&#125;&quot; &gt;&gt; $&#123;resultDir&#125;/$&#123;checkServer&#125; </div><div class="line">            done </div><div class="line">        #echo $result &gt;&gt;$&#123;resultDir&#125;/$&#123;checkServer&#125; </div><div class="line">    done</div></pre></td></tr></table></figure>
-<p>通过awk呈现历史的命中率：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">2014-07-15 00:18:36,290 DEBUG org.apache.hadoop.hbase.io.hfile.LruBlockCache: LRU Stats: total1.86 GB, free=367.23 MB, max=2.22 GB, blocks=29427, accesses=109550765, hits=84075136, hitRatio=76.74%, cachingAccesses=88885825, cachingHits=83592639, cachingHitsRatio=94.04%, evictions=1248, evicted=4889752, evictedPerRun=3918.070556640625</div></pre></td></tr></table></figure>
-<p>上面展示了一个LRU日志的内容，接下来简单解析一下LRU日志的各个参数的含义：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">total 当前catch正在使用的内存大小</div><div class="line">free 系统可用的catch的大小</div><div class="line">max  总的可以用于catch的内存大小</div><div class="line">blocks   当前系统的catch中存储的block的个数</div><div class="line">accesses  catch被访问的总的次数</div><div class="line">hits    catch被访问，而且命中的次数</div><div class="line">hitRatio   当前的catch的总的命中率</div><div class="line">catchAccesses 总共请求查找块的次数</div><div class="line">catchingHits 请求查找块的命中次数</div><div class="line">catchHistsRatio 查找块的位置的命中率</div><div class="line">evictions  清除catch发成的次数</div><div class="line">evicted    被清除的block的总数</div><div class="line">evictedPerRun  平均每次清除的个数</div></pre></td></tr></table></figure>
-<p>我们需要的是hitRatio的数据，这部分数据显示的是总的请求的命中率</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">cat $file| grep &quot;cachingHitsRatio&quot; |awk -F &quot;,&quot; &apos;&#123;print $1 $8&#125;&apos;</div></pre></td></tr></table></figure>
-<p>通过这个命令，可以看到系统每隔5分钟会进行，平均的命中率是75%</p>
-<p>通过perl脚本获取到单个节点的平均命中率：</p>
-<figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#!/usr/bin/perl </span></div><div class="line"><span class="keyword">my</span> $file = $ARGV[<span class="number">0</span>]; </div><div class="line"><span class="keyword">my</span> $ratioBefore; </div><div class="line"><span class="keyword">my</span> $ratioLast; </div><div class="line"><span class="keyword">my</span> $count = <span class="number">0</span>; </div><div class="line"><span class="keyword">if</span> ( -e $file )&#123; </div><div class="line">    <span class="keyword">open</span>(FILE,<span class="string">"&lt;"</span>,$file)||<span class="keyword">die</span> <span class="string">"can not open $file\n"</span>; </div><div class="line">    <span class="keyword">while</span>()&#123; </div><div class="line">        <span class="keyword">if</span> ( $_ =~ <span class="regexp">m/hitRatio=(\d+.\d+)%/</span>)&#123; </div><div class="line">            $ratioBefore += $1; </div><div class="line">            $count += <span class="number">1</span>; </div><div class="line">        &#125;   </div><div class="line">    &#125;   </div><div class="line">&#125;</div><div class="line"><span class="keyword">print</span> $ratioBefore/$count;</div></pre></td></tr></table></figure>
-<h1 id="提高catch的命中率"><a href="#提高catch的命中率" class="headerlink" title="提高catch的命中率"></a>提高catch的命中率</h1><p>1、在系统堆内存总量不边的情况下，修改了以下的参数：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase.regionserver.global.memstore.upperLimit  0.35</div></pre></td></tr></table></figure>
-<p>在Region服务器中所有的memstore所占Java虚拟机比例的最大值  </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase.regionserver.global.memstore.lowerLimit  0.30</div></pre></td></tr></table></figure>
-<p>在Region服务器中所有的memstore所占Java虚拟机比例的最小值 </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hfile.block.cache.size  0.40</div></pre></td></tr></table></figure>
-<p>HFile/StoreFile缓存所占java虚拟机堆的大小的百分比 </p>
-<p> 修改了这部分参数意义上是减少了写缓存的数量，提高了读缓存的数量。</p>
-<p>2、使用使用LRU和BucketCatche结合的方式时候</p>
-<p>3、修改表的属性，包括DATA_BLOCK_ENCODING、BLOCKSIZE对命中率有一定的影响</p>
-<p>4、合理的设置rowkey，建议用md5等方式，保证分布足够均匀</p>
-
-          
+          命中缓存的重要性做一个简单的小实验，读取同样5条数据，命中catch和不命中catch的对比：
+123456[hadoop@bjlg-49p21-hadoop-client03 hbase]$ ./start.sh 83bd782bcb74fca2000032170000503e4fe29093 5
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/07/30/HBase读写性能相关-关于缓存/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -770,92 +689,16 @@
       
         
           
-            <h1 id="split触发时机"><a href="#split触发时机" class="headerlink" title="split触发时机"></a>split触发时机</h1><p>a、compact之后会调用CompactSplitThread.requestSplit(HRegion)</p>
-<p>b、flush之前会检测区域中HStoreFile数目是否超hbase.hstore.blockingStoreFiles，如果超过且没有等待超时会调用CompactSplitThread.requestSplit(HRegion)</p>
-<p>c、flush之后会调用HRegion.checkSplit()检测是否需要split，如果需要则调用  </p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">CompactSplitThread.requestSplit(HRegion)</div></pre></td></tr></table></figure>
-<p>d、手动的split</p>
-<h1 id="compact发生的时间"><a href="#compact发生的时间" class="headerlink" title="compact发生的时间"></a>compact发生的时间</h1><p>a、Memstoreflush时；</p>
-<p>b、HRegionServer定期做Compaction Checker时；</p>
-<p>c、HBaseAdmin客户端发起的请求；</p>
-<p>d、CompactTool发起。</p>
-<h1 id="影响写速度的因素"><a href="#影响写速度的因素" class="headerlink" title="影响写速度的因素"></a>影响写速度的因素</h1><p>1、rowKey是否足够合理</p>
-<p>因为hbase是按rowKey连续存储的，因此如应用写入数据时rowKey是连续的，那么就会造成写的压力会集中在单台region server上，这样造成了负载不均衡。因此应用在设计rowKey时，要尽可能的保证写入是分散的，当然，这可能会对有连续读需求的场景产生一定的冲击。</p>
-<p>2、写阻塞等待</p>
-<p>造成这个现象的原因是各个region的memstore使用的大小加起来超过了总的阈值，于是阻塞并开始进行flush，这个过程会需要消耗掉一些时间，通常来说造成这个的原因是单台RegionServer上region数太多了，因此其实单台RegionServer上最好不要放置过多的region，一种调节方法是调大split的fileSize，这样可以适当的减少region数，但需要关注调整后读性能的变化。一般会报错：Flush thread woke up with memory above low water。或者在memstore的大小超过其阈值的时候，也会进行flush，错误日志：delaying flush up to。</p>
-<p>3、compact带来的影响</p>
-<p>通常是store file太多compact造成的，错误日志： has too many store files; delaying flush up to</p>
-<p> 4、 split造成的</p>
-<p>split会造成读写短暂的失败，如写的数据比较大的话，可能会有频繁的split出现，sptlit期间会让region下线，然后block住该region的写请求。</p>
-<h1 id="随机写的测试工具YCSB"><a href="#随机写的测试工具YCSB" class="headerlink" title="随机写的测试工具YCSB"></a>随机写的测试工具YCSB</h1><p> ycsb是一个非常方便的针对分布式文件系统的测试工具,它的特点是：1 可以任意设置读写比例、线程数量，打印结果比较详细；2 它是hbase等nosql官方jira上面的测试标准，与人交流时ycsb的测试数据最能说明问题。</p>
-<p>下载0.1.3版本，编译hbase的测试类，把hbase的配置文件拷贝到db/hbase/conf下，依次执行ant &amp;&amp; ant dbcompile-hbase</p>
-<p>执行随机写的测试：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">java -cp build/ycsb.jar:db/hbase/lib/* com.yahoo.ycsb.Client -load -db com.yahoo.ycsb.db.HBaseClient -P workloads/workloada -p columnfamily=family -p table=hello -p recordcount=100000000 -p threadcount=4  -s 2&gt;&amp;1 &gt;result</div></pre></td></tr></table></figure>
-<p> 执行随机读的测试：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">java -cp build/ycsb.jar:db/hbase/lib/* com.yahoo.ycsb.Client -t -db com.yahoo.ycsb.db.HBaseClient -P workloads/workloada -p columnfamily=info -p table=hee -p operationcount=100000 -s -threads 10 -target 100 &gt; transactions.dat</div></pre></td></tr></table></figure>
-<p> workload[a-f]依次代表的百分比为：</p>
-<p>结果分析(以插入1000000条数据的结果做分析)：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">3 [OVERALL], RunTime(ms), 2459212.0  //总的运行时间</div><div class="line"></div><div class="line">4 [OVERALL], Throughput(ops/sec), 406.63432026193755  //每秒内插入的数据 </div><div class="line"></div><div class="line">5 [INSERT], Operations, 1000000 //插入的总数量</div><div class="line"></div><div class="line">6 [INSERT], AverageLatency(ms), 9.27774  //每条数据的插入时间</div><div class="line"></div><div class="line">7 [INSERT], MinLatency(ms), 0 //最短插入间隔</div><div class="line"></div><div class="line">8 [INSERT], MaxLatency(ms), 265720 //最长的插入间隔</div><div class="line"></div><div class="line">9 [INSERT], 95thPercentileLatency(ms), 0 </div><div class="line"></div><div class="line">10 [INSERT], 99thPercentileLatency(ms), 0 </div><div class="line"></div><div class="line">11 [INSERT], Return=0, 1000000 //插入1000000万条的返回值</div><div class="line"></div><div class="line">12 [INSERT], 0, 994510 //有994510条数据在0-1s内插入</div></pre></td></tr></table></figure>
-<h1 id="表的信息影响随机读写性能的测试"><a href="#表的信息影响随机读写性能的测试" class="headerlink" title="表的信息影响随机读写性能的测试"></a>表的信息影响随机读写性能的测试</h1><p>1、DEFERRED_LOG_FLUSH的设置：</p>
-<p>设置数据表的DEFERRED_LOG_FLUSH属性为true，服务端将采用异步写hlog的方式，客户端写响应时间会降到1ms以下。如果regionserver挂掉会丢失1s的数据。同样有数据丢失风险，这种方式会小很多很多（rs被kill -9或者物理机器直接宕机），而且写入的数据马上可以被读取到，客户端也不需要采取特别的策略。</p>
-<p>2、BLOOMFILTER 的设置：</p>
-<p>对于某个region的随机读，HBase会遍历读memstore及storefile（按照一定的顺序），将结果合并返回给客户端。如果你设置了bloomfilter，那么在遍历读storefile时，就可以利用bloomfilter，忽略某些storefile</p>
-<p>有两种类型的bloomfilter类型：</p>
-<p> a)ROW, 根据KeyValue中的row来过滤storefile </p>
-<p>举例：假设有2个storefile文件sf1和sf2， </p>
-<p>sf1包含kv1（r1 cf:q1 v）、kv2（r2 cf:q1 v） </p>
-<p>sf2包含kv3（r3 cf:q1 v）、kv4（r4 cf:q1 v） </p>
-<p>如果设置了CF属性中的bloomfilter为ROW，那么get(r1)时就会过滤sf2，get(r3)就会过滤sf1 </p>
-<p>b)ROWCOL,根据KeyValue中的row+qualifier来过滤storefile </p>
-<p>举例：假设有2个storefile文件sf1和sf2， </p>
-<p>sf1包含kv1（r1 cf:q1 v）、kv2（r2 cf:q1 v） </p>
-<p>sf2包含kv3（r1 cf:q2 v）、kv4（r2 cf:q2 v） </p>
-<p>如果设置了CF属性中的bloomfilter为ROW，无论get(r1,q1)还是get(r1,q2)，都会读取sf1+sf2； 而如果设置了CF属性中的bloomfilter为ROWCOL，那么get(r1,q1)就会过滤sf2，get(r1,q2)就会过滤sf1 </p>
-<p>3、DATA_BLOCK_ENCODING的设置：</p>
-<p> Data Block Encoding是0.94的重要特性，可以很大程度上改善lrucache的使用率，从而提高get scan性能。从测试结果来看设置DATA_BLOCK_ENCODING =&gt; ‘DIFF’可以获得最有性价比的性能提升。可以选择的类型包括：</p>
-<p>PREFIX(这是一个比较公用的压缩算法，其压缩过程也比较简单快速，通用于存在相同的Row前缀的情景);</p>
-<p>DIFF(相比于PREFIX，同样是需要应用在存在相同的Row前缀的情景，但其只写一份family内容，写入timestamp的差值，比较长度是否一样等特性，使其压缩幅度会更大，当然压缩的CPU开销也会稍大);    </p>
-<p>FAST_DIFF(和DIFF类似，但是对于存在相同Value内容的场景,那肯定是使用它了)</p>
-<p>更加详细的内容请参考   <a href="http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/" target="_blank" rel="external">http://blog.cloudera.com/blog/2012/06/hbase-io-hfile-input-output/</a></p>
-<p>4、BLOCKSIZE的设置(HBase-3864)：</p>
-<p>在配置中有一个hbase.mapreduce.hfileoutputformat.blocksize，这个参数和表描述中的一样，主要是用来初始化MR的。配置中的采纳数主要是从HFileOutputFormat写hfile的时候，会强制改成这个值。但是表中的配置会覆盖这个配置，所以这个配置一般没有用。</p>
-<p>5、COMPRESSION的设置：</p>
-<p>设置压缩格式，可以间接的提高查询效率，但是会影响写入的效率。</p>
-<p>接下来测试开启该配置和不开启的区别：</p>
-<p>我们用4线程，写入100w条记录做实验，查看平均的插入时间</p>
-<table>
-<thead>
-<tr>
-<th>表”描述”</th>
-<th>写入时间</th>
-<th>读取时间</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>默认</code></td>
-<td>668214ms</td>
-<td>4768452ms</td>
-</tr>
-<tr>
-<td><code>BLOOMFILTER =&gt; &#39;ROW&#39;</code></td>
-<td>683444ms</td>
-<td>3175800ms</td>
-</tr>
-<tr>
-<td><code>DATA_BLOCK_ENCODING =&gt; &#39;DIFF&#39;</code></td>
-<td>633093ms</td>
-<td>3452708ms</td>
-</tr>
-<tr>
-<td><code>BLOCKSIZE =&gt; &#39;16384&#39;</code></td>
-<td>670335ms</td>
-<td>3472540ms</td>
-</tr>
-</tbody>
-</table>
-
-          
+          split触发时机a、compact之后会调用CompactSplitThread.requestSplit(HRegion)
+b、flush之前会检测区域中HStoreFile数目是否超hbase.hstore.blockingStoreFiles，如果超过且没有等待超时会调用CompactSpl
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/07/28/HBase读写性能相关-基本优化/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -973,31 +816,15 @@
       
         
           
-            <h1 id="常用维护命令"><a href="#常用维护命令" class="headerlink" title="常用维护命令"></a>常用维护命令</h1><p>1、major_compact ‘testtable’，通常生产环境会关闭自动major_compact(配置文件中hbase.hregion.majorcompaction设 为0)，选择一个晚上用户少的时间窗口手工major_compact，如果hbase更新不是太频繁，可以一个星期对所有表做一次 major_compact，这个可以在做完一次major_compact后，观看所有的storefile数量，如果storefile数量增加到 major_compact后的storefile的近二倍时，可以对所有表做一次major_compact，时间比较长，操作尽量避免高锋期。</p>
-<p>2、flush ‘testtable’，将所有memstore刷新到hdfs，通常如果发现regionserver的内存使用过大，造成该机的regionserver很多线程block，可以执行一下flush操作，这个操作会造成hbase的storefile数量剧增，应尽量避免这个操 作，还有一种情况，在hbase进行迁移的时候，如果选择拷贝文件方式，可以先停写入，然后flush所有表，拷贝文件。</p>
-<p>3、balance_switch true或者balance_switch flase，配置master是否执行平衡各个regionserver的region数量，当我们需要维护或者重启一个regionserver时，会 关闭balancer，这样就使得region在regionserver上的分布不均，这个时候需要手工的开启balance。</p>
-<p>4、move一个region到另一个RS。</p>
-<p>Move 要移动的regiong的id 目的机器，端口，startkey</p>
-<h1 id="服务维护命令"><a href="#服务维护命令" class="headerlink" title="服务维护命令"></a>服务维护命令</h1><p>1、bin/graceful_stop.sh –restart –reload –debugnodename。这个操作是平滑的重启regionserver进程，对服务不会有影响，他会先将需要重启的regionserver上面的所有 region迁移到其它的服务器，然后重启，最后又会将之前的region迁移回来，但我们修改一个配置时，可以用这种方式重启每一台机子，这个命令会关 闭balancer，所以最后我们要在hbase shell里面执行一下balance_switch true，对于hbase regionserver重启，不要直接kill进程，这样会造成在zookeeper.session.timeout这个时间长的中断，也不要通过 bin/hbase-daemon.sh stop regionserver去重启，如果运气不太好，-ROOT-或者.META.表在上面的话，所有的请求会全部失败。</p>
-<p>2、关闭下线一台regionserver bin/graceful_stop.sh –stop<strong>nodename</strong> <strong>。</strong>和上面一样，系统会在关闭之前迁移所有region，然后stop进程，同样最后我们要手工balance_switch true，开启master的region均衡。</p>
-<p>3、检查region是否正常以及修复：bin/hbase hbck (检查) &amp;&amp; bin/hbase hbck -fix （修复）。执行修复的命令后会返回所有的region是否正常挂载，如没有正常挂载可以使用下一条命令修复，如果还是不能修复，那需要看日志为什么失败，手工处理，这个命令时间稍微有点时间长，慎用。</p>
-<p>4、有时候，用户有必要绕过HBase并直接访问一个HFile，例如，检查它的健康程度，或者转存它的内容。hbase org.apache.hadoop.hbase.io.hfile.HFile -f /hbase/t1/e634b203a20933f8e13ad83ecb1511dc/f1/4f24802e1e8a47ba82c30d9de35589cc -v -m -p</p>
-<p>5、检查复制的数据是否完整。hbase org.apache.hadoop.hbase.mapreduce.replication.VerifyReplication –starttime=1265875194289 –stoptime=1265878794289 1 TestTable</p>
-<p>6、更新所有meta的信息（慎用） hbase hbck -fixMeta -fixAssignments</p>
-<h1 id="HBase的迁移"><a href="#HBase的迁移" class="headerlink" title="HBase的迁移"></a>HBase的迁移</h1><p>1，copytable方式</p>
-<p>bin/hbase org.apache.hadoop.hbase.mapreduce.CopyTable –peer.adr=zookeeper1,zookeeper2,zookeeper3:/hbase ‘testtable’</p>
-<p>目前0.92之前的版本的不支持多版本的复制，0.94已经支持多个版本的复制。当然这个操作需要添加hbase目录里的conf/mapred-site.xml，可以复制hadoop的过来。</p>
-<p>2，Export/Import</p>
-<p>bin/hbase org.apache.hadoop.hbase.mapreduce.Exporttesttable /user/testtable [versions] [starttime] [stoptime]</p>
-<p>bin/hbase org.apache.hadoop.hbase.mapreduce.Importtesttable /user/testtable</p>
-<p>跨版本的迁移，我觉得是一个不错的选择，而且copytable不支持多版本，而export支持多版本，比copytable更实用一些。</p>
-<p>3，直接拷贝hdfs对应的文件</p>
-<p>首先拷贝hdfs文件，如bin/hadoop distcp hdfs://srcnamenode:9000/hbase/testtable/ hdfs://distnamenode:9000/hbase/testtable/</p>
-<p>然后在目的hbase上执行bin/hbase org.jruby.Main bin/add_table.rb /hbase/testtable</p>
-<p>生成meta信息后，重启hbase</p>
-<p>这个操作是简单的方式，操作之前可以关闭hbase的写入，执行flush所有表（上面有介绍）,再distcp拷贝，如果hadoop版本不一致，可以用hftp接口的方式，我推荐使用这种方式，成本低</p>
-
-          
+          常用维护命令1、major_compact ‘testtable’，通常生产环境会关闭自动major_compact(配置文件中hbase.hregion.majorcompaction设 为0)，选择一个晚上用户少的时间窗口手工major_compact，如果hbase更新不是太频繁，可以一个星期
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/07/22/HBase的日常维护/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -1115,65 +942,18 @@
       
         
           
-            <p>这本来是想写一个小的系列，包括后续的压测，所以先从环境搭建开始.</p>
-<p>PS:看了很多的文章后，总结出来的结论：网络上搭建方式各种坑，实践才是检验真理的唯一方式</p>
-<h1 id="基础环境"><a href="#基础环境" class="headerlink" title="基础环境"></a>基础环境</h1><p>hadoop版本1.0.4,Hbase0.94.3，系统环境：Centos5X, 64位</p>
-<h1 id="搭建过程"><a href="#搭建过程" class="headerlink" title="搭建过程"></a>搭建过程</h1><p> 一共需要准备4部分东西，这4个部分缺一不可。</p>
-<h2 id="1、lzo的系统库文件"><a href="#1、lzo的系统库文件" class="headerlink" title="1、lzo的系统库文件"></a>1、lzo的系统库文件</h2><p>不用相信网上的方法，亲测了，和很多库一样，这个不需要编译环境和运行环境是同一套，不过最好本地和运行的基本库一样，否则会有一些系统库不是向下兼容的问题。</p>
-<p>下载lzo-2.06.tar.gz</p>
-<p>然后依次执行以下的命令编译系统库</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">tar -zxvf lzo-2.06.tar.gz</div><div class="line"></div><div class="line">./configure --enable-shared --prefix /usr/local/lzo-2.06</div><div class="line"></div><div class="line">make</div><div class="line"></div><div class="line">make install</div></pre></td></tr></table></figure>
-<p>生成的库文件如下所示：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">├── lib</div><div class="line">│   ├── liblzo2.a</div><div class="line">│   ├── liblzo2.la</div><div class="line">│   ├── liblzo2.so -&gt; liblzo2.so.2.0.0</div><div class="line">│   ├── liblzo2.so.2 -&gt; liblzo2.so.2.0.0</div><div class="line">│   └── liblzo2.so.2.0.0</div></pre></td></tr></table></figure>
-<p>由于这些都是最基本的lzo压缩库，所以需要放到集群上的公共库中(我的系统是64位的，放在了/usr/lib64下面)，要求每个节点都有该库，因为所有的Map和Reduce都只依赖节点本身的库。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">[hadoop@hadoop131 ~]$ ls /usr/lib64/liblzo2.*</div><div class="line"></div><div class="line">/usr/lib64/liblzo2.a   /usr/lib64/liblzo2.so    /usr/lib64/liblzo2.so.2.0.0</div><div class="line"></div><div class="line">/usr/lib64/liblzo2.la  /usr/lib64/liblzo2.so.2</div></pre></td></tr></table></figure>
-<h2 id="2、导入hadoop依赖lzo的jar包"><a href="#2、导入hadoop依赖lzo的jar包" class="headerlink" title="2、导入hadoop依赖lzo的jar包"></a>2、导入hadoop依赖lzo的jar包</h2><p>下载hadoop-gpl-packaging-0.6.1-1.x86_64.rpm</p>
-<p>在系统上安装:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">rpm -ivh hadoop-gpl-packaging-0.6.1-1.x86_64.rpm</div></pre></td></tr></table></figure>
-<p>将会在本地安装以下的目录文件：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line">├── lib</div><div class="line">│   ├── cdh4.0.1</div><div class="line">│   │   └── elephant-bird-gerritjvv</div><div class="line">│   │       └── elephant-bird-2.0.5.jar</div><div class="line">│   ├── guava-12.0.jar</div><div class="line">│   ├── hadoop-lzo-0.4.17.jar</div><div class="line">│   ├── hadoop-lzo.jar -&gt; /opt/hadoopgpl/lib/hadoop-lzo-0.4.17.jar</div><div class="line">│   ├── pig-0.10.0</div><div class="line">│   │   ├── elephant-bird-gerritjvv</div><div class="line">│   │   │   └── elephant-bird-2.0.5.jar</div><div class="line">│   │   ├── elephant-bird.jar -&gt; /opt/hadoopgpl/lib/pig-0.10.0/elephant-bird-gerritjvv/elephant-bird-2.0.5.jar</div><div class="line">│   │   ├── udfs-0.3.1.jar</div><div class="line">│   │   └── udfs.jar -&gt; /opt/hadoopgpl/lib/pig-0.10.0/udfs-0.3.1.jar</div><div class="line">│   ├── pig-0.6.0</div><div class="line">│   │   └── elephant-bird-1.0.jar</div><div class="line">│   ├── pig-0.7.0</div><div class="line">│   │   └── elephant-bird-1.0.jar</div><div class="line">│   ├── pig-0.8.0</div><div class="line">│   │   ├── elephant-bird-dvryaboy</div><div class="line">│   │   │   └── elephant-bird-2.0.jar</div><div class="line">│   │   └── elephant-bird-gerritjvv</div><div class="line">│   │       └── elephant-bird-2.0.jar</div><div class="line">│   ├── protobuf-java-2.4.1.jar</div><div class="line">│   ├── slf4j-api-1.5.8.jar</div><div class="line">│   ├── slf4j-log4j12-1.5.10.jar</div><div class="line">│   └── yamlbeans-0.9.3.jar</div><div class="line">└── native</div><div class="line">    └── Linux-amd64-64</div><div class="line">        ├── libgplcompression.a</div><div class="line">        ├── libgplcompression.la</div><div class="line">        ├── libgplcompression.so</div><div class="line">        ├── libgplcompression.so.0</div><div class="line">        ├── libgplcompression.so.0.0.0</div><div class="line">        ├── LzoCompressor.lo</div><div class="line">        ├── LzoCompressor.o</div><div class="line">        ├── LzoDecompressor.lo</div><div class="line">        └── LzoDecompressor.o</div></pre></td></tr></table></figure>
-<p>现在只需要 hadoop-lzo.jar，需要将这个jar包拷贝到$HADOOP_HOME/lib和$HBAS_HOME/lib下，需要集群中所有的节点都有这个包。</p>
-<h2 id="3、hadoop调用系统库的jni库文件"><a href="#3、hadoop调用系统库的jni库文件" class="headerlink" title="3、hadoop调用系统库的jni库文件"></a>3、hadoop调用系统库的jni库文件</h2><p>在上面的Linux-amd64-64目录下，存放了需要的所有的JNI库文件，需要把这些库放到          </p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$HADOOP_HOME/lib/native/Linux-amd64-64</div></pre></td></tr></table></figure>
-<p>拷贝其中所有的libgplcompression.* 到</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$HBASE_HOME/lib/native/Linux-amd64-64</div></pre></td></tr></table></figure>
-<p>注意，一般Hbase中不存在该目录，直接创建就可以了。</p>
-<h2 id="4、需要配置中，引用相关的库文件"><a href="#4、需要配置中，引用相关的库文件" class="headerlink" title="4、需要配置中，引用相关的库文件"></a>4、需要配置中，引用相关的库文件</h2><p>需要修改3个hadoop的配置：</p>
-<h3 id="core-site-xml-中增加："><a href="#core-site-xml-中增加：" class="headerlink" title="core-site.xml 中增加："></a>core-site.xml 中增加：</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">name</span>&gt;</span>io.compression.codecs<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">value</span>&gt;</span>com.hadoop.compression.lzo.LzoCodec,com.hadoop.compression.lzo.LzopCodec<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">name</span>&gt;</span>io.compression.codec.lzo.class<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">      <span class="tag">&lt;<span class="name">value</span>&gt;</span>com.hadoop.compression.lzo.LzoCodec<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div></pre></td></tr></table></figure>
-<h3 id="mapred-site-xml-中增加："><a href="#mapred-site-xml-中增加：" class="headerlink" title="mapred-site.xml 中增加："></a>mapred-site.xml 中增加：</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.map.output.compress<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>mapred.child.java.opts<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>-Djava.library.path=$&#123;HADOOP_HOME&#125;/lib/native/Linux-amd64-64<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div><div class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">name</span>&gt;</span>mapred.map.output.compression.codec<span class="tag">&lt;/<span class="name">name</span>&gt;</span></div><div class="line">	<span class="tag">&lt;<span class="name">value</span>&gt;</span>com.hadoop.compression.lzo.LzoCodec<span class="tag">&lt;/<span class="name">value</span>&gt;</span></div><div class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></div></pre></td></tr></table></figure>
-<h3 id="hadoop-env-sh-中增加："><a href="#hadoop-env-sh-中增加：" class="headerlink" title="hadoop-env.sh 中增加："></a>hadoop-env.sh 中增加：</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:$HADOOP_HOME/lib:$HBASE_HOME/lib:</div><div class="line"></div><div class="line">export JAVA_LIBRARY_PATH=$JAVA_LIBRARY_PATH:$HADOOP_HOME/lib/native/Linux-amd64-64:$HADOOP_HOME/lib/native:$HADOOP_HOME/lib</div></pre></td></tr></table></figure>
-<h1 id="结果测试"><a href="#结果测试" class="headerlink" title="结果测试"></a>结果测试</h1><p>完成上述的4步配置后，需要重启集群。使用下面的方式对结果进行测试</p>
-<h2 id="hadoop测试使用lzo的压缩："><a href="#hadoop测试使用lzo的压缩：" class="headerlink" title="hadoop测试使用lzo的压缩："></a>hadoop测试使用lzo的压缩：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hadoop jar $&#123;HADOOP_HOME&#125;/contrib/streaming/hadoop-streaming-1.0.4.jar -input /in/part-00009 -output /testalzo -mapper cat -reducer cat -jobconf mapred.output.compress=true -jobconf mapred.output.compression.codec=org.apache.hadoop.io.compress.LzoCodec</div></pre></td></tr></table></figure>
-<p>测试成功的话会生成/in/part-00009的压缩文件/testalzo/part-00000.lzo_deflate</p>
-<h2 id="hbase测试使用lzo压缩："><a href="#hbase测试使用lzo压缩：" class="headerlink" title="hbase测试使用lzo压缩："></a>hbase测试使用lzo压缩：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase org.apache.hadoop.hbase.util.CompressionTest hdfs://hadoop131/terasort/output/part-00005 lzo</div></pre></td></tr></table></figure>
-<p>测试成功的话会输出SUCCESS   </p>
-<p>修改表压缩方式为lzo，接下来以usertable为例子进行</p>
-<p>1、describe ‘usertable’ 查看原来的压缩方式，默认情况下的压缩方式 COMPRESSION =&gt; ‘NONE’</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">hbase(main):003:0&gt; describe &apos;usertable&apos; </div><div class="line">DESCRIPTION                                                       ENABLED                           </div><div class="line">&#123;NAME =&gt; &apos;usertable&apos;, FAMILIES =&gt; [&#123;NAME =&gt; &apos;cf&apos;, DATA_BLOCK_ENC true                              </div><div class="line">ODING =&gt; &apos;NONE&apos;, BLOOMFILTER =&gt; &apos;NONE&apos;, REPLICATION_SCOPE =&gt; &apos;0&apos;                                   </div><div class="line">, VERSIONS =&gt; &apos;3&apos;, COMPRESSION =&gt; &apos;NONE&apos;, MIN_VERSIONS =&gt; &apos;0&apos;, T                                   </div><div class="line">TL =&gt; &apos;2147483647&apos;, KEEP_DELETED_CELLS =&gt; &apos;false&apos;, BLOCKSIZE =&gt;                                    </div><div class="line">&apos;65536&apos;, IN_MEMORY =&gt; &apos;false&apos;, ENCODE_ON_DISK =&gt; &apos;true&apos;, BLOCKCA                                   </div><div class="line">CHE =&gt; &apos;true&apos;&#125;]&#125;  </div><div class="line">&gt;disable &apos;usertable&apos;</div><div class="line">&gt;alter &apos;usertable&apos;,&#123;NAME=&gt;&apos;info&apos;,COMPRESSION=&gt;&apos;LZO&apos;&#125;</div><div class="line">&gt;enable &apos;TestTable&apos;</div><div class="line">&gt;compact &apos;TestTable&apos;</div></pre></td></tr></table></figure>
-<p>测试结果：</p>
-<p>先用自带的工具生成1G的测试数据：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hbase org.apache.hadoop.hbase.PerformanceEvaluation  sequentialWrite 1</div></pre></td></tr></table></figure>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">1059592589  hdfs://hadoop131/hbase/TestTable</div><div class="line">409232235   hdfs://hadoop131/hbase/TestTable</div></pre></td></tr></table></figure>
-<p>原来1G的数据被压缩到了400M，这个压缩效果和数据有关系，但是从网上的经验看，至少20%的压缩比还是能达到的。</p>
-<h1 id="补充"><a href="#补充" class="headerlink" title="补充"></a>补充</h1><p>2014-10-24日增加:</p>
-<p>升级为hadoop2.4.1版本，为新版本增加LZO的压缩：</p>
-<p>1、编译本地的LZO库同上</p>
-<p>2、编译Hadoop-LZO依赖：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">git init </div><div class="line"></div><div class="line">git clone https://github.com/twitter/hadoop-lzo</div><div class="line"></div><div class="line">export C_INCLUDE_PATH=/usr/local/lzo/include</div><div class="line"></div><div class="line">export LIBRARY_PATH=/usr/local/lzo/lib</div><div class="line"></div><div class="line">mvn clean package -Dmaven.test.skip=true</div></pre></td></tr></table></figure>
-<p>3、拷贝相应的库和包到集群上：</p>
-<p>需要拷贝的包括(如果需要HBase支持ZLO，需要把所有的包拷贝到hbase下的lib下，没有的话创建</p>
-<p>所有的lzo依赖库，把所有/usr/local/lzo/lib下的库文件拷贝到集群上，且通过ldd的工具设置为系统库。</p>
-<p>拷贝maven编译完成后的target/hadoop-lzo-0.4.20-SNAPSHOT.jar拷贝到hadoop的share/hadoop/common下</p>
-<p>拷贝target/native/Linux-amd64-64/lib下的所有库文件到hadoop的lib/native/下</p>
-<p>4、配置集群文件同上<br>5、重启集群<br>6、测试压缩是否可以用<br>在本地安装lzop的工具，然后随便找一个文件，执行<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">lzop -U -9 testFile</div></pre></td></tr></table></figure></p>
-<p> 然后上传到HDFS上，如果直接用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hadoop fs -cat</div></pre></td></tr></table></figure>
-<p> 可以看到文件是乱码，但是用</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hdfs dfs -text</div></pre></td></tr></table></figure>
-<p> 看到的是非乱码就证明lzo正确安装了。</p>
-<h1 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h1><p><a href="http://www.quora.com/How-do-I-install-LZO-compression-with-Hbase-and-Hadoop" target="_blank" rel="external">http://www.quora.com/How-do-I-install-LZO-compression-with-Hbase-and-Hadoop</a><br><a href="http://shitouer.cn/2013/01/hadoop-hbase-snappy-setup-final-tutorial/" target="_blank" rel="external">http://shitouer.cn/2013/01/hadoop-hbase-snappy-setup-final-tutorial/</a></p>
-
-          
+          这本来是想写一个小的系列，包括后续的压测，所以先从环境搭建开始.
+PS:看了很多的文章后，总结出来的结论：网络上搭建方式各种坑，实践才是检验真理的唯一方式
+基础环境hadoop版本1.0.4,Hbase0.94.3，系统环境：Centos5X, 64位
+搭建过程 一共需要准备4部分东西，这4个部分缺
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -1291,16 +1071,17 @@
       
         
           
-            <p>﻿﻿﻿﻿StoreFile是只读的，一旦创建后就不可以再修改，一个Stroe中包含了多个的Storefile和一个memStore。StoreFile是以HDFS文件的方式直接存储在HDFS上的。</p>
-<p>当查询到某个HFile的时候</p>
-<p>先读取Trailer字段，在其中保存了每个段的其实位置，然后将Data Index会被读取到内存中，这样，当检索某个key时，不需要扫描整个HFile，而只需从内存中找到key所在的block，通过一次磁盘io将整个 block读取到内存中，再找到需要的key。</p>
-<p>在HFile 中根据一个key 搜索一个data 的过程：</p>
-<p>1、先内存中对HFile的root index进行二分查找。如果支持多级索引的话，则定位到的是leaf/intermediate index，如果是单级索引，则定位到的是data block</p>
-<p>2、如果支持多级索引，则会从缓存/hdfs（分布式文件系统）中读取leaf/intermediate index chunk，在leaf/intermediate chunk根据key值进行二分查找（leaf/intermediate index chunk支持二分查找），找到对应的data block。</p>
-<p>3、从缓存/hdfs中读取data block</p>
-<p>4、在data block中遍历查找key。<br>在data block 中，所有的Key value是一个固定格式的字节数组，存储的格式如下：<br>   <img src="http://www.searchtb.com/wp-content/uploads/2011/01/image0090.jpg" alt="img"><br>具体的流程可以参考：<a href="http://www.webrube.com/hbase-hfile-web_rube/2412" target="_blank" rel="external">http://www.webrube.com/hbase-hfile-web_rube/2412</a></p>
-
-          
+          ﻿﻿﻿﻿StoreFile是只读的，一旦创建后就不可以再修改，一个Stroe中包含了多个的Storefile和一个memStore。StoreFile是以HDFS文件的方式直接存储在HDFS上的。
+当查询到某个HFile的时候
+先读取Trailer字段，在其中保存了每个段的其实位置，然后将Data 
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/06/30/HBase查找数据的流程/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -1418,18 +1199,16 @@
       
         
           
-            <p>﻿﻿﻿﻿客户从Hbase Client端访问Hbase的时候，如果知道自己应该到哪个Regionserver上获取相应的Region来操作数据呢，本文将详细介绍这个流程。</p>
-<p>介于nosql和RDBMS之间，仅能通过主键(row key)和主键的range来检索数据，仅支持单行事务(可通过hive支持来实现多表join等复杂操作)。主要用来存储非结构化和半结构化的松散数据。</p>
-<p><img src="http://pic002.cnblogs.com/images/2012/79891/2012060400513336.jpg" alt="img"></p>
-<p>那么如果通过row key来查找到相应的数据呢，本文将先进行基本的ReginServer的定位。</p>
-<p>1、首先需要介绍两张特殊的表：<br>  -ROOT-   记录了.META.表的元数据信息。<br>  .META.    记录了用户表的元数据信息。</p>
-<p>先看-ROOT-表，其RowKey依次 包含了表名(.META.)，StartKey，TimeStamp，而其列簇中共有4个字段，regioninfo、server、serverstartcode、v<br>其次看.META.表，RowKey中包含了包含的表名(这里只有一个test表),startKey，timeStamp，列簇中有3个字段， regioninfo、server、serverstartcode。</p>
-<p>2、接下来我们从后往前的分析如何具体的查找到一个表<br>​    所有的数据都是存储在不同的ReginServer上的，这些分布的元数据就存储在了表.META.中，假设我们需要在test表中查找RK为x的数据，则首先是通过.META.的Rowkey中查找表名为test，<br>   通过.META.中ROWKEY可以找到包含有test表的所有纪录，然后根据偏移可以找到某行数据包含了该条记录，最后在Server列中，就可以查找到在哪个Regionserver上。</p>
-<p>​    当表的个数和大小都不停的增长的时候，.META.表也会分块，这样就不能很快定位要查找的.META.在哪个Regionserver上，这就需要用-ROOT-定位，和上面的原理类似。</p>
-<p>   最后把-ROOT-的信息存放到ZK上，这样就可以保证快速的定位到某个具体的RegionServer上。</p>
-<p>​      </p>
-
-          
+          ﻿﻿﻿﻿客户从Hbase Client端访问Hbase的时候，如果知道自己应该到哪个Regionserver上获取相应的Region来操作数据呢，本文将详细介绍这个流程。
+介于nosql和RDBMS之间，仅能通过主键(row key)和主键的range来检索数据，仅支持单行事务(可通过hive支持来
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/06/28/HBase获取region元数据的流程/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -1547,13 +1326,15 @@
       
         
           
-            <p>这一节将分析一下，HBase如何存储数据。<br>1、首先分享几个基本的流程：<br>   Table –&gt; split –&gt;regiongs –&gt; region<a href="不同的region会分配到不同的regionserver上">startkey, endkey</a><br>​                              1                           n                  n<br>  HRregionServer —-&gt;  HRregion   —–&gt;   Store —-&gt;  storefile[当memStroe到达一定量的时候，会生成stroefile]<br>​                                                                                            |<br>​                                                                                    底层实现是HFile<br><img src="http://static.open-open.com/lib/uploadImg/20111201/20111201143315_949.png" alt="分布式数据库 HBase"><br>2、通过图解，分析整个存储过程。<br>​    当用户在表test中增加一跳记录的时候。<br>  <img src="http://pic002.cnblogs.com/images/2012/79891/2012060400513336.jpg" alt="img"><br>   表插入新的记录后 ，相当与写入了一个KeyValue的数据，这时候会导致Hfile的增加。</p>
-<p>HFile里面的每个KeyValue对就是一个简单的byte数组。但是这个byte数组里面包含了很多项，并且有固定的结构。我们来看看里面的具体结构：</p>
-<p><img src="http://www.searchtb.com/wp-content/uploads/2011/01/image0090.jpg" alt="img"></p>
-<p>开始是两个固定长度的数值，分别表示Key的长度和Value的长度。紧接着是Key，开始是固定长度的数值，表示RowKey的长度，紧接着是RowKey，然后是固定长度的数值，表示Family的长度，然后是Family，接着是Qualifier，然后是两个固定长度的数值，表示Time Stamp和Key Type（Put/Delete）。Value部分没有这么复杂的结构，就是纯粹的二进制数据了。<br>​      每个KV的数据又是存储在HFile的Data段中，Data Block是HBase I/O的基本单元，为了提高效率，HRegionServer中有基于LRU的Block Cache机制。每个Data块的大小可以在创建一个Table的时候通过参数指定，大号的Block有利于顺序Scan，小号Block利于随机查询。每个Data块除了开头的Magic以外就是一个个KeyValue对拼接而成, Magic内容就是一些随机数字，目的是防止数据损坏。后面会详细介绍每个KeyValue对的内部构造。<br>​    很多的Data又可以组成一个Hfile。HFile文件是不定长的，长度固定的只有其中的两块：Trailer和FileInfo。正如图中所示的，Trailer中有指针指向其他数据块的起始点。File Info中记录了文件的一些Meta信息，例如：AVG_KEY_LEN, AVG_VALUE_LEN, LAST_KEY, COMPARATOR, MAX_SEQ_ID_KEY等。Data Index和Meta Index块记录了每个Data块和Meta块的起始点。<br>​      <img src="http://www.searchtb.com/wp-content/uploads/2011/01/image0080.jpg" alt="img"></p>
-<p>​      很多的Hfile构成了一个Store，Store存储是HBase存储的核心了，其中由两部分组成，一部分是MemStore，一部分是StoreFiles。MemStore是Sorted Memory Buffer，用户写入的数据首先会放入MemStore，当MemStore满了以后会Flush成一个StoreFile（底层实现是HFile），当StoreFile文件数量增长到一定阈值，会触发Compact合并操作，将多个StoreFiles合并成一个StoreFile，合并过程中会进行版本合并和数据删除，因此可以看出HBase其实只有增加数据，所有的更新和删除操作都是在后续的compact过程中进行的，这使得用户的写操作只要进入内存中就可以立即返回，保证了HBase I/O的高性能。当StoreFiles Compact后，会逐步形成越来越大的StoreFile，当单个StoreFile大小超过一定阈值后，会触发Split操作，同时把当前Region Split成2个Region，父Region会下线，新Split出的2个孩子Region会被HMaster分配到相应的HRegionServer上，使得原先1个Region的压力得以分流到2个Region上。下图描述了Compaction和Split的过程：<br>​      <img src="http://www.searchtb.com/wp-content/uploads/2011/01/image0070.gif" alt="img"><br>​      HRegionServer内部管理了一系列HRegion对象，每个HRegion对应了Table中的一个Region，HRegion中由多个HStore组成。每个HStore对应了Table中的一个Column Family的存储，可以看出每个Column Family其实就是一个集中的存储单元，因此最好将具备共同IO特性的column放在一个Column Family中，这样最高效。<br> 参考文章：<br><a href="http://www.searchtb.com/2011/01/understanding-hbase.html" target="_blank" rel="external">http://www.searchtb.com/2011/01/understanding-hbase.html</a><a href="http://www.open-open.com/lib/view/open1322721298671.html" target="_blank" rel="external">http://www.open-open.com/lib/view/open1322721298671.html</a></p>
-
-          
+          这一节将分析一下，HBase如何存储数据。1、首先分享几个基本的流程：   Table –&gt; split –&gt;regiongs –&gt; regionstartkey, endkey​                              1                    
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/06/25/HBase写入流程分析/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -1631,7 +1412,7 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-06-19T19:42:58-08:00">
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-06-20T11:42:58+08:00">
                 2014-06-19
               </time>
             
@@ -1671,26 +1452,16 @@
       
         
           
-            <p>Executor框架是指java 5中引入的一系列并发库中与executor相关的一些功能类，其中包括线程池，Executor，Executors，ExecutorService，CompletionService，Future，Callable等。</p>
-<p>下面这个例子是为了证明一个问题：当一个ExecutorService在执行了shutdown后，并不会影响当前线程的执行，当前的线程会继续执行，只不过该对象不能再增加新的线程。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> java.sql.DatabaseMetaData;</div><div class="line"><span class="keyword">import</span> java.util.List;</div><div class="line"><span class="keyword">import</span> java.util.ArrayList;</div><div class="line"><span class="keyword">import</span> java.util.Date;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Callable;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.ExecutionException;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.ExecutorService;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executors;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Future;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyCallable</span> <span class="keyword">implements</span> <span class="title">Callable</span> </span>&#123;    </div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> myNum = <span class="number">0</span>;</div><div class="line">    </div><div class="line">    MyCallable(<span class="keyword">int</span> threadNum)&#123;</div><div class="line">        <span class="keyword">this</span>.myNum = threadNum;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">call</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        System.out.println(<span class="string">"&gt;&gt;&gt;"</span>+myNum+<span class="string">" thread start"</span>);</div><div class="line">        Date dateTmp1 = <span class="keyword">new</span> Date();</div><div class="line">        Thread.sleep(<span class="number">1000</span>);</div><div class="line">        Date dataTmp2 = <span class="keyword">new</span> Date();</div><div class="line">        <span class="keyword">long</span> time = dataTmp2.getTime()-dateTmp1.getTime();</div><div class="line">        System.out.println(<span class="string">"&gt;&gt;&gt;"</span>+myNum+<span class="string">" thread start, it has run time for "</span>+time);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ThreadTest</span> </span>&#123;</div><div class="line">    </div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String []args)</span> <span class="keyword">throws</span> ExecutionException,InterruptedException</span>&#123;</div><div class="line">        System.out.println(<span class="string">"----Thread test stat-----"</span>);</div><div class="line">        Date dateNow = <span class="keyword">new</span> Date();</div><div class="line">        <span class="keyword">int</span> taskSize = <span class="number">5</span>;</div><div class="line">        </div><div class="line">       ExecutorService threadPool = Executors.newFixedThreadPool(taskSize);</div><div class="line">        List list = <span class="keyword">new</span> ArrayList();</div><div class="line">        <span class="keyword">for</span> ( <span class="keyword">int</span> i=<span class="number">0</span>;i</div><div class="line">            Callable callable = <span class="keyword">new</span> MyCallable(i);</div><div class="line">            Future future = threadPool.submit(callable);</div><div class="line">            list.add(future);</div><div class="line">        &#125;</div><div class="line">        threadPool.shutdown();</div><div class="line">        </div><div class="line">        <span class="keyword">for</span> (Future future : list)&#123;</div><div class="line">            <span class="keyword">if</span> (future.get() != <span class="keyword">null</span>)&#123;</div><div class="line">                System.out.println(<span class="string">"&gt;&gt;&gt;"</span> + future.get().toString());</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        </div><div class="line">        Date dataEnd = <span class="keyword">new</span> Date();</div><div class="line">        <span class="keyword">long</span> timeEnd = dateNow.getTime()-dataEnd.getTime();</div><div class="line">        System.out.println(<span class="string">"----Thread test "</span>+timeEnd+<span class="string">" end-----"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>在上面的例子中，用的是<strong>newFixedThreadPool</strong>来创建指定数量的线程。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ExecutorService <span class="title">newFixedThreadPool</span><span class="params">(<span class="keyword">int</span> nThreads)</span></span></div></pre></td></tr></table></figure>
-<p>创建固定数目线程的线程池。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ExecutorService <span class="title">newCachedThreadPool</span><span class="params">()</span></span></div></pre></td></tr></table></figure>
-<p>一个可缓存的线程池，调用<code>execute</code> 将重用以前构造的线程（如果线程可用）。如果现有线程没有可用的，则创建一个新线程并添加到池中。终止并从缓存中移除那些已有 60 秒钟未被使用的线程。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ExecutorService <span class="title">newSingleThreadExecutor</span><span class="params">()</span></span></div></pre></td></tr></table></figure>
-<p>一个单线程化的Executor。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> ScheduledExecutorService <span class="title">newScheduledThreadPool</span><span class="params">(<span class="keyword">int</span> corePoolSize)</span></span></div></pre></td></tr></table></figure>
-<p>一个支持定时及周期性的任务执行的线程池，多数情况下可用来替代Timer类。<br>上面的几个方法中，应该优先使用<strong>newCachedThreadPool</strong>，因为它创建与需求数量一致的线程数，只有当这个方法出问题的时候再考虑用<strong>newFixedThreadPool</strong>newSingleThreadExecutor对于希望在程序中连续运行的任何事物都是有用的。<br>在上面的例子中，使用的是callable，也可以使用runnable，这两个的区别就是如果想让线程执行有返回值，应该用callable。调用callable不是使用run，而是call，而且在executorserver中添加的时候，不是使用execute，而是使用submit，这个调用会返回一个futurer的对象，然后该对象可以调用get来获取结果<br>线程的yield方法是建议让具有相同优先级的其它线程可以运行了。</p>
-<p>ExecutorService扩展了Executor并添加了一些生命周期管理的方法。一个Executor的生命周期有三种状态，<strong>运行</strong>，<strong>关闭</strong>，<strong>终止</strong>。Executor创建时处于运行状态。当调用ExecutorService.shutdown()后，处于关闭状态，isShutdown()方法返 回true。这时，不应该再想Executor中添加任务，所有已添加的任务执行完毕后，Executor处于终止状态，isTerminated()返 回true。</p>
-<p>如果Executor处于关闭状态，往Executor提交任务会抛出unchecked exception RejectedExecutionException<br>线程的后台执行: 设置thread的对象setDaemon为true就可以设置为后台进程<br>使用join方法可以有一个特效，使得某个线程A在另一个线程B上调用A.join，则当前的B将会挂起，直到A执行完成后，B才会继续执行，也可以加一个超时时间，当然也可以中断挂起，用B的interrupt的方法.<br>join的例子：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> java.util.concurrent.Callable;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.ExecutorService;</div><div class="line"><span class="keyword">import</span> java.util.concurrent.Executors;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Sleeper</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> duriation;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Sleeper</span><span class="params">(String name, <span class="keyword">int</span> sleepTime)</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">super</span>(name);</div><div class="line"></div><div class="line">        duriation = sleepTime;</div><div class="line"></div><div class="line">        start();</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line"></div><div class="line">            sleep(duriation);</div><div class="line"></div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line"></div><div class="line">            <span class="comment">// <span class="doctag">TODO:</span> handle exception</span></div><div class="line"></div><div class="line">            System.out.println(getName()+<span class="string">"  was interrupted. "</span>+<span class="string">" is interrupete "</span>+isInterrupted());</div><div class="line"></div><div class="line">            <span class="keyword">return</span>;</div><div class="line"></div><div class="line">        &#125;</div><div class="line"></div><div class="line">        System.out.println(getName()+<span class="string">" has awakened"</span>);</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Joiner</span> <span class="keyword">extends</span> <span class="title">Thread</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="keyword">private</span> Sleeper sleeper;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Joiner</span><span class="params">(String name, Sleeper sleeper)</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">super</span>(name);</div><div class="line"></div><div class="line">        <span class="keyword">this</span>.sleeper = sleeper;</div><div class="line"></div><div class="line">        start();</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span></span>&#123;</div><div class="line"></div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line"></div><div class="line">            sleeper.join();</div><div class="line"></div><div class="line">            <span class="comment">//            sleep(1);</span></div><div class="line"></div><div class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line"></div><div class="line">            <span class="comment">// <span class="doctag">TODO:</span> handle exception</span></div><div class="line"></div><div class="line">            e.printStackTrace();</div><div class="line"></div><div class="line">        &#125;</div><div class="line"></div><div class="line">        System.out.println(getName() + <span class="string">" join completed"</span>);</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">threadTest</span></span>&#123;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</div><div class="line"></div><div class="line">        <span class="comment">// TODO Auto-generated method stub</span></div><div class="line"></div><div class="line">        Sleeper sleeper = <span class="keyword">new</span> Sleeper(<span class="string">"a"</span>, <span class="number">15000</span>);</div><div class="line"></div><div class="line">        <span class="comment">//        Sleeper another = new Sleeper("b", 15000);</span></div><div class="line"></div><div class="line">        Joiner doc = <span class="keyword">new</span> Joiner(<span class="string">"doc"</span>, sleeper);</div><div class="line"></div><div class="line">        <span class="comment">//        sleeper.interrupt();</span></div><div class="line"></div><div class="line">        <span class="comment">//        another.interrupt();</span></div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>对于Executor管理的线程，如果发生了异常，需要捕获，尝试通过try catch的方法是无法正确捕获的，这时候可以通过Thread.UncaugthExceptionHandler.uncaughtException()来捕获临近死亡时候的状态。<br>为什么使用executor<br>构造器中启动线程是很危险的，因为另一个任务可能会在构造器结束之前开始执行，这意味着该任务能够访问处于不稳定状态的对象。<br>可以替代线程组更好的管理线程</p>
-<p>参考博客：</p>
-<p><a href="http://www.iteye.com/topic/366591" target="_blank" rel="external">http://www.iteye.com/topic/366591</a></p>
-
-          
+          Executor框架是指java 5中引入的一系列并发库中与executor相关的一些功能类，其中包括线程池，Executor，Executors，ExecutorService，CompletionService，Future，Callable等。
+下面这个例子是为了证明一个问题：当一个Execu
+          ...
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2014/06/20/java多线程-Executor/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
@@ -1980,6 +1751,10 @@
 
 
 
+  
+    
+
+    
   
 
 
