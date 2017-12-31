@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="HBase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="HBase的江湖位置HBase位于结构化存储层； HDFS为HBase提供了高可用的存储能力； MR又为HBase提供了高性能的计算能力； Zookeeper为HBase提供了稳定的服务和failover的机制； Pig和Hive为HBase提供了高层的语言支持； Sqoop为HBase提供了数据导入的功能；
+HBase的组成外部依赖Zookeeper1 保证任何时候，集群中只有一个master">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase整体框架介绍">
+<meta property="og:url" content="http://yoursite.com/2014/08/20/HBase整体框架介绍/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="HBase的江湖位置HBase位于结构化存储层； HDFS为HBase提供了高可用的存储能力； MR又为HBase提供了高性能的计算能力； Zookeeper为HBase提供了稳定的服务和failover的机制； Pig和Hive为HBase提供了高层的语言支持； Sqoop为HBase提供了数据导入的功能；
+HBase的组成外部依赖Zookeeper1 保证任何时候，集群中只有一个master">
+<meta property="og:updated_time" content="2017-12-31T12:25:54.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HBase整体框架介绍">
+<meta name="twitter:description" content="HBase的江湖位置HBase位于结构化存储层； HDFS为HBase提供了高可用的存储能力； MR又为HBase提供了高性能的计算能力； Zookeeper为HBase提供了稳定的服务和failover的机制； Pig和Hive为HBase提供了高层的语言支持； Sqoop为HBase提供了数据导入的功能；
+HBase的组成外部依赖Zookeeper1 保证任何时候，集群中只有一个master">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2014/08/20/HBase整体框架介绍/"/>
+
+
+
+
+
+  <title>HBase整体框架介绍 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/08/20/HBase整体框架介绍/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">HBase整体框架介绍</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-08-19T21:45:52-08:00">
+                2014-08-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="HBase的江湖位置"><a href="#HBase的江湖位置" class="headerlink" title="HBase的江湖位置"></a>HBase的江湖位置</h1><p>HBase位于结构化存储层； HDFS为HBase提供了高可用的存储能力； MR又为HBase提供了高性能的计算能力； Zookeeper为HBase提供了稳定的服务和failover的机制； Pig和Hive为HBase提供了高层的语言支持； Sqoop为HBase提供了数据导入的功能；</p>
+<h1 id="HBase的组成"><a href="#HBase的组成" class="headerlink" title="HBase的组成"></a>HBase的组成</h1><h2 id="外部依赖Zookeeper"><a href="#外部依赖Zookeeper" class="headerlink" title="外部依赖Zookeeper"></a>外部依赖Zookeeper</h2><p>1 保证任何时候，集群中只有一个master </p>
+<p>2、Zookeeper Quorum存储-ROOT-表地址、HMaster地址 </p>
+<p>3、HRegionServer把自己以Ephedral方式注册到Zookeeper中，HMaster随时感知各个HRegionServer的健康状况 </p>
+<h2 id="Master"><a href="#Master" class="headerlink" title="Master"></a>Master</h2><p> 1 为Region server分配region </p>
+<p>2 负责region server的负载均衡 </p>
+<p>3 发现失效的region server并重新分配其上的region </p>
+<p>4 GFS上的垃圾文件回收 </p>
+<p>5 处理schema更新请求 </p>
+<p>6 管理用户对表的增删改查操作 </p>
+<h2 id="Region-Server"><a href="#Region-Server" class="headerlink" title="Region Server"></a>Region Server</h2><p>1 Region server维护Master分配给它的region，处理对这些region的IO请求 </p>
+<p>2 Region server负责切分在运行过程中变得过大的region 可以看到，client访问hbase上数据的过程并不需要master参与（寻址访问zookeeper和region server，数据读写访问regione server），master仅仅维护者table和region的元数据信息，负载很低。</p>
+<h1 id="HRegion的详细介绍"><a href="#HRegion的详细介绍" class="headerlink" title="HRegion的详细介绍"></a>HRegion的详细介绍</h1><h2 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h2><p>HRegionServer主要负责响应用户I/O请求，向HDFS文件系统中读写数据，是HBase中最核心的模块。</p>
+<p>HRegionServer内部管理了一系列HRegion对象，每个HRegion对应了Table中的一个Region，HRegion中由多个HStore组成。每个HStore对应了Table中的一个Column Family的存储， 可以看出每个Column Family其实就是一个集中的存储单元，因此最好将具备共同IO特性的column放在一个Column Family中，这样最高效。 </p>
+<h2 id="Regoin服务组成"><a href="#Regoin服务组成" class="headerlink" title="Regoin服务组成"></a>Regoin服务组成</h2><p>上图展示了HRegionserver的功能：</p>
+<p> 1） MemStoreFlusher，控制RS的内存使用，有选择性地将Region的MemStore数据写入文件。该组件可以有效地控制RS的内存使用，flush文件的速度在一定程度上可以反应HBase 写服务的繁忙状况。 </p>
+<p>2） CompactSplitThread，合并文件清理不需要的数据，控制Region的规模。在Store内的文件个数超过阈值时，触发Compact合并文件操作，一是清理被删除的数据， 二是多余版本的清理。在Region内的Store文件大小超过阈值，会触发Region的Split操作，一个Region被切分成两个Region。这两个操作都是在CompactSplitThread的 各自的线程池中被触发。 </p>
+<p>3） CompactionChecker，周期性检查RS上的Region是否需要进行Compaction操作，确认需要进行Compaction操作的Region，提交给CompactSplitThread执行请求。 </p>
+<p>4) MasterAddressTracker：捕获Master服务节点的变化。HBase使用多Master来解决Master单点故障的问题，主Master服务故障时，它与ZooKeeper的心跳延迟超过阈值， ZooKeeeper路径下的数据被清理，备Master上的ActiveMaserManager服务会竞争该Master路径，成为主Master。MasterAddresTracker是RS内部监听Master节点变化的追踪器。 </p>
+<p>5) ClusterStatusTracker：HBase集群状态追踪器。该选项可以标识当前集群的状态，及它的启动时间。该设置选项有利于集群中的各个工作节点(RS)统一执行启动和退出操作。 </p>
+<p>6) CatalogTracker：跟踪-ROOT-、.META.表的Region的状态。在HBase支持的-ROOT-、.META.、以及User Region三层树级目录结构中，-ROOT-、.META.表用来定位Region的 位置，追踪-ROOT-表和.META.表对应Region的变化，可以时刻保证整个层次目录树的完整性。 </p>
+<p>7) SplitLogWorker：基于Region的HLog文件切分器。在RS宕机之后，RS上的保存的HLog文件，需要按照Region进行切分。HMaster会把这些文件作为任务放置到Zookeeper的 splitlog路径下，RS上SplitLogWorker会尝试获取任务，对获取到的HLog文件按照Region进行分组，处理的结果保存到相应Region的recovered.edits目录下。 </p>
+<p>8) HRegionServer与HMaster以及Client之间采用RPC协议进行通信。HRegionServer向HMaster定期汇报节点的负载状况，包括RS内存使用状态、在线状态的Region等信息， 在该过程中RS扮演了RPC客户端的角色，而HMaster扮演了RPC服务器端的角色。RS内置的RpcServer实现了数据更新、读取、删除的操作，以及Region涉及到Flush、Compaction、 Open、Close、Load文件等功能性操作。此时，RS扮演了RPC服务的服务端的角色。RS与Client之间的RPC是HBase最为核心的操作，其服务状况的好坏，直接反映了RS内部、以及 它所依赖的HDFS服务质量的好坏，因此，该过程的RPC经常成为分析读写性能异常的突破口。 </p>
+<p>9) HBase对于数据的更新和删除操作默认先Append到HLog文件，然后再更新到RS对应的Region上，因此，由HLog文件在RS的处理方式，被称为Write-Ahead-Log。多个Region的 更新删除操作会被相继写入同一个文件，出于以下的原因，HLog文件会被截断，然后创建新HLog文件继续当前的Append操作。 </p>
+<p>1: Append操作失败，避免因底层文件系统的文件异常，阻塞数据的操作。 </p>
+<p>2: 降低存储空间的开销。当HLog上记录的数据完全从MemStore写入HDFS，此时如果多个HLog文件，有利于筛选冗余的HLog文件，提高存储空间的效率。</p>
+<p>3: 提高分布式HLog文件切分操作(Distributed Log Split)的效率。多个HLog文件就对应同样数目的LogSplit子任务，从而可以借助多个RS的SplitLogWorker组件快速完 成HLog文件的切分，尽快恢复Region的服务。</p>
+<h1 id="HStroe详细介绍"><a href="#HStroe详细介绍" class="headerlink" title="HStroe详细介绍"></a>HStroe详细介绍</h1><p>HStore存储是HBase存储的核心了，其中由两部分组成，一部分是MemStore，一部分是StoreFiles。</p>
+<h2 id="MemStore"><a href="#MemStore" class="headerlink" title="MemStore"></a>MemStore</h2><p>MemStore是Sorted Memory Buffer，用户写入的数据首先会放入MemStore， 当MemStore满了以后会Flush成一个StoreFile（底层实现是HFile），当StoreFile文件数量增长到一定阈值，会触发Compact合并操作，将多个StoreFiles合并成一个StoreFile， 合并过程中会进行版本合并和数据删除，因此可以看出HBase其实只有增加数据，所有的更新和删除操作都是在后续的compact过程中进行的，这使得用户的写操作只要进入内存中就 可以立即返回，保证了HBase I/O的高性能。当StoreFiles Compact后，会逐步形成越来越大的StoreFile，当单个StoreFile大小超过一定阈值后，会触发Split操作，同时把当前 Region Split成2个Region，父Region会下线，新Split出的2个孩子Region会被HMaster分配到相应的HRegionServer上，使得原先1个Region的压力得以分流到2个Region上。 ﻿﻿﻿﻿﻿</p>
+<h2 id="StoreFile"><a href="#StoreFile" class="headerlink" title="StoreFile"></a>StoreFile</h2><p>StoreFile是只读的，一旦创建后就不可以再修改，一个Stroe中包含了多个的Storefile和一个memStore。StoreFile是以HDFS文件的方式直接存储在HDFS上的。StoreFile就是 对HFile做了轻量级包装，即StoreFile底层就是HFile，下图展示了Hfile的结构： 在查询到某个HFile的时候 先读取Trailer字段，在其中保存了每个段的其实位置，然后将Data Index会被读取到内存中，这样，当检索某个key时，不需要扫描整个HFile，而只需从内存中找到key所在的 block，通过一次磁盘io将整个 block读取到内存中，再找到需要的key。 在HFile 中根据一个key 搜索一个data 的过程： </p>
+<p>1、先内存中对HFile的root index进行二分查找。如果支持多级索引的话，则定位到的是leaf/intermediate index，如果是单级索引，则定位到的是data block </p>
+<p>2、如果支持多级索引，则会从缓存/hdfs（分布式文件系统）中读取leaf/intermediate index chunk，在leaf/intermediate chunk根据key值进行二分查找 （leaf/intermediate index chunk支持二分查找），找到对应的data block。 </p>
+<p>3、从缓存/hdfs中读取data block </p>
+<p>4、在data block中遍历查找key。在data block 中，所有的Key value是一个固定格式的字节数组，存储的格式如下： 注：更加具体的查询过程可以参考[1]    </p>
+<h1 id="HBase元数据"><a href="#HBase元数据" class="headerlink" title="HBase元数据"></a>HBase元数据</h1><p>Hbase获取要查询的表的流程： .META. 　　记录用户表的Region信息，同时，.META.也可以有多个region -ROOT- 　 记录.META.表的Region信息，但是，-ROOT-只有一个region Zookeeper中记录了-ROOT-表的location 客户端访问数据的流程： Client -&gt; Zookeeper -&gt; -ROOT- -&gt; .META. -&gt; USER -&gt; 用户数据表</p>
+<h1 id="HBase表存储"><a href="#HBase表存储" class="headerlink" title="HBase表存储"></a>HBase表存储</h1><p>上图展示了Hbase的表结构，其实整个结构可以看成是一个四维的空间，分别是： Row Key：　　Hbase表按照rowkey的字典排序顺序存储，并且会按照RowKey切分成多个Region（StartKey-endKey） Timestamp： 每次对数据操作对应的时间戳，也即数据的version number Column Family： 列簇，一个table在水平方向有一个或者多个列簇，列簇可由任意多个Column组成，列簇支持动态扩展，无须预定义数量及类型，二进制存储， 用户需自行进行类型转换。一个KV对应了一个二维的结构，StroeFile的DataBlock中的一个KV，多个KV存储构成了一个DataBlock， 也就是最小的存储和Cache单位。</p>
+<h1 id="HBase的Compact-and-Split"><a href="#HBase的Compact-and-Split" class="headerlink" title="HBase的Compact and Split"></a>HBase的Compact and Split</h1><h2 id="基本介绍"><a href="#基本介绍" class="headerlink" title="基本介绍"></a>基本介绍</h2><p>在前面介绍StroeFile生成的时候大概介绍到了Compact和Split，其过程大概如下： Client写入 -&gt; 存入MemStore，一直到MemStore满 -&gt; Flush成一个StoreFile，直至增长到一定阈值 -&gt; 出发Compact合并操作 -&gt; 多个StoreFile合并成一个StoreFile，同时进行版本合并和数据删除 -&gt; 当StoreFiles Compact后，逐步形成越来越大的StoreFile -&gt; 单个StoreFile大小超过一定阈值后，触发Split操作，把当前Region Split成2个Region，Region会下线， 新Split出的2个孩子Region会被HMaster分配到相应的HRegionServer上，使得原先1个Region的压力得以分流到2个Region上</p>
+<h2 id="数据写入"><a href="#数据写入" class="headerlink" title="数据写入"></a>数据写入</h2><p>数据写入到HBase的时候，首先会写入到内存中（memstore），一旦memstore达到设定的阈值，就会把数据flush到磁盘上，生成storefile（数据写入内存前会写WAL，并且持久化到磁盘） 当store files达到一定的数量，就会进行合并，这个过程叫做compaction，如上图，4个64M的stroeFile合并成了一个256M的大StroeFile 当StoreFile大到某个阈值的时候，就会split，如上图，一个256M的被Split成了2个128M的StoreFile，这两个StoreFile会分别生成一个Region分到不同的Regionserver上</p>
+<h2 id="写入过程中的分析"><a href="#写入过程中的分析" class="headerlink" title="写入过程中的分析"></a>写入过程中的分析</h2><p>下面的插图演示了一个简单的场景：在一个循环中我们执行一个put操作，每次插入1K value。该表只有一个column family和一个分区。memstore的flush阈值设置为 100MB（hbase.hregion.memstore.flush.size），文件的最大值（hbase.hregion.max.filesize）设置为一个很大的值以避免触发split。所有的测试都在单个节点的机器上运行。</p>
+<p>我们看到memstore逐步的增长直到达到flush阈值100MB，这时触发flush，在磁盘上生成一个新的store file。这个过程会重复直到有3个store files， 这时第一个compaction被执行，把它们合并为一个。 第二个compaction仅在有4个store files的时候才被触发。HBase是怎么决定这个的呢？ 该算法主要如下： 在所有的store files集合上循环执行，从最老的到最新的。 前提：当前集合要多于3个store files（hbase.hstore.compactionThreshold）。判断条件：当前的store file比该集合中的其他新的store files的大小的总数还大20%以上， 并且它大于memstore flush size，那么我们跳过该store file进入到下一个循环，在集合中较新的文件中再次执行这个判断。 一旦在step 2中有一个判断条件不成立，那么当前的store file到最新的store file的所有文件会合并为1个。当然，少于3个store files是不会触发合并的。还有另外一个限制： 要保证一次合并的文件数不超过10个（hbase.hstore.compaction.max）store files。 如果你需要更多的细节，请阅读源码Store.compact()方法。 好，现在根据以上的知识，我们来看看为什么第二次compaction不会在flush 5之后触发：最老的文件大概~240MB，两个新的文件总共~160MB，240&gt;160<em>1.2。 当第二次compaction在flush 6之后运行，它把所有的文件都合并为一个，因为~240&gt;3</em>80<em>1.2不成立。在flush 9之后，我们得到~480&gt;3</em>80*1.2，因此最老的文件并不进行合并。 默认的HBase配置中，如果一个store file达到了480MB，该region将会split。为了演示方便，我把该值设为很大，同样我们也可以将memstore flush size设置得很低以达到目的。</p>
+<h2 id="多cf的compact和split"><a href="#多cf的compact和split" class="headerlink" title="多cf的compact和split"></a>多cf的compact和split</h2><p>一个列族都有自己的memstore和store files集合。但是一个表中的所有列族是绑定在一起的，所有的memstore都会同时触发flush（在以后的版本中可能会变）。 同一个region的所有store file也会同时split，因此当一个列族增长得很大split的时候，而其他小的列族也会一起split。 所以建议最好用一个列簇，不然会有很多小的Storefile在硬盘上躺着</p>
+<h2 id="模拟多插入和删除"><a href="#模拟多插入和删除" class="headerlink" title="模拟多插入和删除"></a>模拟多插入和删除</h2><p>当你在HBase执行一个删除操作，并不会马上删除任何数据，只是写了一个删除的标记。这是因为HBase并不会去修改已经写入的文件。 删除操作会在major compaction过程中触发，将需要删除的数据删除而删除标记将不会出现在合并的新文件中。 让我们来演示一个极端的场景。用下面的图来表示，在一个循环中，我们put 1行数据然后马上删除它。所以在测试期间，该表实际上最多只有1行数据。 然而，store files还是会持续增长：</p>
+<p>我们看到了什么： memstore持续增长并且flush了3次，3个store files被创建 当第三个文件写入的时候，一个compaction被触发 compaction执行的结果是生成了一个新的store file，大小为0 这是一个令人惊讶的结果：只有major compactions才会处理删除，而我们假设major compactions只会每24小时执行一次。 而实际情况是，当compaction的集合是所有的文件时，HBase决定做major compaction。没错，当到了24小时检查的时候，HBase会把最老的文件当做是上一次major compaction的结果。</p>
+<h2 id="触发时间"><a href="#触发时间" class="headerlink" title="触发时间"></a>触发时间</h2><p>split的触发时机 a、compact之后会调用CompactSplitThread.requestSplit(HRegion) b、flush之前会检测区域中HStoreFile数目是否超hbase.hstore.blockingStoreFiles，如果超过且没有等待超时会调用CompactSplitThread.requestSplit(HRegion) c、flush之后会调用HRegion.checkSplit()检测是否需要split，如果需要则调用CompactSplitThread.requestSplit(HRegion) d、手动的split compact的触发时机 a、Memstoreflush时； b、HRegionServer定期做Compaction Checker时； c、HBaseAdmin客户端发起的请求； d、CompactTool发起。</p>
+<h2 id="关于HLog"><a href="#关于HLog" class="headerlink" title="关于HLog"></a>关于HLog</h2><p>上图中示意了HLog文件的结构，其实HLog文件就是一个普通的Hadoop Sequence File，Sequence File 的Key是HLogKey对象，HLogKey中记录了写入数据的归属信息， 除了table和region名字外，同时还包括 sequence number和timestamp，timestamp是“写入时间”，sequence number的起始值为0，或者是最近一次存入文件系统中sequence number。 HBase的HLog用了WAL的形式。WAL 意为Write ahead log，类似mysql中的binlog,用来 做灾难恢复只用，Hlog记录数据的所有变更,一旦数据修改，就可以从log中进行恢复。 每个Region Server维护一个Hlog,而不是每个Region一个。这样不同region(来自不同table)的日志会混在一起，这样做的目的是不断追加单个 文件相对于同时写多个文件而言， 可以减少磁盘寻址次数，因此可以提高对table的写性能。带来的麻烦是，如果一台region server下线，为了恢复其上的region，需要将region server上的log进行拆分， 然后分发到其它region server上进行恢复。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>谢谢打赏，坚持原创技术分享</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.jpg" alt="aiping.lap 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipay.jpg" alt="aiping.lap 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2014/08/17/HBase读写性能相关-请求不均匀的问题优化/" rel="next" title="HBase读写性能相关-请求不均匀的问题优化">
+                <i class="fa fa-chevron-left"></i> HBase读写性能相关-请求不均匀的问题优化
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2014/09/04/HBase的一些元数据操作/" rel="prev" title="HBase的一些元数据操作">
+                HBase的一些元数据操作 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+    <div class="comments" id="comments">
+      <div id="uyan_frame"></div>
+    </div>
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">47</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#HBase的江湖位置"><span class="nav-number">1.</span> <span class="nav-text">HBase的江湖位置</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HBase的组成"><span class="nav-number">2.</span> <span class="nav-text">HBase的组成</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#外部依赖Zookeeper"><span class="nav-number">2.1.</span> <span class="nav-text">外部依赖Zookeeper</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Master"><span class="nav-number">2.2.</span> <span class="nav-text">Master</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Region-Server"><span class="nav-number">2.3.</span> <span class="nav-text">Region Server</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HRegion的详细介绍"><span class="nav-number">3.</span> <span class="nav-text">HRegion的详细介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#综述"><span class="nav-number">3.1.</span> <span class="nav-text">综述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Regoin服务组成"><span class="nav-number">3.2.</span> <span class="nav-text">Regoin服务组成</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HStroe详细介绍"><span class="nav-number">4.</span> <span class="nav-text">HStroe详细介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#MemStore"><span class="nav-number">4.1.</span> <span class="nav-text">MemStore</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#StoreFile"><span class="nav-number">4.2.</span> <span class="nav-text">StoreFile</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HBase元数据"><span class="nav-number">5.</span> <span class="nav-text">HBase元数据</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HBase表存储"><span class="nav-number">6.</span> <span class="nav-text">HBase表存储</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HBase的Compact-and-Split"><span class="nav-number">7.</span> <span class="nav-text">HBase的Compact and Split</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#基本介绍"><span class="nav-number">7.1.</span> <span class="nav-text">基本介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据写入"><span class="nav-number">7.2.</span> <span class="nav-text">数据写入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#写入过程中的分析"><span class="nav-number">7.3.</span> <span class="nav-text">写入过程中的分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多cf的compact和split"><span class="nav-number">7.4.</span> <span class="nav-text">多cf的compact和split</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#模拟多插入和删除"><span class="nav-number">7.5.</span> <span class="nav-text">模拟多插入和删除</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#触发时间"><span class="nav-number">7.6.</span> <span class="nav-text">触发时间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关于HLog"><span class="nav-number">7.7.</span> <span class="nav-text">关于HLog</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+
+    
+      <!-- UY BEGIN -->
+      <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2152972"></script>
+      <!-- UY END -->
+    
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
