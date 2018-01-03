@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="翻译," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="闲来无事做翻译：原文地址
+1、把数组转换成ArayList把一个数组转换成一个ArrayList，程序员经常使用的方法是:
+1List&amp;lt;String&amp;gt; list = Arrays.asList(arr);
+ Arrays.asList返回的是Arrays的一个内部静态类：
+123456789101112131415161718@SafeVarargs@SuppressWarnings(">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java程序员经常犯的一些错误">
+<meta property="og:url" content="http://yoursite.com/2016/07/15/java程序员经常犯的一些错误/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="闲来无事做翻译：原文地址
+1、把数组转换成ArayList把一个数组转换成一个ArrayList，程序员经常使用的方法是:
+1List&amp;lt;String&amp;gt; list = Arrays.asList(arr);
+ Arrays.asList返回的是Arrays的一个内部静态类：
+123456789101112131415161718@SafeVarargs@SuppressWarnings(">
+<meta property="og:updated_time" content="2018-01-03T14:00:49.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="java程序员经常犯的一些错误">
+<meta name="twitter:description" content="闲来无事做翻译：原文地址
+1、把数组转换成ArayList把一个数组转换成一个ArrayList，程序员经常使用的方法是:
+1List&amp;lt;String&amp;gt; list = Arrays.asList(arr);
+ Arrays.asList返回的是Arrays的一个内部静态类：
+123456789101112131415161718@SafeVarargs@SuppressWarnings(">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2016/07/15/java程序员经常犯的一些错误/"/>
+
+
+
+
+
+  <title>java程序员经常犯的一些错误 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2016/07/15/java程序员经常犯的一些错误/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">java程序员经常犯的一些错误</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2016-07-14T20:24:41-08:00">
+                2016-07-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>闲来无事做翻译：<a href="https://www.programcreek.com/2014/05/top-10-mistakes-java-developers-make/" target="_blank" rel="external">原文地址</a></p>
+<h1 id="1、把数组转换成ArayList"><a href="#1、把数组转换成ArayList" class="headerlink" title="1、把数组转换成ArayList"></a>1、把数组转换成ArayList</h1><p>把一个数组转换成一个ArrayList，程序员经常使用的方法是:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">List&lt;String&gt; list = Arrays.asList(arr);</div></pre></td></tr></table></figure>
+<p> Arrays.asList返回的是Arrays的一个内部静态类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@SafeVarargs</span></div><div class="line"><span class="meta">@SuppressWarnings</span>(<span class="string">"varargs"</span>)</div><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; <span class="function">List&lt;T&gt; <span class="title">asList</span><span class="params">(T... a)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">new</span> ArrayList&lt;&gt;(a);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">/**</span></div><div class="line"> * <span class="doctag">@serial</span> include</div><div class="line"> */</div><div class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">ArrayList</span>&lt;<span class="title">E</span>&gt; <span class="keyword">extends</span> <span class="title">AbstractList</span>&lt;<span class="title">E</span>&gt;</span></div><div class="line">    <span class="keyword">implements</span> <span class="title">RandomAccess</span>, <span class="title">java</span>.<span class="title">io</span>.<span class="title">Serializable</span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> serialVersionUID = -<span class="number">2764017481108945198L</span>;</div><div class="line">    <span class="keyword">private</span> <span class="keyword">final</span> E[] a;</div><div class="line"></div><div class="line">    ArrayList(E[] array) &#123;</div><div class="line">        a = Objects.requireNonNull(array);</div><div class="line">    &#125;</div></pre></td></tr></table></figure>
+<p>并不是我们经常用的java.util.ArrayList。虽然这个内部类包含了set(),get(),contains()等方法，但是它不包含isEmpty()等方法，且它的大小是确定的。所以建议使用以下方法:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ArrayList&lt;String&gt; arrayList = <span class="keyword">new</span> ArrayList&lt;String&gt;(Arrays.asList(arr));</div></pre></td></tr></table></figure>
+<p>ArrayListk的构造方法可以接受一个结合的构造，包括Arrays的内部方法。</p>
+<h1 id="2、检查数组中是否包含某个元素"><a href="#2、检查数组中是否包含某个元素" class="headerlink" title="2、检查数组中是否包含某个元素"></a>2、检查数组中是否包含某个元素</h1><p>开发者经常这么干：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Set&lt;String&gt; set = <span class="keyword">new</span> HashSet&lt;String&gt;(Arrays.asList(arr));</div><div class="line"><span class="keyword">return</span> set.contains(targetValue);</div></pre></td></tr></table></figure>
+<p>这个方法没有错误，但是没有必要把一个数组转换成一个set，把数组转换成一个set需要很多额外时间，可以用如下两种方法:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Arrays.asList(arr).contains(targetValue);<span class="comment">//更可读</span></div></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">for</span>(String s: arr)&#123;</div><div class="line">    <span class="keyword">if</span>(s.equals(targetValue))</div><div class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">&#125;</div><div class="line"><span class="keyword">return</span> <span class="keyword">false</span>;</div></pre></td></tr></table></figure>
+<h1 id="3、在循环过程中从list中删除元素"><a href="#3、在循环过程中从list中删除元素" class="headerlink" title="3、在循环过程中从list中删除元素"></a>3、在循环过程中从list中删除元素</h1><p>参考下面这种情况:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">ArrayList&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;String&gt;(Arrays.asList(<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>, <span class="string">"d"</span>));</div><div class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; list.size(); i++) &#123;</div><div class="line">    list.remove(i);</div><div class="line">&#125;</div><div class="line">System.out.println(list);</div></pre></td></tr></table></figure>
+<p>这个输出是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">[b, d]</div><div class="line"></div><div class="line">Process finished with exit code 0</div></pre></td></tr></table></figure>
+<p>这是一个很严肃的问题，当一个元素被删除的时候，这个list的大小发生了变化，所以你在循环内部删除元素是不能正常工作的。</p>
+<p>你或许觉得使用迭代器可以正确解决上面的问题：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">ArrayList&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;String&gt;(Arrays.asList(<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>, <span class="string">"d"</span>));</div><div class="line"></div><div class="line"><span class="keyword">for</span> (String s : list) &#123;</div><div class="line">    <span class="keyword">if</span> (s.equals(<span class="string">"a"</span>))</div><div class="line">        list.remove(s);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>但是上面的代码会直接抛出一个 <a href="https://www.programcreek.com/2014/01/java-util-concurrentmodificationexception/" target="_blank" rel="external">ConcurrentModificationException</a>异常。</p>
+<p>下面的方法才是正确方法:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">ArrayList&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;String&gt;(Arrays.asList(<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>, <span class="string">"d"</span>));</div><div class="line">Iterator&lt;String&gt; iter = list.iterator();</div><div class="line"><span class="keyword">while</span> (iter.hasNext()) &#123;</div><div class="line">    String s = iter.next();</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (s.equals(<span class="string">"a"</span>)) &#123;</div><div class="line">        iter.remove();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>next()方法必须在remove方法之前调用，在上面的foreach场景中 next()方法是在执行完之后调用的。你可以参考<a href="https://www.programcreek.com/2014/01/deep-understanding-of-arraylist-iterator/" target="_blank" rel="external">源代码</a></p>
+<h1 id="4、Hashtable-vs-HashMap"><a href="#4、Hashtable-vs-HashMap" class="headerlink" title="4、Hashtable vs HashMap"></a>4、Hashtable vs HashMap</h1><p>Hashtable是线程安全的，在大多数场景下，只需要HashMap就足够了。</p>
+<p>其他参考：</p>
+<p><a href="https://www.programcreek.com/2013/03/hashmap-vs-treemap-vs-hashtable-vs-linkedhashmap/" target="_blank" rel="external">HashMap vs. TreeMap vs. Hashtable vs. LinkedHashMap</a><br><a href="https://www.programcreek.com/2013/09/top-9-questions-for-java-map/" target="_blank" rel="external">Top 10 questions about Map</a></p>
+<h1 id="5、使用泛型的集合类型"><a href="#5、使用泛型的集合类型" class="headerlink" title="5、使用泛型的集合类型"></a>5、使用泛型的集合类型</h1><p>在java中泛型和通配类型和容易混淆。Set是一个泛型，但是 Set&lt;?&gt;是一个通配类型。考虑下面的使用方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">add</span><span class="params">(List list, Object o)</span></span>&#123;</div><div class="line">    list.add(o);</div><div class="line">&#125;</div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span></span>&#123;</div><div class="line">    List&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;String&gt;();</div><div class="line">    add(list, <span class="number">10</span>);</div><div class="line">    String s = list.get(<span class="number">0</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>上面的方法会报错:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Exception in thread &quot;main&quot; java.lang.ClassCastException: java.lang.Integer cannot be cast to java.lang.String at ...</div></pre></td></tr></table></figure>
+<p>使用泛型的集合是危险的，作为泛型的集合类型跳过类型检查是不安全的。Set、Set&lt;?&gt;、Set<object>是不同的。<a href="https://www.programcreek.com/2013/12/raw-type-set-vs-unbounded-wildcard-set/" target="_blank" rel="external">Raw type vs. Unbounded wildcard</a> and <a href="https://www.programcreek.com/2011/12/java-type-erasure-mechanism-example/" target="_blank" rel="external">Type Erasure</a>。</object></p>
+<h1 id="6、可访问的级别"><a href="#6、可访问的级别" class="headerlink" title="6、可访问的级别"></a>6、可访问的级别</h1><p>大多数的开发者都使用public，但是经验的做法是给所有的成员尽量低的访问级别。<a href="https://www.programcreek.com/2011/11/java-access-level-public-protected-private/" target="_blank" rel="external">public, default, protected, and private</a></p>
+<h1 id="7、ArrayList-vs-LinkedList"><a href="#7、ArrayList-vs-LinkedList" class="headerlink" title="7、ArrayList vs. LinkedList"></a>7、ArrayList vs. LinkedList</h1><p>很多人不熟悉ArrayList和LinkedList的区别，所以经常使用ArrayList，因为他们比较熟悉ArrayList。但是其实他们的性能差距很大。如果有大量的添加/删除操作，而且没有很多的随机读取应该使用LinkedList。更多的可以参考<a href="https://www.programcreek.com/2013/03/arraylist-vs-linkedlist-vs-vector/" target="_blank" rel="external"><code>ArrayList</code> vs. <code>LinkedList</code></a></p>
+<h1 id="8、Mutable-vs-Immutable"><a href="#8、Mutable-vs-Immutable" class="headerlink" title="8、Mutable vs. Immutable"></a>8、Mutable vs. Immutable</h1><p>不可变对象有很多优点，线程安全，可以重复使用等。但是每一个不可变的对象需要为另一个Object，如果有太多的对象会提高垃圾回收的成本。所以应该斟酌一下是否可变的选择。</p>
+<p>一般来说,使用可变对象,以避免产生过多的中间对象。一个最经典的案例是字符串的拼接。如果你使用的是一个不可变的字符串，那么会有很多的对象需要进行垃圾回收。所以可以使用一个可变的对象来使用(比如使用StringBuilder)。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">String result=<span class="string">""</span>;</div><div class="line"><span class="keyword">for</span>(String s: arr)&#123;</div><div class="line">    result = result + s;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>还有其他情况下需要使用可变的对象。例如通过可变对象到方法允许您收集多个结果没有跳过太多语法障碍。另一个例子是排序和过滤:当然,你可以做一个方法,将原来的集合,并返回一个排序,但这将成为更大的集合非常浪费。</p>
+<p><a href="https://www.programcreek.com/2013/04/why-string-is-immutable-in-java/" target="_blank" rel="external">Why String is Immutable?</a></p>
+<h1 id="9、父类和子类的构造方法"><a href="#9、父类和子类的构造方法" class="headerlink" title="9、父类和子类的构造方法"></a>9、父类和子类的构造方法</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Super</span></span>&#123;</div><div class="line">    String s;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Super</span><span class="params">(String s)</span></span>&#123;</div><div class="line">        <span class="keyword">this</span>.s = s;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Sub</span> <span class="keyword">extends</span> <span class="title">Super</span></span>&#123;</div><div class="line">    <span class="keyword">int</span> x = <span class="number">200</span>;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Sub</span><span class="params">(String s)</span> </span>&#123;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Sub</span><span class="params">()</span></span>&#123;</div><div class="line"></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span></span>&#123;</div><div class="line">        Sub s = <span class="keyword">new</span> Sub();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这个错误是因为对于默认构造函数的定义。在java中，如果一个类没有定义构造函数，编译器默认会插入一个默认的无参构造函数。如果一个父类中定义了构造函数，那么编译器就不会插入默认的无参构造函数，就是上面super类的情况。</p>
+<p>子类的构造函数，无论是有参的或者无参的，都会调用无参的构造函数。所以在子类中编译器中会默认插入一个无参的构造函数，但是因为Super中没有定义，所以会编译出错，只需要在Super类中加入以下的构造方法即可。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="title">Super</span><span class="params">()</span></span>&#123;</div><div class="line">    System.out.println(<span class="string">"Super"</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>更多的可以参考: <a href="https://www.programcreek.com/2013/04/what-are-the-frequently-asked-questions-about-constructors-in-java/" target="_blank" rel="external">Constructor of Super and Sub</a></p>
+<h1 id="10、使用-或者String的构造方法"><a href="#10、使用-或者String的构造方法" class="headerlink" title="10、使用** 或者String的构造方法"></a>10、使用** 或者String的构造方法</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//1. use double quotes</span></div><div class="line">String x = <span class="string">"abc"</span>;</div><div class="line"><span class="comment">//2. use constructor</span></div><div class="line">String y = <span class="keyword">new</span> String(<span class="string">"abc"</span>);</div></pre></td></tr></table></figure>
+<p>有什么区别呢?</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">String a = <span class="string">"abcd"</span>;</div><div class="line">String b = <span class="string">"abcd"</span>;</div><div class="line">System.out.println(a == b);  <span class="comment">// True</span></div><div class="line">System.out.println(a.equals(b)); <span class="comment">// True</span></div><div class="line"></div><div class="line">String c = <span class="keyword">new</span> String(<span class="string">"abcd"</span>);</div><div class="line">String d = <span class="keyword">new</span> String(<span class="string">"abcd"</span>);</div><div class="line">System.out.println(c == d);  <span class="comment">// False</span></div><div class="line">System.out.println(c.equals(d)); <span class="comment">// True</span></div></pre></td></tr></table></figure>
+<p>上面这段代码就可以解释之前的问题。对于更多的解释，可以查看<a href="https://www.programcreek.com/2014/03/create-java-string-by-double-quotes-vs-by-constructor/" target="_blank" rel="external">Create Java String Using ” ” or Constructor?</a>.</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>谢谢打赏，坚持原创技术分享</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.jpg" alt="aiping.lap 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipay.jpg" alt="aiping.lap 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/翻译/" rel="tag"># 翻译</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/07/02/使用8张图理解java的一些问题/" rel="next" title="使用8张图理解java的一些问题">
+                <i class="fa fa-chevron-left"></i> 使用8张图理解java的一些问题
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/08/02/HashMap的常用方法/" rel="prev" title="HashMap的常用方法">
+                HashMap的常用方法 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+    <div class="comments" id="comments">
+      <div id="uyan_frame"></div>
+    </div>
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">52</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">9</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1、把数组转换成ArayList"><span class="nav-number">1.</span> <span class="nav-text">1、把数组转换成ArayList</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2、检查数组中是否包含某个元素"><span class="nav-number">2.</span> <span class="nav-text">2、检查数组中是否包含某个元素</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3、在循环过程中从list中删除元素"><span class="nav-number">3.</span> <span class="nav-text">3、在循环过程中从list中删除元素</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4、Hashtable-vs-HashMap"><span class="nav-number">4.</span> <span class="nav-text">4、Hashtable vs HashMap</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5、使用泛型的集合类型"><span class="nav-number">5.</span> <span class="nav-text">5、使用泛型的集合类型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6、可访问的级别"><span class="nav-number">6.</span> <span class="nav-text">6、可访问的级别</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7、ArrayList-vs-LinkedList"><span class="nav-number">7.</span> <span class="nav-text">7、ArrayList vs. LinkedList</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8、Mutable-vs-Immutable"><span class="nav-number">8.</span> <span class="nav-text">8、Mutable vs. Immutable</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#9、父类和子类的构造方法"><span class="nav-number">9.</span> <span class="nav-text">9、父类和子类的构造方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#10、使用-或者String的构造方法"><span class="nav-number">10.</span> <span class="nav-text">10、使用** 或者String的构造方法</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+
+    
+      <!-- UY BEGIN -->
+      <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2152972"></script>
+      <!-- UY END -->
+    
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
