@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="大数据," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="数据库
+优点
+缺点
+适用场景
+
+
+
+
+HBase
+1、存储容量大，一个表可以容纳上亿行，上百万列2、可通过版本进行检索，能搜到所需的历史版本数据3、负载高时，可通过简单的添加机器来实现水平切分扩展，跟Hadoop的无缝集成保障了其数据可靠性HDFS和海量数据分析的高性MapReduce、 可有效避免单点故障的发生
+1、依赖项较多、配置麻烦，缺乏文档2、占用内存很大，且鉴于建立在为批量分析而优">
+<meta property="og:type" content="article">
+<meta property="og:title" content="几种主流的Nosql的对比">
+<meta property="og:url" content="http://yoursite.com/2018/01/23/几种主流的Nosql的对比/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="数据库
+优点
+缺点
+适用场景
+
+
+
+
+HBase
+1、存储容量大，一个表可以容纳上亿行，上百万列2、可通过版本进行检索，能搜到所需的历史版本数据3、负载高时，可通过简单的添加机器来实现水平切分扩展，跟Hadoop的无缝集成保障了其数据可靠性HDFS和海量数据分析的高性MapReduce、 可有效避免单点故障的发生
+1、依赖项较多、配置麻烦，缺乏文档2、占用内存很大，且鉴于建立在为批量分析而优">
+<meta property="og:updated_time" content="2018-01-22T11:46:58.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="几种主流的Nosql的对比">
+<meta name="twitter:description" content="数据库
+优点
+缺点
+适用场景
+
+
+
+
+HBase
+1、存储容量大，一个表可以容纳上亿行，上百万列2、可通过版本进行检索，能搜到所需的历史版本数据3、负载高时，可通过简单的添加机器来实现水平切分扩展，跟Hadoop的无缝集成保障了其数据可靠性HDFS和海量数据分析的高性MapReduce、 可有效避免单点故障的发生
+1、依赖项较多、配置麻烦，缺乏文档2、占用内存很大，且鉴于建立在为批量分析而优">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/01/23/几种主流的Nosql的对比/"/>
+
+
+
+
+
+  <title>几种主流的Nosql的对比 | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/01/23/几种主流的Nosql的对比/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">几种主流的Nosql的对比</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-01-23T08:57:14+08:00">
+                2018-01-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <table>
+<thead>
+<tr>
+<th>数据库</th>
+<th>优点</th>
+<th>缺点</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HBase</td>
+<td>1、存储容量大，一个表可以容纳上亿行，上百万列<br>2、可通过版本进行检索，能搜到所需的历史版本数据<br>3、负载高时，可通过简单的添加机器来实现水平切分扩展，跟Hadoop的无缝集成保障了其数据可靠性HDFS和海量数据分析的高性MapReduce、 可有效避免单点故障的发生</td>
+<td>1、依赖项较多、配置麻烦，缺乏文档<br>2、占用内存很大，且鉴于建立在为批量分析而优化的HDFS上，导致读取性能不高<br>3、API相比其它 NoSql 的相对笨拙</td>
+<td>1、bigtable类型的数据存储<br>2、对数据有版本查询需求，并且需要对大数据进行随机、实时访问的场合<br>3、应对超大数据量要求扩展简单的需求</td>
+</tr>
+<tr>
+<td>Hive</td>
+<td>1、Hive 使用类SQL 查询语法, 最大限度的实现了和SQL标准的兼容，大大降低了传统数据分析人员学习的曲线<br>2、使用JDBC 接口/ODBC接口，开发人员更易开发应用<br>3、以MR 作为计算引擎、HDFS 作为存储系统，为超大数据集设计的计算/ 扩展能力<br>4、统一的元数据管理（Derby、MySql等），并可与Pig 、Presto 等共享；</td>
+<td>1、Hive 的HQL 表达的能力有限，有些复杂运算用HQL 不易表达<br>2、由于Hive自动生成MapReduce 作业， HQL 调优困难<br>3、粒度较粗，可控性差</td>
+<td>通过类SQL的语言实现在大规模数据集上快速的数据查询等操作，而不需要开发相应的MapReduce程序，所以Hive特别适合数据仓库的统计分析</td>
+</tr>
+<tr>
+<td>Redis</td>
+<td>1、非常丰富的数据结构<br>2、Redis提供了事务的功能，可以保证一串 命令的原子性，中间不会被任何操作打断<br>3、数据存在内存中，读写非常的高速，可以达到10w/s的频率</td>
+<td>1、持久化功能体验不佳——通过快照方法实现的话，需要每隔一段时间将整个数据库的数据写到磁盘上，代价非常高；而aof方法只追踪变化的数据，类似于mysql的binlog方法，但追加log可能过大，同时所有操作均要重新执行一遍，恢复速度慢<br>2、 由于是内存数据库，所以，单台机器，存储的数据量，跟机器本身的内存大小。虽然redis本身有key过期策略，但是还是需要提前预估和节约内存。如果内存增长过快，需要定期删除数据。</td>
+<td>1、会话缓存<br>2、全页缓存<br>3、当做消息队列的工具使用<br>4、排行榜/计数器<br>5、 发布/订阅的脚本触发器<br>总的来说适用于数据变化快且数据库大小可预见(适合内存容量)的应用程序</td>
+</tr>
+<tr>
+<td>LevelDB</td>
+<td>1、操作接口简单，基本操作包括写记录，读记录和删除记录，也支持针对多条操作的原子批量操作<br>2、写入性能远强于读取性能<br>3、数据量增大后，读写性能下降趋平缓。</td>
+<td>1、随机读性能一般<br>2、 对分布式事务的支持还不成熟。而且机器资源浪费率高</td>
+<td>适用于对写入需求远大于读取需求的场景</td>
+</tr>
+<tr>
+<td>MongoDB</td>
+<td>1、 强大的自动化 shading 功能<br>2、 全索引支持，查询非常高效<br>3、 面向文档<em>（BSON）</em>存储，数据模式简单而强大<br>4、 支持动态查询，查询指令也使用JSON形式的标记，可轻易查询文档中内嵌的对象及数组<br>5、 支持 javascript 表达式查询，可在服务器端执行任意的 javascript函数</td>
+<td>1、 单个文档大小限制为16M，32位系统上，不支持大于2.5G的数据<br>2、 对内存要求比较大，至少要保证热数据<em>（索引，数据及系统其它开销）</em>都能装进内存<br>3、 非事务机制，无法保证事件的原子性</td>
+<td>1、 适用于实时的插入、更新与查询的需求，并具备应用程序实时数据存储所需的复制及高度伸缩性<br>2、 非常适合文档化格式的存储及查询<br>3、 高伸缩性的场景:MongoDB 非常适合由数十或者数百台服务器组成的数据库<br>4、 对性能的关注超过对功能的要求</td>
+</tr>
+<tr>
+<td>Couchbase</td>
+<td>1、 高并发性，高灵活性，高拓展性，容错性好<br>2、 以 vBucket 的概念实现更理想化的自动分片以及动态扩容</td>
+<td>1、Couchbase 的存储方式为 Key/Value，但 Value 的类型很为单一，不支持数组。另外也不会自动创建doc id，需要为每一文档指定一个用于存储的 Document Indentifer<br>2. 各种组件拼接而成，都是c++实现，导致复杂度过高，遇到奇怪的性能问题排查比较困难,文档比较欠缺<br>3. 采用缓存全部key的策略，需要大量内存。节点宕机时 failover 过程有不可用时间，并且有部分数据丢失的可能，在高负载系统上有假死现象<br>4. 逐渐倾向于闭源，社区版本和商业版本之间差距比较大</td>
+<td>1、适合对读写速度要求较高，但服务器负荷和内存花销可预见的需求<br>2、需要支持 memcached 协议的需求</td>
+</tr>
+<tr>
+<td>Kudu</td>
+<td>1、提供快速的全量数据分析与实时处理(olap)功能<br>2、结构化的数据模型，支持标准SQL语法，支持数据的增删改查<br>3、集成Impala，利用Imapla SQL语法可操作Kudu数据<br>4、与mapreduce、spark以及其它hadoop生态系统集成<br>5、高可用。Tablet Servers and Masters利用Raft Consensus Algorithm，确保只要有一半的副本可用，则tablet可用（可读写）<br>6、对数据顺序扫描(scan)和随机访问(random access)同时具有高性能，简化用户复杂的混合架构。</td>
+<td>1、2016年新起的项目，成熟度不够<br>2、开发语言是C++<br> 3、不像HBase，可以动态无限扩展列，列必须实现定好，也可以通过修改元信息增加列</td>
+<td>1、实时更新的应用。刚刚到达的数据就马上要被终端用户使用访问到<br>2、时间序列相关的应用，需要同时支持，包括根据海量历史数据查询和必须非常快地返回关于单个实体的细粒度查询两种类型<br>3、实时预测模型的应用，支持根据所有历史数据周期地更新模型</td>
+</tr>
+</tbody>
+</table>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>谢谢打赏，坚持原创技术分享</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.jpg" alt="aiping.lap 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipay.jpg" alt="aiping.lap 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/大数据/" rel="tag"># 大数据</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/11/22/Apache-Eagle-基本介绍/" rel="next" title="Apache Eagle 基本介绍">
+                <i class="fa fa-chevron-left"></i> Apache Eagle 基本介绍
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+    <div class="comments" id="comments">
+      <div id="uyan_frame"></div>
+    </div>
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">53</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+
+    
+      <!-- UY BEGIN -->
+      <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2152972"></script>
+      <!-- UY END -->
+    
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
