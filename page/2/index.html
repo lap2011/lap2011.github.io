@@ -1382,7 +1382,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/11/24/HBase从0-94升级到0-98/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/01/30/HBase源码分析-写请求的路径/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="aiping.lap">
@@ -1401,7 +1401,7 @@
         
           <h1 class="post-title" itemprop="name headline">
                 
-                <a class="post-title-link" href="/2014/11/24/HBase从0-94升级到0-98/" itemprop="url">HBase从0.94升级到0.98</a></h1>
+                <a class="post-title-link" href="/2015/01/30/HBase源码分析-写请求的路径/" itemprop="url">HBase源码分析-写请求的路径</a></h1>
         
 
         <div class="post-meta">
@@ -1413,8 +1413,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-11-23T11:56:29-08:00">
-                2014-11-23
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-01-29T19:44:25-08:00">
+                2015-01-29
               </time>
             
 
@@ -1453,14 +1453,13 @@
       
         
           
-          一、HBase0.98和0.96两个版本的一些变化HBase0.98:
-1、支持了reverse的scan模式(HBASE-4811)。
-​      用户可以正向的或者反向的扫描表，这个和正向扫描仅仅有一点点的性能差别，使用的方法如下：
-​      Scan scan = new Scan();
+          可能很多人和我一样，喜欢把调用路径弄清楚，方便以后排查问题的时候，能很快的知道哪里下手，以及可以很快的对应错误的原因，今天以HBase的一次put请求为例，描述一下整个请求的调用链路:
+1、构造put请求
+1234567891011byte [] TABLE = Bytes.toBytes("tes
           ...
           <!--noindex-->
           <div class="post-button text-center">
-            <a class="btn" href="/2014/11/24/HBase从0-94升级到0-98/#more" rel="contents">
+            <a class="btn" href="/2015/01/30/HBase源码分析-写请求的路径/#more" rel="contents">
               阅读全文 &raquo;
             </a>
           </div>
@@ -1548,7 +1547,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">53</span>
+                  <span class="site-state-item-count">55</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
