@@ -95,7 +95,7 @@ https://issues.apache.org/jira/browse/HBASE-11339
 https://issues.apache.org/jira/browse/HBASE-8329 
 3、关于scan强制控制超时的一个问题，相当与给scan本身加了一个心跳
 https://issues.apa">
-<meta property="og:updated_time" content="2017-12-27T06:54:31.000Z">
+<meta property="og:updated_time" content="2018-01-29T08:03:18.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="长期更新一些HBase有用的工具和特性">
 <meta name="twitter:description" content="新的特性整理1、HBase存储图片，文档等字节流的内容
@@ -351,6 +351,21 @@ https://issues.apa">
 <p><a href="http://blog.csdn.net/yueyedeai/article/details/17646393" target="_blank" rel="external">http://blog.csdn.net/yueyedeai/article/details/17646393</a></p>
 <p>一个不错的博客</p>
 <p><a href="https://zh.hortonworks.com/blog/apache-hbase-region-splitting-and-merging/" target="_blank" rel="external">https://zh.hortonworks.com/blog/apache-hbase-region-splitting-and-merging/</a></p>
+<h1 id="HBase2018的一些重点发展规划"><a href="#HBase2018的一些重点发展规划" class="headerlink" title="HBase2018的一些重点发展规划"></a>HBase2018的一些重点发展规划</h1><h2 id="系统优化新特性列表"><a href="#系统优化新特性列表" class="headerlink" title="系统优化新特性列表"></a>系统优化新特性列表</h2><p>•多版本的客户端兼容</p>
+<p>•Region Assign的流程优化</p>
+<p>•通过堆外二级的读缓存BucketCache 和Memstore堆外存储实现缓存的对外存储</p>
+<p>•In-Memory Compact</p>
+<p>•通过namespace来实现对表大小的控制</p>
+<p>•Server和Client之间的通信抛弃之前的消费者模式+队列+线程池的方法，改成使用Netty</p>
+<p>•实现DFS Client的异步写</p>
+<p>•支持中等对象存储 (小图片、文档等)</p>
+<p>•通过Snapshot+Replication实现全量的备份</p>
+<p>•借助WAL直接转换成Hfile实现增量备份</p>
+<p>•通过RegionServer的物理隔离实现多租户的方案</p>
+<p>•Spark on Hbase的解决方案</p>
+<p>•对多种语言的客户端支持</p>
+<p>•异步Client的调用</p>
+<p>•使用G1回收替代CMS</p>
 
       
     </div>
@@ -501,7 +516,7 @@ https://issues.apa">
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">55</span>
+                  <span class="site-state-item-count">56</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -549,7 +564,7 @@ https://issues.apa">
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#新的特性整理"><span class="nav-number">1.</span> <span class="nav-text">新的特性整理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#一些其它的整理："><span class="nav-number">2.</span> <span class="nav-text">一些其它的整理：</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#新的特性整理"><span class="nav-number">1.</span> <span class="nav-text">新的特性整理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#一些其它的整理："><span class="nav-number">2.</span> <span class="nav-text">一些其它的整理：</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HBase2018的一些重点发展规划"><span class="nav-number">3.</span> <span class="nav-text">HBase2018的一些重点发展规划</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#系统优化新特性列表"><span class="nav-number">3.1.</span> <span class="nav-text">系统优化新特性列表</span></a></li></ol></li></ol></div>
             
 
           </div>
