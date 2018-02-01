@@ -79,24 +79,19 @@
 
 
 
-<meta name="description" content="StoreFile是只读的，一旦创建后就不可以再修改，一个Stroe中包含了多个的Storefile和一个memStore。StoreFile是以HDFS文件的方式直接存储在HDFS上的。
-当查询到某个HFile的时候
-先读取Trailer字段，在其中保存了每个段的其实位置，然后将Data Index会被读取到内存中，这样，当检索某个key时，不需要扫描整个HFile，而只需从内存中找到k">
+<meta name="description" content="在上一篇博客中，我们讲到了，HBase接受请求的过程，主要是通过Listener中的Reader来接受用户的请求，处理请求是在Responder的doAsyncWrite中，对请求数据进行了处理
+1234567891011121314151617181920212223242526private void doAsyncWrite(SelectionKey key) throws IOExcept">
 <meta property="og:type" content="article">
-<meta property="og:title" content="HBase查找数据的流程">
-<meta property="og:url" content="http://yoursite.com/2014/06/30/HBase查找数据的流程/index.html">
+<meta property="og:title" content="HBase源码分析-HBase-RPC之Handler和Responser">
+<meta property="og:url" content="http://yoursite.com/2015/02/02/HBase源码分析-HBase-RPC之Handler和Responser/index.html">
 <meta property="og:site_name" content="Aiping.LAP">
-<meta property="og:description" content="StoreFile是只读的，一旦创建后就不可以再修改，一个Stroe中包含了多个的Storefile和一个memStore。StoreFile是以HDFS文件的方式直接存储在HDFS上的。
-当查询到某个HFile的时候
-先读取Trailer字段，在其中保存了每个段的其实位置，然后将Data Index会被读取到内存中，这样，当检索某个key时，不需要扫描整个HFile，而只需从内存中找到k">
-<meta property="og:image" content="http://www.searchtb.com/wp-content/uploads/2011/01/image0090.jpg">
-<meta property="og:updated_time" content="2017-12-22T09:30:33.000Z">
+<meta property="og:description" content="在上一篇博客中，我们讲到了，HBase接受请求的过程，主要是通过Listener中的Reader来接受用户的请求，处理请求是在Responder的doAsyncWrite中，对请求数据进行了处理
+1234567891011121314151617181920212223242526private void doAsyncWrite(SelectionKey key) throws IOExcept">
+<meta property="og:updated_time" content="2018-02-01T07:27:59.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="HBase查找数据的流程">
-<meta name="twitter:description" content="StoreFile是只读的，一旦创建后就不可以再修改，一个Stroe中包含了多个的Storefile和一个memStore。StoreFile是以HDFS文件的方式直接存储在HDFS上的。
-当查询到某个HFile的时候
-先读取Trailer字段，在其中保存了每个段的其实位置，然后将Data Index会被读取到内存中，这样，当检索某个key时，不需要扫描整个HFile，而只需从内存中找到k">
-<meta name="twitter:image" content="http://www.searchtb.com/wp-content/uploads/2011/01/image0090.jpg">
+<meta name="twitter:title" content="HBase源码分析-HBase-RPC之Handler和Responser">
+<meta name="twitter:description" content="在上一篇博客中，我们讲到了，HBase接受请求的过程，主要是通过Listener中的Reader来接受用户的请求，处理请求是在Responder的doAsyncWrite中，对请求数据进行了处理
+1234567891011121314151617181920212223242526private void doAsyncWrite(SelectionKey key) throws IOExcept">
 
 
 
@@ -126,13 +121,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2014/06/30/HBase查找数据的流程/"/>
+  <link rel="canonical" href="http://yoursite.com/2015/02/02/HBase源码分析-HBase-RPC之Handler和Responser/"/>
 
 
 
 
 
-  <title>HBase查找数据的流程 | Aiping.LAP</title>
+  <title>HBase源码分析-HBase-RPC之Handler和Responser | Aiping.LAP</title>
   
 
 
@@ -239,7 +234,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2014/06/30/HBase查找数据的流程/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/02/02/HBase源码分析-HBase-RPC之Handler和Responser/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="aiping.lap">
@@ -256,7 +251,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">HBase查找数据的流程</h1>
+          <h1 class="post-title" itemprop="name headline">HBase源码分析-HBase-RPC之Handler和Responser</h1>
         
 
         <div class="post-meta">
@@ -268,8 +263,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2014-06-30T12:35:24+08:00">
-                2014-06-29
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-02-01T19:21:27-08:00">
+                2015-02-01
               </time>
             
 
@@ -311,14 +306,14 @@
       
 
       
-        <p>﻿﻿﻿﻿StoreFile是只读的，一旦创建后就不可以再修改，一个Stroe中包含了多个的Storefile和一个memStore。StoreFile是以HDFS文件的方式直接存储在HDFS上的。</p>
-<p>当查询到某个HFile的时候</p>
-<p>先读取Trailer字段，在其中保存了每个段的其实位置，然后将Data Index会被读取到内存中，这样，当检索某个key时，不需要扫描整个HFile，而只需从内存中找到key所在的block，通过一次磁盘io将整个 block读取到内存中，再找到需要的key。</p>
-<p>在HFile 中根据一个key 搜索一个data 的过程：</p>
-<p>1、先内存中对HFile的root index进行二分查找。如果支持多级索引的话，则定位到的是leaf/intermediate index，如果是单级索引，则定位到的是data block</p>
-<p>2、如果支持多级索引，则会从缓存/hdfs（分布式文件系统）中读取leaf/intermediate index chunk，在leaf/intermediate chunk根据key值进行二分查找（leaf/intermediate index chunk支持二分查找），找到对应的data block。</p>
-<p>3、从缓存/hdfs中读取data block</p>
-<p>4、在data block中遍历查找key。<br>在data block 中，所有的Key value是一个固定格式的字节数组，存储的格式如下：<br>   <img src="http://www.searchtb.com/wp-content/uploads/2011/01/image0090.jpg" alt="img"><br>具体的流程可以参考：<a href="http://www.webrube.com/hbase-hfile-web_rube/2412" target="_blank" rel="external">http://www.webrube.com/hbase-hfile-web_rube/2412</a></p>
+        <p>在上一篇博客中，我们讲到了，HBase接受请求的过程，主要是通过Listener中的Reader来接受用户的请求，处理请求是在Responder的doAsyncWrite中，对请求数据进行了处理</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doAsyncWrite</span><span class="params">(SelectionKey key)</span> <span class="keyword">throws</span> IOException </span>&#123;</div><div class="line">  <span class="comment">//从SelectionKey中获取到前面塞到attachment中的Connection信息</span></div><div class="line">  Connection connection = (Connection) key.attachment();</div><div class="line">  <span class="keyword">if</span> (connection == <span class="keyword">null</span>) &#123;</div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"doAsyncWrite: no connection"</span>);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">if</span> (key.channel() != connection.channel) &#123;</div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"doAsyncWrite: bad channel"</span>);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">//处理当前的请求</span></div><div class="line">  <span class="keyword">if</span> (processAllResponses(connection)) &#123;</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">      <span class="comment">// We wrote everything, so we don't need to be told when the socket is ready for</span></div><div class="line">      <span class="comment">//  write anymore.</span></div><div class="line">     key.interestOps(<span class="number">0</span>);</div><div class="line">    &#125; <span class="keyword">catch</span> (CancelledKeyException e) &#123;</div><div class="line">      <span class="comment">/* The Listener/reader might have closed the socket.</span></div><div class="line">       * We don't explicitly cancel the key, so not sure if this will</div><div class="line">       * ever fire.</div><div class="line">       * This warning could be removed.</div><div class="line">       */</div><div class="line">      LOG.warn(<span class="string">"Exception while changing ops : "</span> + e);</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>处理特定的一条请求</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">boolean</span> <span class="title">processAllResponses</span><span class="params">(<span class="keyword">final</span> Connection connection)</span> <span class="keyword">throws</span> IOException </span>&#123;</div><div class="line">  <span class="comment">//在同一时间，我们只允许在channel中存在一个writer</span></div><div class="line">  connection.responseWriteLock.lock();</div><div class="line">  <span class="keyword">try</span> &#123;</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">20</span>; i++) &#123;</div><div class="line">      <span class="comment">// protection if some handlers manage to need all the responder</span></div><div class="line">      Call call = connection.responseQueue.pollFirst();</div><div class="line">      <span class="keyword">if</span> (call == <span class="keyword">null</span>) &#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">      &#125;</div><div class="line">      <span class="comment">//处理具体的call请求</span></div><div class="line">      <span class="keyword">if</span> (!processResponse(call)) &#123;</div><div class="line">        <span class="comment">//把请求放到responseQueue队列中</span></div><div class="line">        connection.responseQueue.addFirst(call);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">  &#125; <span class="keyword">finally</span> &#123;</div><div class="line">    connection.responseWriteLock.unlock();</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="keyword">return</span> connection.responseQueue.isEmpty();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这个处理会调用下面的来写入返回的信息</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">long</span> <span class="title">channelWrite</span><span class="params">(GatheringByteChannel channel, BufferChain bufferChain)</span></span></div><div class="line"><span class="keyword">throws</span> IOException &#123;</div><div class="line">  <span class="keyword">long</span> count =  bufferChain.write(channel, NIO_BUFFER_LIMIT);</div><div class="line">  <span class="keyword">if</span> (count &gt; <span class="number">0</span>) <span class="keyword">this</span>.metrics.sentBytes(count);</div><div class="line">  <span class="keyword">return</span> count;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>如果写入的数据量巨大，这个方法会把请求切割成小的块写入，这样可以避免jdk直接创建很多的缓冲区来写入对象，也相当于可以作为NIO返回过程中的一个小缓存。</p>
+<p>在最早的版本是有一个Handler类来管理callQueue的，在新的版本中，这部分的工作被Scheduler取代(默认使用的是SimpleRpcScheduler)。</p>
 
       
     </div>
@@ -378,8 +373,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2014/06/28/HBase获取region元数据的流程/" rel="next" title="HBase获取region元数据的流程">
-                <i class="fa fa-chevron-left"></i> HBase获取region元数据的流程
+              <a href="/2015/01/31/HBase源码分析-HBase-RPC之Reader/" rel="next" title="HBase源码分析-HBase RPC之Reader">
+                <i class="fa fa-chevron-left"></i> HBase源码分析-HBase RPC之Reader
               </a>
             
           </div>
@@ -388,8 +383,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2014/07/16/Hadoop和HBase开启对LZO压缩的支持/" rel="prev" title="Hadoop和HBase开启对LZO压缩的支持">
-                Hadoop和HBase开启对LZO压缩的支持 <i class="fa fa-chevron-right"></i>
+              <a href="/2015/04/07/记录一次HBase的问题排查/" rel="prev" title="记录一次HBase的问题排查">
+                记录一次HBase的问题排查 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
