@@ -79,31 +79,16 @@
 
 
 
-<meta name="description" content="新的特性整理1、HBase存储图片，文档等字节流的内容
-https://issues.apache.org/jira/browse/HBASE-11339 
-2、compact的速度控制 
-https://issues.apache.org/jira/browse/HBASE-8329 
-3、关于scan强制控制超时的一个问题，相当与给scan本身加了一个心跳
-https://issues.apa">
+<meta name="description" content="1234567891011121314151617181920212223242526272829303132333435363738394041@Overridepublic void abort(String reason, Throwable cause) &amp;#123;  String msg = &quot;ABORTING region server &quot; + this + &quot;: &quot; + reaso">
 <meta property="og:type" content="article">
-<meta property="og:title" content="长期更新一些HBase有用的工具和特性">
-<meta property="og:url" content="http://yoursite.com/2016/03/11/长期更新一些HBase有用的工具和特性/index.html">
+<meta property="og:title" content="HBase源码分析-RegionServer的abort">
+<meta property="og:url" content="http://yoursite.com/2015/02/06/HBase源码分析-RegionServer的abort/index.html">
 <meta property="og:site_name" content="Aiping.LAP">
-<meta property="og:description" content="新的特性整理1、HBase存储图片，文档等字节流的内容
-https://issues.apache.org/jira/browse/HBASE-11339 
-2、compact的速度控制 
-https://issues.apache.org/jira/browse/HBASE-8329 
-3、关于scan强制控制超时的一个问题，相当与给scan本身加了一个心跳
-https://issues.apa">
-<meta property="og:updated_time" content="2018-01-29T08:03:18.000Z">
+<meta property="og:description" content="1234567891011121314151617181920212223242526272829303132333435363738394041@Overridepublic void abort(String reason, Throwable cause) &amp;#123;  String msg = &quot;ABORTING region server &quot; + this + &quot;: &quot; + reaso">
+<meta property="og:updated_time" content="2018-02-08T06:34:15.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="长期更新一些HBase有用的工具和特性">
-<meta name="twitter:description" content="新的特性整理1、HBase存储图片，文档等字节流的内容
-https://issues.apache.org/jira/browse/HBASE-11339 
-2、compact的速度控制 
-https://issues.apache.org/jira/browse/HBASE-8329 
-3、关于scan强制控制超时的一个问题，相当与给scan本身加了一个心跳
-https://issues.apa">
+<meta name="twitter:title" content="HBase源码分析-RegionServer的abort">
+<meta name="twitter:description" content="1234567891011121314151617181920212223242526272829303132333435363738394041@Overridepublic void abort(String reason, Throwable cause) &amp;#123;  String msg = &quot;ABORTING region server &quot; + this + &quot;: &quot; + reaso">
 
 
 
@@ -133,13 +118,13 @@ https://issues.apa">
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2016/03/11/长期更新一些HBase有用的工具和特性/"/>
+  <link rel="canonical" href="http://yoursite.com/2015/02/06/HBase源码分析-RegionServer的abort/"/>
 
 
 
 
 
-  <title>长期更新一些HBase有用的工具和特性 | Aiping.LAP</title>
+  <title>HBase源码分析-RegionServer的abort | Aiping.LAP</title>
   
 
 
@@ -246,7 +231,7 @@ https://issues.apa">
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2016/03/11/长期更新一些HBase有用的工具和特性/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/02/06/HBase源码分析-RegionServer的abort/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="aiping.lap">
@@ -263,7 +248,7 @@ https://issues.apa">
 
         
         
-          <h1 class="post-title" itemprop="name headline">长期更新一些HBase有用的工具和特性</h1>
+          <h1 class="post-title" itemprop="name headline">HBase源码分析-RegionServer的abort</h1>
         
 
         <div class="post-meta">
@@ -275,8 +260,8 @@ https://issues.apa">
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2016-03-11T13:15:52+08:00">
-                2016-03-10
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-02-05T11:22:07-08:00">
+                2015-02-05
               </time>
             
 
@@ -318,55 +303,7 @@ https://issues.apa">
       
 
       
-        <h1 id="新的特性整理"><a href="#新的特性整理" class="headerlink" title="新的特性整理"></a>新的特性整理</h1><p>1、HBase存储图片，文档等字节流的内容</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-11339" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-11339</a> </p>
-<p>2、compact的速度控制 </p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-8329" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-8329</a> </p>
-<p>3、关于scan强制控制超时的一个问题，相当与给scan本身加了一个心跳</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-13090" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-13090</a></p>
-<p>4、在执行HBase的BULK Load的时候，如果导入失败，但是如果写了WAL也认为是成功，这是个BUG</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-15425" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15425</a></p>
-<p>5、终于要出手解决监控的问题了，汇总监控，以前的监控受限于rs的个数</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-15742" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15742</a></p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-14470" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-14470</a></p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-15728" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15728</a></p>
-<p>6、为set batch的一些代码传输了所有的错误堆栈信息</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-15711" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15711</a></p>
-<p>7、增加admin动作的一些权限控制</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-15388" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15388</a></p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-15128" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-15128</a></p>
-<p>8、表权限的控制</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-14809" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-14809</a></p>
-<p>9、通过创建多备份，实现读写分离，加快读的速度，有点针对kudu</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-10070" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-10070</a></p>
-<p>10、可以不停服务的更新配置</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-12147" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-12147</a></p>
-<p>11、单列簇的flush</p>
-<p> <a href="https://issues.apache.org/jira/browse/HBASE-10201" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-10201</a></p>
-<p>12、单个列簇的时间范围scan</p>
-<p><a href="https://issues.apache.org/jira/browse/HBASE-14355" target="_blank" rel="external">https://issues.apache.org/jira/browse/HBASE-14355</a></p>
-<p>13、一个比较老的特性，就是表的实时增量备份，但是一直不稳定，不建议线上用</p>
-<p><a href="https://hbase.apache.org/0.94/replication.html" target="_blank" rel="external">https://hbase.apache.org/0.94/replication.html</a></p>
-<h1 id="一些其它的整理："><a href="#一些其它的整理：" class="headerlink" title="一些其它的整理："></a>一些其它的整理：</h1><p>HBase的一个检测表运行状态的工具 </p>
-<p><a href="http://blog.csdn.net/yueyedeai/article/details/17646393" target="_blank" rel="external">http://blog.csdn.net/yueyedeai/article/details/17646393</a></p>
-<p>一个不错的博客</p>
-<p><a href="https://zh.hortonworks.com/blog/apache-hbase-region-splitting-and-merging/" target="_blank" rel="external">https://zh.hortonworks.com/blog/apache-hbase-region-splitting-and-merging/</a></p>
-<h1 id="HBase2018的一些重点发展规划"><a href="#HBase2018的一些重点发展规划" class="headerlink" title="HBase2018的一些重点发展规划"></a>HBase2018的一些重点发展规划</h1><h2 id="系统优化新特性列表"><a href="#系统优化新特性列表" class="headerlink" title="系统优化新特性列表"></a>系统优化新特性列表</h2><p>•多版本的客户端兼容</p>
-<p>•Region Assign的流程优化</p>
-<p>•通过堆外二级的读缓存BucketCache 和Memstore堆外存储实现缓存的对外存储</p>
-<p>•In-Memory Compact</p>
-<p>•通过namespace来实现对表大小的控制</p>
-<p>•Server和Client之间的通信抛弃之前的消费者模式+队列+线程池的方法，改成使用Netty</p>
-<p>•实现DFS Client的异步写</p>
-<p>•支持中等对象存储 (小图片、文档等)</p>
-<p>•通过Snapshot+Replication实现全量的备份</p>
-<p>•借助WAL直接转换成Hfile实现增量备份</p>
-<p>•通过RegionServer的物理隔离实现多租户的方案</p>
-<p>•Spark on Hbase的解决方案</p>
-<p>•对多种语言的客户端支持</p>
-<p>•异步Client的调用</p>
-<p>•使用G1回收替代CMS</p>
-
+        <figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div></pre></td><td class="code"><pre><div class="line"><span class="meta">@Override</span></div><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">abort</span><span class="params">(String reason, Throwable cause)</span> </span>&#123;</div><div class="line">  String msg = <span class="string">"ABORTING region server "</span> + <span class="keyword">this</span> + <span class="string">": "</span> + reason;</div><div class="line">  <span class="keyword">if</span> (cause != <span class="keyword">null</span>) &#123;</div><div class="line">    LOG.fatal(msg, cause);</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    LOG.fatal(msg);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">this</span>.abortRequested = <span class="keyword">true</span>;</div><div class="line">  <span class="comment">// HBASE-4014: show list of coprocessors that were loaded to help debug</span></div><div class="line">  <span class="comment">// regionserver crashes.Note that we're implicitly using</span></div><div class="line">  <span class="comment">// java.util.HashSet's toString() method to print the coprocessor names.</span></div><div class="line">  LOG.fatal(<span class="string">"RegionServer abort: loaded coprocessors are: "</span> +</div><div class="line">      CoprocessorHost.getLoadedCoprocessors());</div><div class="line">  <span class="comment">// Try and dump metrics if abort -- might give clue as to how fatal came about....</span></div><div class="line">  <span class="keyword">try</span> &#123;</div><div class="line">    LOG.info(<span class="string">"Dump of metrics as JSON on abort: "</span> + JSONBean.dumpRegionServerMetrics());</div><div class="line">  &#125; <span class="keyword">catch</span> (MalformedObjectNameException | IOException e) &#123;</div><div class="line">    LOG.warn(<span class="string">"Failed dumping metrics"</span>, e);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// Do our best to report our abort to the master, but this may not work</span></div><div class="line">  <span class="keyword">try</span> &#123;</div><div class="line">    <span class="keyword">if</span> (cause != <span class="keyword">null</span>) &#123;</div><div class="line">      msg += <span class="string">"\nCause:\n"</span> + StringUtils.stringifyException(cause);</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// Report to the master but only if we have already registered with the master.</span></div><div class="line">    <span class="keyword">if</span> (rssStub != <span class="keyword">null</span> &amp;&amp; <span class="keyword">this</span>.serverName != <span class="keyword">null</span>) &#123;</div><div class="line">      ReportRSFatalErrorRequest.Builder builder =</div><div class="line">        ReportRSFatalErrorRequest.newBuilder();</div><div class="line">      ServerName sn =</div><div class="line">        ServerName.parseVersionedServerName(<span class="keyword">this</span>.serverName.getVersionedBytes());</div><div class="line">      builder.setServer(ProtobufUtil.toServerName(sn));</div><div class="line">      builder.setErrorMessage(msg);</div><div class="line">      rssStub.reportRSFatalError(<span class="keyword">null</span>, builder.build());</div><div class="line">    &#125;</div><div class="line">  &#125; <span class="keyword">catch</span> (Throwable t) &#123;</div><div class="line">    LOG.warn(<span class="string">"Unable to report fatal error to master"</span>, t);</div><div class="line">  &#125;</div><div class="line">  stop(reason);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
       
     </div>
     
@@ -425,8 +362,8 @@ https://issues.apa">
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2015/12/30/java多线程测试常用到的工具CycliBarrier/" rel="next" title="java多线程测试常用到的工具CyclicBarrie">
-                <i class="fa fa-chevron-left"></i> java多线程测试常用到的工具CyclicBarrie
+              <a href="/2015/02/05/HBase源码分析-Region-Split/" rel="next" title="HBase源码分析-Region Split">
+                <i class="fa fa-chevron-left"></i> HBase源码分析-Region Split
               </a>
             
           </div>
@@ -435,8 +372,8 @@ https://issues.apa">
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2016/03/23/Hadoop开启LZO后的压测/" rel="prev" title="Hadoop开启LZO后的压测">
-                Hadoop开启LZO后的压测 <i class="fa fa-chevron-right"></i>
+              <a href="/2015/04/07/记录一次HBase的问题排查/" rel="prev" title="记录一次HBase的问题排查">
+                记录一次HBase的问题排查 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -491,17 +428,8 @@ https://issues.apa">
       
 
       
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
-            文章目录
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
-            站点概览
-          </li>
-        </ul>
-      
 
-      <section class="site-overview-wrap sidebar-panel">
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -554,22 +482,6 @@ https://issues.apa">
         </div>
       </section>
 
-      
-      <!--noindex-->
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-
-            
-              
-            
-
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#新的特性整理"><span class="nav-number">1.</span> <span class="nav-text">新的特性整理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#一些其它的整理："><span class="nav-number">2.</span> <span class="nav-text">一些其它的整理：</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HBase2018的一些重点发展规划"><span class="nav-number">3.</span> <span class="nav-text">HBase2018的一些重点发展规划</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#系统优化新特性列表"><span class="nav-number">3.1.</span> <span class="nav-text">系统优化新特性列表</span></a></li></ol></li></ol></div>
-            
-
-          </div>
-        </section>
-      <!--/noindex-->
       
 
       

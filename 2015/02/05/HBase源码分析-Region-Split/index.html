@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="HBase," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1、拆分的主要逻辑123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899pr">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HBase源码分析-Region Split">
+<meta property="og:url" content="http://yoursite.com/2015/02/05/HBase源码分析-Region-Split/index.html">
+<meta property="og:site_name" content="Aiping.LAP">
+<meta property="og:description" content="1、拆分的主要逻辑123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899pr">
+<meta property="og:updated_time" content="2018-02-08T06:32:19.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HBase源码分析-Region Split">
+<meta name="twitter:description" content="1、拆分的主要逻辑123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899pr">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2015/02/05/HBase源码分析-Region-Split/"/>
+
+
+
+
+
+  <title>HBase源码分析-Region Split | Aiping.LAP</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Aiping.LAP</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">认真工作，快乐生活</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2015/02/05/HBase源码分析-Region-Split/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="aiping.lap">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Aiping.LAP">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">HBase源码分析-Region Split</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2015-02-04T16:34:19-08:00">
+                2015-02-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i> 浏览
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>次
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="1、拆分的主要逻辑"><a href="#1、拆分的主要逻辑" class="headerlink" title="1、拆分的主要逻辑"></a>1、拆分的主要逻辑</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doSplitting</span><span class="params">(User user)</span> </span>&#123;</div><div class="line">  <span class="comment">//用来标记是否成功，后面用来打印日志，以及用来metric统计开关</span></div><div class="line">  <span class="keyword">boolean</span> success = <span class="keyword">false</span>;</div><div class="line">  <span class="comment">//添加一次split请求的统计</span></div><div class="line">  server.metricsRegionServer.incrSplitRequest();</div><div class="line">  <span class="comment">//记录启动时间，后续也是用于metric统计split时间，以及打印日志</span></div><div class="line">  <span class="keyword">long</span> startTime = EnvironmentEdgeManager.currentTime();</div><div class="line">  <span class="comment">//split的事务管理类,其中parent是父region，midKey是分割的行id</span></div><div class="line">  SplitTransactionImpl st = <span class="keyword">new</span> SplitTransactionImpl(parent, midKey);</div><div class="line">  <span class="keyword">try</span> &#123;</div><div class="line">    <span class="comment">//获取表的读共享锁，保证在修改期间，表的schema信息不会同步的被修改，具体可以见后面对createLock过程的分析</span></div><div class="line">    tableLock = server.getTableLockManager().readLock(parent.getTableDesc().getTableName()</div><div class="line">        , <span class="string">"SPLIT_REGION:"</span> + parent.getRegionInfo().getRegionNameAsString());</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">      <span class="comment">//这里尝试获取表锁，如果获取失败会抛出一个异常，结束本次的split请求</span></div><div class="line">      <span class="comment">//默认的表的锁借助的是zk,使用的是ZKTableLockManager</span></div><div class="line">      tableLock.acquire();</div><div class="line">    &#125; <span class="keyword">catch</span> (IOException ex) &#123;</div><div class="line">      tableLock = <span class="keyword">null</span>;</div><div class="line">      <span class="keyword">throw</span> ex;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//判断是否已经准备好了split，详细见后文对prepare部分的分析</span></div><div class="line">    <span class="keyword">if</span> (!st.prepare()) <span class="keyword">return</span>;</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">      <span class="comment">//进入split的事务处理流程</span></div><div class="line">      st.execute(<span class="keyword">this</span>.server, <span class="keyword">this</span>.server, user);</div><div class="line">      success = <span class="keyword">true</span>;</div><div class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">      <span class="comment">//重点：进入异常处理流程</span></div><div class="line">      <span class="comment">//如果是因为处理split流程的服务器停掉了，则不会继续进行任何处理</span></div><div class="line">      <span class="keyword">if</span> (<span class="keyword">this</span>.server.isStopping() || <span class="keyword">this</span>.server.isStopped()) &#123;</div><div class="line">        LOG.info(</div><div class="line">            <span class="string">"Skip rollback/cleanup of failed split of "</span></div><div class="line">                + parent.getRegionInfo().getRegionNameAsString() + <span class="string">" because server is"</span></div><div class="line">                + (<span class="keyword">this</span>.server.isStopping() ? <span class="string">" stopping"</span> : <span class="string">" stopped"</span>), e);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">      &#125;</div><div class="line">      <span class="comment">//</span></div><div class="line">      <span class="keyword">if</span> (e <span class="keyword">instanceof</span> DroppedSnapshotException) &#123;</div><div class="line">        server.abort(<span class="string">"Replay of WAL required. Forcing server shutdown"</span>, e);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">      &#125;</div><div class="line">      <span class="comment">//尝试回滚</span></div><div class="line">      <span class="keyword">try</span> &#123;</div><div class="line">        LOG.info(<span class="string">"Running rollback/cleanup of failed split of "</span> +</div><div class="line">          parent.getRegionInfo().getRegionNameAsString() + <span class="string">"; "</span> + e.getMessage(), e);</div><div class="line">        <span class="comment">//执行回滚逻辑</span></div><div class="line">        <span class="keyword">if</span> (st.rollback(<span class="keyword">this</span>.server, <span class="keyword">this</span>.server)) &#123;</div><div class="line">          LOG.info(<span class="string">"Successful rollback of failed split of "</span> +</div><div class="line">            parent.getRegionInfo().getRegionNameAsString());</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          <span class="comment">//回滚失败直接导致regionserver crash</span></div><div class="line">          <span class="keyword">this</span>.server.abort(<span class="string">"Abort; we got an error after point-of-no-return"</span>);</div><div class="line">        &#125;</div><div class="line">      &#125; <span class="keyword">catch</span> (RuntimeException ee) &#123;</div><div class="line">        <span class="comment">//如果回滚出异常，这里是日志记录，而且会导致regionserver abort</span></div><div class="line">        String msg = <span class="string">"Failed rollback of failed split of "</span> +</div><div class="line">          parent.getRegionInfo().getRegionNameAsString() + <span class="string">" -- aborting server"</span>;</div><div class="line">        <span class="comment">// If failed rollback, kill this server to avoid having a hole in table.</span></div><div class="line">        LOG.info(msg, ee);</div><div class="line">        <span class="keyword">this</span>.server.abort(msg + <span class="string">" -- Cause: "</span> + ee.getMessage());</div><div class="line">      &#125;</div><div class="line">      <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">  &#125; <span class="keyword">catch</span> (IOException ex) &#123;</div><div class="line">    LOG.error(<span class="string">"Split failed "</span> + <span class="keyword">this</span>, RemoteExceptionHandler.checkIOException(ex));</div><div class="line">    server.checkFileSystem();</div><div class="line">  &#125; <span class="keyword">finally</span> &#123;</div><div class="line">    <span class="comment">//在完成所有的动作后(不管split成功，或者是失败后回滚成功)，调用当前rs的存储过程</span></div><div class="line">    <span class="keyword">if</span> (<span class="keyword">this</span>.parent.getCoprocessorHost() != <span class="keyword">null</span>) &#123;</div><div class="line">      <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">this</span>.parent.getCoprocessorHost().postCompleteSplit();</div><div class="line">      &#125; <span class="keyword">catch</span> (IOException io) &#123;</div><div class="line">        LOG.error(<span class="string">"Split failed "</span> + <span class="keyword">this</span>,</div><div class="line">            RemoteExceptionHandler.checkIOException(io));</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (parent.shouldForceSplit()) &#123;</div><div class="line">      parent.clearSplit();</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//释放当前的表的锁</span></div><div class="line">    releaseTableLock();</div><div class="line">    <span class="keyword">long</span> endTime = EnvironmentEdgeManager.currentTime();</div><div class="line">    <span class="comment">// 更新统计中split运行时间</span></div><div class="line">    server.metricsRegionServer.updateSplitTime(endTime - startTime);</div><div class="line">    <span class="keyword">if</span> (success) &#123;</div><div class="line">      server.metricsRegionServer.incrSplitSuccess();</div><div class="line">      <span class="comment">// Log success</span></div><div class="line">      LOG.info(<span class="string">"Region split, hbase:meta updated, and report to master. Parent="</span></div><div class="line">          + parent.getRegionInfo().getRegionNameAsString() + <span class="string">", new regions: "</span></div><div class="line">          + st.getFirstDaughter().getRegionNameAsString() + <span class="string">", "</span></div><div class="line">          + st.getSecondDaughter().getRegionNameAsString() + <span class="string">". Split took "</span></div><div class="line">          + StringUtils.formatTimeDiff(EnvironmentEdgeManager.currentTime(), startTime));</div><div class="line">    &#125;</div><div class="line">    <span class="comment">// Always log the split transaction journal</span></div><div class="line">    LOG.info(<span class="string">"Split transaction journal:\n\t"</span> + StringUtils.join(<span class="string">"\n\t"</span>, st.getJournal()));</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>整个表的拆分过程中，强依赖了SplitTransaction来保证整个拆分的事务，SplitTranaction会顺序执行以下的步骤：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">enum</span> SplitTransactionPhase &#123;  </div><div class="line">  <span class="comment">//开始拆分的状态标记</span></div><div class="line">  STARTED,</div><div class="line">  <span class="comment">//拆分前的准备阶段</span></div><div class="line">  PREPARED,</div><div class="line">  <span class="comment">//调用pre split协处理器hook之前</span></div><div class="line">  BEFORE_PRE_SPLIT_HOOK,</div><div class="line">  <span class="comment">//调用pre split协处理器hook之后</span></div><div class="line">  AFTER_PRE_SPLIT_HOOK,</div><div class="line">  <span class="comment">//进入region的split状态</span></div><div class="line">  SET_SPLITTING,</div><div class="line">  <span class="comment">//创建临时的拆分目录</span></div><div class="line">  CREATE_SPLIT_DIR,</div><div class="line">  <span class="comment">//关闭父region</span></div><div class="line">  CLOSED_PARENT_REGION,</div><div class="line">  <span class="comment">//下线父region，这个时候父region会从服务的online regions列表中移除</span></div><div class="line">  OFFLINED_PARENT,</div><div class="line">  <span class="comment">//开始创建第一个子region</span></div><div class="line">  STARTED_REGION_A_CREATION,</div><div class="line">  <span class="comment">//开始创建第二个子region</span></div><div class="line">  STARTED_REGION_B_CREATION,</div><div class="line">  <span class="comment">//打开第一个子region</span></div><div class="line">  OPENED_REGION_A,</div><div class="line">  <span class="comment">//打开第二个子region</span></div><div class="line">  OPENED_REGION_B,</div><div class="line">  <span class="comment">//Point of no return，到达这一步意味着整个事务不可回滚了，如果之后的步骤出问题，就会导致regionserver的crash</span></div><div class="line">  PONR,</div><div class="line">  <span class="comment">//调用post split的协处理器hook前</span></div><div class="line">  BEFORE_POST_SPLIT_HOOK,</div><div class="line">  <span class="comment">//调用post split的协处理器hook后</span></div><div class="line">  AFTER_POST_SPLIT_HOOK,</div><div class="line">  <span class="comment">//结束整个拆分事务</span></div><div class="line">  COMPLETED</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="2、拆分前获取表锁"><a href="#2、拆分前获取表锁" class="headerlink" title="2、拆分前获取表锁"></a>2、拆分前获取表锁</h1><p>创建一个表的锁</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">private</span> InterProcessLock <span class="title">createTableLock</span><span class="params">()</span> </span>&#123;</div><div class="line">  <span class="comment">//获取表的锁路径，比如对于表名为table的表，锁路径是“/hbase/table-lock/table”</span></div><div class="line">  String tableLockZNode = ZKUtil.joinZNode(zkWatcher.tableLockZNode,</div><div class="line">      tableName.getNameAsString());</div><div class="line"></div><div class="line">  ZooKeeperProtos.TableLock data = ZooKeeperProtos.TableLock.newBuilder()</div><div class="line">    .setTableName(ProtobufUtil.toProtoTableName(tableName))</div><div class="line">    .setLockOwner(ProtobufUtil.toServerName(serverName))</div><div class="line">    .setThreadId(Thread.currentThread().getId())</div><div class="line">    .setPurpose(purpose)</div><div class="line">    .setIsShared(isShared)</div><div class="line">    .setCreateTime(EnvironmentEdgeManager.currentTime()).build();</div><div class="line">  <span class="keyword">byte</span>[] lockMetadata = toBytes(data);</div><div class="line"></div><div class="line">  <span class="comment">//创建一个InterProcessReadWriteLock类型的锁，会根据修改过程中是否允许读来决定是读锁还是写锁</span></div><div class="line">  InterProcessReadWriteLock lock = <span class="keyword">new</span> ZKInterProcessReadWriteLock(zkWatcher, tableLockZNode,</div><div class="line">    METADATA_HANDLER);</div><div class="line">  <span class="keyword">return</span> isShared ? lock.readLock(lockMetadata) : lock.writeLock(lockMetadata);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在region split的时候，会获取当前表、以及meta表中元数据的行锁，现在HBase的锁都依赖于ZK。</p>
+<h1 id="3、拆分前的准备过程"><a href="#3、拆分前的准备过程" class="headerlink" title="3、拆分前的准备过程"></a>3、拆分前的准备过程</h1><p>SplitTransactionImpl的prepare过程，这个过程主要完成一些逻辑判断，之后会预生成两个子region的元信息</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">prepare</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</div><div class="line">  <span class="comment">//如果要拆分的父Region已经closed或者是处于closing的状态，或者当前region下的所有store有被其它地方引用，则认为父region不可被拆分</span></div><div class="line">  <span class="keyword">if</span> (!<span class="keyword">this</span>.parent.isSplittable()) <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">  <span class="comment">//存在一些特殊情况，比如某一行的数据特别大，或者其它特殊情况的时候，可能会导致没有获取到midkey</span></div><div class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.splitrow == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">  <span class="comment">//获取父region的元信息</span></div><div class="line">  HRegionInfo hri = <span class="keyword">this</span>.parent.getRegionInfo();</div><div class="line">  <span class="comment">//这个是留着的一个接口，用来做拆分前的准备，但是现在还没有实现，应该是预留的接口</span></div><div class="line">  parent.prepareToSplit();</div><div class="line">  <span class="comment">//检查startKey和endKey是否等于splitrow,且要求splitrow是一个合法的rowkey，否则终止此次的拆分</span></div><div class="line">  <span class="keyword">byte</span> [] startKey = hri.getStartKey();</div><div class="line">  <span class="keyword">byte</span> [] endKey = hri.getEndKey();</div><div class="line">  <span class="keyword">if</span> (Bytes.equals(startKey, splitrow) ||</div><div class="line">      !<span class="keyword">this</span>.parent.getRegionInfo().containsRow(splitrow)) &#123;</div><div class="line">    LOG.info(<span class="string">"Split row is not inside region key range or is equal to "</span> +</div><div class="line">        <span class="string">"startkey: "</span> + Bytes.toStringBinary(<span class="keyword">this</span>.splitrow));</div><div class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//通过父region的元信息来计算子region的regionid,一般来说，会先获取当前的系统时间，如果当前系统时间比父region的id小，则返回父regionId+1，否则使用当前系统时间</span></div><div class="line">  <span class="comment">//注：regionid都是系统时间，要保证子region的id小于父reion的id，保证regionid按照时间有序</span></div><div class="line">  <span class="keyword">long</span> rid = getDaughterRegionIdTimestamp(hri);</div><div class="line">  <span class="comment">//生成要拆分的两个region的信息</span></div><div class="line">  <span class="keyword">this</span>.hri_a = <span class="keyword">new</span> HRegionInfo(hri.getTable(), startKey, <span class="keyword">this</span>.splitrow, <span class="keyword">false</span>, rid);</div><div class="line">  <span class="keyword">this</span>.hri_b = <span class="keyword">new</span> HRegionInfo(hri.getTable(), <span class="keyword">this</span>.splitrow, endKey, <span class="keyword">false</span>, rid);</div><div class="line"></div><div class="line">  <span class="comment">//在zk上标记当前的状态为SplitTransactionPhase.PREPARED状态</span></div><div class="line">  transition(SplitTransactionPhase.PREPARED);</div><div class="line">  <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<h1 id="4、拆分逻辑"><a href="#4、拆分逻辑" class="headerlink" title="4、拆分逻辑"></a>4、拆分逻辑</h1><p>完成了拆分前的准备后，就直接进入了拆分的逻辑，HBase的拆分过程中，目前都是强依赖于zk来协调整体的流程，包括表的锁、目前region的状态同步、以及拆分前后region的元信息同步</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> PairOfSameType&lt;Region&gt; <span class="title">execute</span><span class="params">(<span class="keyword">final</span> Server server,</span></span></div><div class="line">    <span class="keyword">final</span> RegionServerServices services, User user) <span class="keyword">throws</span> IOException &#123;</div><div class="line">  <span class="keyword">this</span>.server = server;</div><div class="line">  <span class="keyword">this</span>.rsServices = services;</div><div class="line">  useZKForAssignment = server == <span class="keyword">null</span> ? <span class="keyword">true</span> :</div><div class="line">    ConfigUtil.useZKForAssignment(server.getConfiguration());</div><div class="line">  <span class="comment">//这里需要判断是否有需要构造一个SplitTransactionCoordination对象，这个对象用来协调整个拆分</span></div><div class="line">  <span class="keyword">if</span> (useCoordinatedStateManager(server)) &#123;</div><div class="line">    std =</div><div class="line">        ((BaseCoordinatedStateManager) server.getCoordinatedStateManager())</div><div class="line">            .getSplitTransactionCoordination().getDefaultDetails();</div><div class="line">  &#125;</div><div class="line">  </div><div class="line">  <span class="comment">//核心的拆分逻辑的调用入口</span></div><div class="line">  PairOfSameType&lt;Region&gt; regions = createDaughters(server, services, user);</div><div class="line">  <span class="comment">//完成拆分后调用regionserver的存储过程</span></div><div class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.parent.getCoprocessorHost() != <span class="keyword">null</span>) &#123;</div><div class="line">    <span class="keyword">if</span> (user == <span class="keyword">null</span>) &#123;</div><div class="line">      <span class="comment">//调用after porn 的存储过程</span></div><div class="line">      parent.getCoprocessorHost().preSplitAfterPONR();</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      <span class="comment">//使用权限模式调用存储过程</span></div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//完成PRON后的动作，主要完成一些协处理器以及存储过程，返回</span></div><div class="line">  regions = stepsAfterPONR(server, services, regions, user);</div><div class="line">  <span class="comment">//标记当前的拆分已经完成</span></div><div class="line">  transition(SplitTransactionPhase.COMPLETED);</div><div class="line">  <span class="comment">//返回拆分完成后的两个region信息</span></div><div class="line">  <span class="keyword">return</span> regions;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在整个拆分的过程中，会用到一个SplitTransactionCoordination对象，用来协调整个split的事务，具体来说分三步:</p>
+<p>1、开始拆分：所有的准备和初始化工作(比如新创建的连个子region)都在这一步完成</p>
+<p>2、等待拆分事务：在整个split的事务完成前，协调器用来执行相关的逻辑</p>
+<p>3、结束拆分事务：等待所有的事务需要执行的步骤完成，在RONR(ponit of no retrun)之后调用</p>
+<p>在split事务的开始阶段，需要准备好子region以及相应的hdfs上region的元数据文件</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div></pre></td><td class="code"><pre><div class="line"><span class="function">PairOfSameType&lt;Region&gt; <span class="title">createDaughters</span><span class="params">(<span class="keyword">final</span> Server server,</span></span></div><div class="line">    <span class="keyword">final</span> RegionServerServices services, User user) <span class="keyword">throws</span> IOException &#123;</div><div class="line"> <span class="comment">//检查regionserver是否在正常服务</span></div><div class="line">  <span class="keyword">if</span> ((server != <span class="keyword">null</span> &amp;&amp; server.isStopped()) ||</div><div class="line">      (services != <span class="keyword">null</span> &amp;&amp; services.isStopping())) &#123;</div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Server is stopped or stopping"</span>);</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//确保当前线程获取到了父region的写锁，每个region都有一个全局的ReentrantReadWriteLock锁，用来防止元数据并发操作引入问题</span></div><div class="line">  <span class="keyword">assert</span> !<span class="keyword">this</span>.parent.lock.writeLock().isHeldByCurrentThread():</div><div class="line">    <span class="string">"Unsafe to hold write lock while performing RPCs"</span>;</div><div class="line">  transition(SplitTransactionPhase.BEFORE_PRE_SPLIT_HOOK);</div><div class="line"></div><div class="line">  <span class="comment">//调用pre split的协处理器，完成preSplit的hook</span></div><div class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.parent.getCoprocessorHost() != <span class="keyword">null</span>) &#123;</div><div class="line">    ...</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//完成调用pre split协处理器hook</span></div><div class="line">  transition(SplitTransactionPhase.AFTER_PRE_SPLIT_HOOK);</div><div class="line"></div><div class="line">  <span class="comment">// If true, no cluster to write meta edits to or to update znodes in.</span></div><div class="line">  <span class="keyword">boolean</span> testing = server == <span class="keyword">null</span>? <span class="keyword">true</span>:</div><div class="line">      server.getConfiguration().getBoolean(<span class="string">"hbase.testing.nocluster"</span>, <span class="keyword">false</span>);</div><div class="line">  <span class="keyword">this</span>.fileSplitTimeout = testing ? <span class="keyword">this</span>.fileSplitTimeout :</div><div class="line">      server.getConfiguration().getLong(<span class="string">"hbase.regionserver.fileSplitTimeout"</span>,</div><div class="line">        <span class="keyword">this</span>.fileSplitTimeout);</div><div class="line">  </div><div class="line">  <span class="comment">//执行PORN之前的逻辑</span></div><div class="line">  PairOfSameType&lt;Region&gt; daughterRegions = stepsBeforePONR(server, services, testing);</div><div class="line"></div><div class="line">  <span class="keyword">final</span> List&lt;Mutation&gt; metaEntries = <span class="keyword">new</span> ArrayList&lt;Mutation&gt;();</div><div class="line">  <span class="keyword">boolean</span> ret = <span class="keyword">false</span>;</div><div class="line">  <span class="comment">//获取当前的服务器的存储过程定义</span></div><div class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.parent.getCoprocessorHost() != <span class="keyword">null</span>) &#123;</div><div class="line">    <span class="keyword">if</span> (user == <span class="keyword">null</span>) &#123;</div><div class="line">      <span class="comment">//如果不是安全的模式，直接进入pre split的存储过程</span></div><div class="line">      ret = parent.getCoprocessorHost().preSplitBeforePONR(splitrow, metaEntries);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      <span class="comment">//使用PrivilegedExceptionAction来调用安全接口来调用preSplitBeforePONR</span></div><div class="line">      ....</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (ret) &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Coprocessor bypassing region "</span></div><div class="line">          + <span class="keyword">this</span>.parent.getRegionInfo().getRegionNameAsString() + <span class="string">" split."</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//完成存储过程后，需要对meta表进行相应的修改</span></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">      <span class="keyword">for</span> (Mutation p : metaEntries) &#123;</div><div class="line">        HRegionInfo.parseRegionName(p.getRow());</div><div class="line">      &#125;</div><div class="line">    &#125; <span class="keyword">catch</span> (IOException e) &#123;</div><div class="line">      LOG.error(<span class="string">"Row key of mutation from coprossor is not parsable as region name."</span></div><div class="line">          + <span class="string">"Mutations from coprocessor should only for hbase:meta table."</span>);</div><div class="line">      <span class="keyword">throw</span> e;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">//进入了pron的状态。当新的子region在open的时候，会添加新增的元数据文件到.META.表中，但是open可能会失败，比如因为超时导致的open失败，会导致元数据的不一致问题(可以参考HBASE-3872)。如果写元数据失败，这个时候需要把regionserver crash掉，在regionserver crash的过程中，会自动完成未完成的split步骤。</span></div><div class="line">  transition(SplitTransactionPhase.PONR);</div><div class="line"></div><div class="line">  <span class="comment">//如果本次的更改对meta有修改，则被切分出来的两个子region需要有一个原子性的更新，具体可以查看HBASE-7721。这个更新的成功或者失败，会标识本次split的更新结果，如果这个更新成功，则认为split成功，否则就会回滚。</span></div><div class="line">  <span class="keyword">if</span> (!testing &amp;&amp; useZKForAssignment) &#123;</div><div class="line">    <span class="keyword">if</span> (metaEntries == <span class="keyword">null</span> || metaEntries.isEmpty()) &#123;</div><div class="line">      MetaTableAccessor.splitRegion(server.getConnection(),</div><div class="line">        parent.getRegionInfo(), daughterRegions.getFirst().getRegionInfo(),</div><div class="line">        daughterRegions.getSecond().getRegionInfo(), server.getServerName(),</div><div class="line">        parent.getTableDesc().getRegionReplication());</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      offlineParentInMetaAndputMetaEntries(server.getConnection(),</div><div class="line">        parent.getRegionInfo(), daughterRegions.getFirst().getRegionInfo(), daughterRegions</div><div class="line">            .getSecond().getRegionInfo(), server.getServerName(), metaEntries,</div><div class="line">            parent.getTableDesc().getRegionReplication());</div><div class="line">    &#125;</div><div class="line">  &#125; <span class="keyword">else</span> <span class="keyword">if</span> (services != <span class="keyword">null</span> &amp;&amp; !useZKForAssignment) &#123;</div><div class="line">    <span class="keyword">if</span> (!services.reportRegionStateTransition(TransitionCode.SPLIT_PONR,</div><div class="line">        parent.getRegionInfo(), hri_a, hri_b)) &#123;</div><div class="line">      <span class="comment">// Passed PONR, let SSH clean it up</span></div><div class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Failed to notify master that split passed PONR: "</span></div><div class="line">        + parent.getRegionInfo().getRegionNameAsString());</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> daughterRegions;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>谢谢打赏，坚持原创技术分享</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.jpg" alt="aiping.lap 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+      <div id="alipay" style="display: inline-block">
+        <img id="alipay_qr" src="/images/alipay.jpg" alt="aiping.lap 支付宝"/>
+        <p>支付宝</p>
+      </div>
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HBase/" rel="tag"># HBase</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/02/02/HBase源码分析-HBase-RPC之Handler和Responser/" rel="next" title="HBase源码分析-HBase-RPC之Handler和Responser">
+                <i class="fa fa-chevron-left"></i> HBase源码分析-HBase-RPC之Handler和Responser
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/02/06/HBase源码分析-RegionServer的abort/" rel="prev" title="HBase源码分析-RegionServer的abort">
+                HBase源码分析-RegionServer的abort <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  
+    <div class="comments" id="comments">
+      <div id="uyan_frame"></div>
+    </div>
+  
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">aiping.lap</p>
+              <p class="site-description motion-element" itemprop="description">aiping.liang s home</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">59</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+          </div>
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1、拆分的主要逻辑"><span class="nav-number">1.</span> <span class="nav-text">1、拆分的主要逻辑</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2、拆分前获取表锁"><span class="nav-number">2.</span> <span class="nav-text">2、拆分前获取表锁</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3、拆分前的准备过程"><span class="nav-number">3.</span> <span class="nav-text">3、拆分前的准备过程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4、拆分逻辑"><span class="nav-number">4.</span> <span class="nav-text">4、拆分逻辑</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">aiping.lap</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.3</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i> 访问人数
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i> 总访问量
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      次
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.3"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+
+    
+      <!-- UY BEGIN -->
+      <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2152972"></script>
+      <!-- UY END -->
+    
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
